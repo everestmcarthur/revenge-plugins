@@ -8,8 +8,9 @@ import { lazy } from "@shared/lib/lazy";
 const ICON = 48;
 
 const CheckIcon = getAssetIDByName("CheckmarkLargeIcon");
-const GuildStore = findByStoreName("GuildStore");
+const SortedGuildStore = findByStoreName("SortedGuildStore");
 const GuildChannelStore = findByStoreName("GuildChannelStore");
+const ChannelStore = findByStoreName("ChannelStore");
 
 // Lazy because bulkAck lives on an action-creator module that, like routing, may not be required
 // by Discord's own code yet at the moment this plugin's bundle loads.
@@ -17,34 +18,59 @@ const getHaptic = lazy(() => findByProps("triggerHapticFeedback", "HapticFeedbac
 const getBulkAck = lazy(() => findByProps("bulkAck", "ackChannel"));
 const getReadStateTypes = lazy(() => findByProps("ReadStateTypes", "UnreadSetting")?.ReadStateTypes);
 
-// Mirrors the payload shape Discord's own bulk-ack call sites use (confirmed against decompiled
-// current-build source, e.g. modules/guild/markGuildsAsRead.tsx): an array of
-// { channelId, readStateType, messageId } acked in one dispatch. Built here from GuildStore +
-// GuildChannelStore directly rather than calling markGuildsAsRead itself, since that module has no
-// named export to reliably target with findByProps (it's a bare default export).
+function collectGuildIds(): string[] {
+    // Same tree ServerDrawerSheet already renders from (SortedGuildStore.getGuildsTree()), so this
+    // reaches every guild the drawer shows, folders included, using data already proven to resolve
+    // correctly rather than a separately-shaped GuildStore method.
+    const tree = SortedGuildStore?.getGuildsTree?.();
+    const roots = (tree?.root?.children ?? []).filter((n: any) => n?.type !== "root");
+
+    const ids: string[] = [];
+    const visit = (nodes: any[]) => {
+        for (const node of nodes) {
+            if (node.type === "folder") visit(node.children ?? []);
+            else if (node.id != null) ids.push(String(node.id));
+        }
+    };
+    visit(roots);
+    return ids;
+}
+
+// Mirrors exactly what Discord's own modules/guild/markGuildsAsRead.tsx does (confirmed against
+// decompiled current-build source): flatMap getSelectableChannelIds(guild) + getVocalChannelIds
+// (guild), then bulkAck an array of { channelId, readStateType, messageId }. Built here directly
+// rather than calling markGuildsAsRead itself, since that module has no named export to reliably
+// target with findByProps (it's a bare default export with nothing else on the module to key off).
 function markAllServersRead() {
     const bulkAck = getBulkAck();
     const ReadStateTypes = getReadStateTypes();
-    if (!bulkAck?.bulkAck || ReadStateTypes?.CHANNEL == null || !GuildStore?.getGuilds || !GuildChannelStore?.getChannels) {
+    if (
+        !bulkAck?.bulkAck || ReadStateTypes?.CHANNEL == null ||
+        !GuildChannelStore?.getSelectableChannelIds || !GuildChannelStore?.getVocalChannelIds
+    ) {
         showToast("Couldn't find Discord's read-state action - this may be unavailable on your version.", undefined);
+        return;
+    }
+
+    const guildIds = collectGuildIds();
+    if (guildIds.length === 0) {
+        showToast("Nothing to mark as read.", undefined);
         return;
     }
 
     const channels: { channelId: string; readStateType: number; messageId: string | null }[] = [];
 
-    for (const guildId of Object.keys(GuildStore.getGuilds())) {
-        const byType = GuildChannelStore.getChannels(guildId) ?? {};
-        for (const entries of Object.values(byType)) {
-            if (!Array.isArray(entries)) continue;
-            for (const entry of entries as any[]) {
-                const channel = entry?.channel;
-                if (!channel?.id) continue;
-                channels.push({
-                    channelId: channel.id,
-                    readStateType: ReadStateTypes.CHANNEL,
-                    messageId: channel.lastMessageId ?? null,
-                });
-            }
+    for (const guildId of guildIds) {
+        const channelIds = [
+            ...(GuildChannelStore.getSelectableChannelIds(guildId) ?? []),
+            ...(GuildChannelStore.getVocalChannelIds(guildId) ?? []),
+        ];
+        for (const channelId of channelIds) {
+            channels.push({
+                channelId,
+                readStateType: ReadStateTypes.CHANNEL,
+                messageId: ChannelStore?.getChannel?.(channelId)?.lastMessageId ?? null,
+            });
         }
     }
 

@@ -11,6 +11,7 @@ import { patchAutoCollapseFolders } from "./patches/autoCollapseFolders";
 import Settings from "./ui/Settings";
 
 let cleanups: (() => void)[] = [];
+let retryHandle: ReturnType<typeof setInterval> | undefined;
 
 // Each of these functions already checks its own lookup and returns false instead of patching
 // when it comes up empty - this wrapper adds one more layer so a lookup that throws outright
@@ -25,32 +26,72 @@ function tryPatch(name: string, fn: () => boolean): boolean {
     }
 }
 
+// The Quest Dock (and the internals it depends on) isn't guaranteed to be registered in Metro yet
+// at the exact moment onLoad runs - same class of startup race fixed elsewhere in this repo
+// (YouBar+'s button patch, ServerDrawer's own navigation lookups). A single onLoad attempt could
+// permanently miss one or more of these, which is what "the drawer sometimes just doesn't show up"
+// looked like. Instead of one shot, this retries whatever hasn't landed yet on a fast interval
+// until everything's applied (or it gives up after ~10s, which would mean something's genuinely
+// missing rather than just not loaded yet).
 function applyAll() {
-    const applied: string[] = [];
+    const patchers: Record<string, () => boolean> = {
+        questDockRender: () => patchQuestDockRender(cleanups),
+        questDockBase: () => patchQuestDockBase(cleanups),
+        mobileQuestDock: () => patchMobileQuestDock(cleanups),
+        getQuestAsset: () => patchGetQuestAsset(cleanups),
+        expanded: () => patchExpanded(cleanups),
+        collapsed: () => patchEmpty("QuestDockContentCollapsed", cleanups),
+        enrolledHeader: () => patchEmpty("QuestDockEnrolledHeader", cleanups),
+        unenrolledHeader: () => patchEmpty("QuestDockUnenrolledHeader", cleanups),
+        enrolledBody: () => patchEmpty("QuestDockEnrolledBody", cleanups),
+        unenrolledBody: () => patchEmpty("QuestDockUnenrolledBody", cleanups),
+        autoCollapseFolders: () => patchAutoCollapseFolders(cleanups),
+        ...(storage.hideGuildsBar ? { hideGuildsBar: () => patchHideGuildsBar(cleanups) } : {}),
+    };
 
     patchCreateElement(cleanups);
 
-    if (tryPatch("questDockRender", () => patchQuestDockRender(cleanups))) applied.push("questDockRender");
-    if (tryPatch("questDockBase", () => patchQuestDockBase(cleanups))) applied.push("questDockBase");
-    if (tryPatch("mobileQuestDock", () => patchMobileQuestDock(cleanups))) applied.push("mobileQuestDock");
-    if (tryPatch("getQuestAsset", () => patchGetQuestAsset(cleanups))) applied.push("getQuestAsset");
-    if (tryPatch("expanded", () => patchExpanded(cleanups))) applied.push("expanded");
-    if (tryPatch("collapsed", () => patchEmpty("QuestDockContentCollapsed", cleanups))) applied.push("collapsed");
-    if (tryPatch("enrolledHeader", () => patchEmpty("QuestDockEnrolledHeader", cleanups))) applied.push("enrolledHeader");
-    if (tryPatch("unenrolledHeader", () => patchEmpty("QuestDockUnenrolledHeader", cleanups))) applied.push("unenrolledHeader");
-    if (tryPatch("enrolledBody", () => patchEmpty("QuestDockEnrolledBody", cleanups))) applied.push("enrolledBody");
-    if (tryPatch("unenrolledBody", () => patchEmpty("QuestDockUnenrolledBody", cleanups))) applied.push("unenrolledBody");
+    const pending = new Set(Object.keys(patchers));
+    const applied = new Set<string>();
 
-    if (storage.hideGuildsBar) {
-        if (tryPatch("hideGuildsBar", () => patchHideGuildsBar(cleanups))) applied.push("hideGuildsBar");
+    const attempt = () => {
+        for (const name of pending) {
+            if (tryPatch(name, patchers[name])) {
+                applied.add(name);
+                pending.delete(name);
+            }
+        }
+
+        if (pending.size === 0 && retryHandle) {
+            clearInterval(retryHandle);
+            retryHandle = undefined;
+        }
+    };
+
+    attempt();
+
+    if (pending.size > 0) {
+        let ticks = 0;
+        retryHandle = setInterval(() => {
+            attempt();
+            if (++ticks >= 50 && retryHandle) { // ~10s at 200ms
+                clearInterval(retryHandle);
+                retryHandle = undefined;
+                if (pending.size > 0) {
+                    logger.error(`[ServerDrawer] Gave up waiting on: ${[...pending].join(", ")}`);
+                }
+            }
+        }, 200);
     }
 
-    if (tryPatch("autoCollapseFolders", () => patchAutoCollapseFolders(cleanups))) applied.push("autoCollapseFolders");
-
-    logger.log(`[ServerDrawer] onLoad done - ${applied.length}/12 patches applied (${applied.join(", ") || "none"})`);
+    logger.log(`[ServerDrawer] onLoad: applied immediately - ${[...applied].join(", ") || "none"}${pending.size ? `, still waiting on ${[...pending].join(", ")}` : ""}`);
 }
 
 function unpatchAll() {
+    if (retryHandle) {
+        clearInterval(retryHandle);
+        retryHandle = undefined;
+    }
     for (const fn of cleanups) {
         try {
             fn();
