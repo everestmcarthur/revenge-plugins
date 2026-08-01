@@ -38,6 +38,19 @@ its own guard, so if Discord changes one internal again, only that specific surf
 the whole plugin down. PronounDB's break was simpler: its old data source was a PronounDB API version that Discord
 had nothing to do with - PronounDB itself shut it down (HTTP 410) - so it's been migrated to their current v2 API.
 
+## Shared plugin library
+
+`shared/` holds code every plugin can use - `@shared/lib/patcher` (the crash-isolation helper described
+above), `@shared/lib/color`, and reusable settings UI (`SettingsScaffold`, `NoteBox`, `ColorInput`,
+`ListSection`, `PrimaryButton`). Plugins are still installed and run independently by users, so this isn't
+a runtime dependency - Rollup inlines whatever a plugin imports from `@shared/*` straight into that
+plugin's own bundle at build time. Import it like any other module:
+
+```ts
+import { applyPatches } from "@shared/lib/patcher";
+import ColorInput from "@shared/ui/ColorInput";
+```
+
 ## Building locally
 
 ```sh
