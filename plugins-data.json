@@ -132,6 +132,34 @@
     "issueUrl": "https://github.com/everestmcarthur/revenge-plugins/issues/new?title=%5BRoleColorEverywhere%5D%20"
   },
   {
+    "id": "server-drawer",
+    "name": "ServerDrawer",
+    "description": "Replaces the Quest Dock with a server grid drawer above the YouBar - tap to expand, long-press a server for its context menu, plus a one-tap create/join button.",
+    "authors": [
+      "everestmcarthur",
+      "kmmiio99o"
+    ],
+    "category": "Moderation & Appearance",
+    "status": "revived",
+    "accent": "#F97316",
+    "tagline": "Turns the Quest Dock into an expandable server grid, above the YouBar.",
+    "note": "Fork of kmmiio99o's ServerDrawer. One lookup (useMobileQuestDock) was missing an optional-chaining guard - if that lookup came back empty, the whole onLoad threw and every patch after it in the sequence never got applied, not just that one surface. Fixed, plus every patch call is now wrapped so a single bad lookup only skips its own surface.",
+    "howItWorks": "Hijacks the Quest Dock - the strip Discord normally uses for daily quests, right above the tab bar - and puts a grid of your servers there instead. Tap it to expand, tap a server to jump to it, long-press for the usual context menu (mark as read, notification settings, leave, etc). A + button opens Discord's own create/join-server modal. Optionally hides the left server rail down to a single DMs icon, since your servers now live in the drawer instead.",
+    "features": [
+      "Tap-to-expand server grid with folders, unread badges, and mention counts",
+      "Long-press a server for its real context menu, not a rebuilt one",
+      "One-tap create/join through Discord's native modal",
+      "Optional: collapse the left server rail to a single DMs icon",
+      "Toggle unread badges independently"
+    ],
+    "commands": [],
+    "limitations": "Depends on several internal Quest Dock lookups (11 in total) - each is individually guarded, so a future Discord rename degrades one surface at a time instead of breaking the whole plugin. Drawer position (left/right/top) is planned but not in this build yet - it currently only replaces the Quest Dock's native bottom position.",
+    "pageUrl": "https://rp.jarviscli.dev/server-drawer/",
+    "installUrl": "https://rp.jarviscli.dev/server-drawer/install/",
+    "sourceUrl": "https://github.com/everestmcarthur/revenge-plugins/tree/main/plugins/server-drawer",
+    "issueUrl": "https://github.com/everestmcarthur/revenge-plugins/issues/new?title=%5BServerDrawer%5D%20"
+  },
+  {
     "id": "staff-tags",
     "name": "Staff Tags",
     "description": "Adds customizable tags (OWNER, ADMIN, STAFF, MOD, and more) next to members based on their server permissions. Supports per-tag colors, gradients, custom text, and visibility toggles.",
