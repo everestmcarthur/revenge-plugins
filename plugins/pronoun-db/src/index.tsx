@@ -5,16 +5,23 @@ import { findInReactTree } from "@vendetta/utils";
 import PronounSection from "./ui/PronounSection";
 import Settings from "./ui/Settings";
 
-const UserProfile = find((m: any) => m?.type?.name === "UserProfile");
+// Discord renamed the top-level profile component from "UserProfile" to "UserProfileContent" at
+// some point (confirmed against decompiled current-build source) - checking both names covers
+// whichever one a given Discord build actually uses.
+const UserProfile =
+    find((m: any) => m?.type?.name === "UserProfileContent") ??
+    find((m: any) => m?.type?.name === "UserProfile");
 
 function patchProfile(): () => void {
     if (!UserProfile) return () => {};
 
     return after("type", UserProfile, (_: any, res: any) => {
         try {
+            // Same story here - the bio card component is now named "UserProfileAboutMeCard",
+            // was "UserProfileBio" in older builds.
             const bioSection = findInReactTree(res, (r) =>
                 Array.isArray(r?.props?.children) &&
-                r.props.children.some((c: any) => c?.type?.name === "UserProfileBio")
+                r.props.children.some((c: any) => c?.type?.name === "UserProfileAboutMeCard" || c?.type?.name === "UserProfileBio")
             );
 
             const children = bioSection?.props?.children;
