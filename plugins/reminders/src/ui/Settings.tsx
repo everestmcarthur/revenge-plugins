@@ -1,11 +1,10 @@
-import { ReactNative } from "@vendetta/metro/common";
+import { React } from "@vendetta/metro/common";
 import { useProxy } from "@vendetta/storage";
 import { storage } from "@vendetta/plugin";
-import { Forms } from "@vendetta/ui/components";
+import SettingsScaffold from "@shared/ui/SettingsScaffold";
+import ListSection from "@shared/ui/ListSection";
+import NoteBox from "@shared/ui/NoteBox";
 import { getReminders, removeReminder } from "../lib/reminders";
-
-const { ScrollView, View } = ReactNative;
-const { FormSection, FormRow, FormText } = Forms;
 
 function formatRemaining(dueAt: number): string {
     const ms = dueAt - Date.now();
@@ -26,29 +25,22 @@ export default function Settings() {
     useProxy(reminders);
 
     return (
-        <ScrollView style={{ flex: 1 }}>
-            <FormSection title="Pending reminders">
-                {reminders.length === 0 && (
-                    <FormText style={{ marginHorizontal: 16, marginVertical: 8 }}>
-                        None yet. Set one from any chat with /remind, e.g. "/remind 20m Walk the dog".
-                    </FormText>
-                )}
-                {reminders.map((r) => (
-                    <FormRow
-                        key={r.id}
-                        label={r.text}
-                        subLabel={`${formatRemaining(r.dueAt)}  •  Tap to cancel`}
-                        onPress={() => removeReminder(r.id)}
-                    />
-                ))}
-            </FormSection>
-            <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-                <FormText>
-                    Reminders fire while Discord is open (foreground or background) - they can't wake the app
-                    up from fully closed, since that needs a native OS-level notification this plugin doesn't
-                    have access to.
-                </FormText>
-            </View>
-        </ScrollView>
+        <SettingsScaffold>
+            <ListSection
+                title="Pending reminders"
+                emptyText='None yet. Set one from any chat with /remind, e.g. "/remind 20m Walk the dog".'
+                items={reminders.map((r) => ({
+                    key: r.id,
+                    label: r.text,
+                    subLabel: `${formatRemaining(r.dueAt)}  •  Tap to cancel`,
+                    onPress: () => removeReminder(r.id)
+                }))}
+            />
+            <NoteBox>
+                Reminders fire while Discord is open (foreground or background) - they can't wake the app
+                up from fully closed, since that needs a native OS-level notification this plugin doesn't
+                have access to.
+            </NoteBox>
+        </SettingsScaffold>
     );
 }
