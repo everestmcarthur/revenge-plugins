@@ -4,6 +4,7 @@ import { findByProps, findByStoreName } from "@vendetta/metro";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 import { showToast } from "@vendetta/ui/toasts";
 import { lazy } from "@shared/lib/lazy";
+import { rawFindByProps } from "@shared/lib/rawFind";
 
 const ICON = 48;
 
@@ -12,11 +13,12 @@ const SortedGuildStore = findByStoreName("SortedGuildStore");
 const GuildChannelStore = findByStoreName("GuildChannelStore");
 const ChannelStore = findByStoreName("ChannelStore");
 
-// Lazy because bulkAck lives on an action-creator module that, like routing, may not be required
-// by Discord's own code yet at the moment this plugin's bundle loads.
-const getHaptic = lazy(() => findByProps("triggerHapticFeedback", "HapticFeedbackTypes"));
-const getBulkAck = lazy(() => findByProps("bulkAck", "ackChannel"));
-const getReadStateTypes = lazy(() => findByProps("ReadStateTypes", "UnreadSetting")?.ReadStateTypes);
+// Lazy + rawFindByProps (not findByProps) because bulkAck lives on an action-creator module that,
+// like routing, may not be required by Discord's own code yet at the moment this plugin's bundle
+// loads - and a retried findByProps call is a no-op after its first failure (see rawFind.ts).
+const getHaptic = lazy(() => rawFindByProps("triggerHapticFeedback", "HapticFeedbackTypes"));
+const getBulkAck = lazy(() => rawFindByProps("bulkAck", "ackChannel"));
+const getReadStateTypes = lazy(() => rawFindByProps("ReadStateTypes", "UnreadSetting")?.ReadStateTypes);
 
 function collectGuildIds(): string[] {
     // Same tree ServerDrawerSheet already renders from (SortedGuildStore.getGuildsTree()), so this

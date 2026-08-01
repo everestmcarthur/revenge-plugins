@@ -1,6 +1,6 @@
-import { findByStoreName } from "@vendetta/metro";
 import { FluxDispatcher } from "@vendetta/metro/common";
 import { storage } from "@vendetta/plugin";
+import { rawFindByStoreName } from "@shared/lib/rawFind";
 
 // Adapted from fres621's BetterFolders (autoCollapse.ts) - ported as a ServerDrawer feature
 // instead of a standalone plugin because BetterFolders' other half (hideIcons) patches a
@@ -9,7 +9,7 @@ import { storage } from "@vendetta/plugin";
 // replaces. This half doesn't touch that component - it only reacts to the same folder-expand
 // store/event ServerDrawer's own FolderItem already uses, so it works standalone here.
 export function patchAutoCollapseFolders(cleanups: (() => void)[]): boolean {
-    const ExpandedGuildFolderStore = findByStoreName("ExpandedGuildFolderStore");
+    const ExpandedGuildFolderStore = rawFindByStoreName("ExpandedGuildFolderStore");
     if (!ExpandedGuildFolderStore?.getExpandedFolders) return false;
 
     const listener = ({ folderId }: { folderId?: string | number }) => {

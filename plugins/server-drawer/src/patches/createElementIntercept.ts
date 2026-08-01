@@ -1,5 +1,5 @@
 import { React } from "@vendetta/metro/common";
-import { find } from "@vendetta/metro";
+import { rawFind } from "@shared/lib/rawFind";
 
 interface Intercept {
     replacement: React.ComponentType<any>;
@@ -82,7 +82,7 @@ export function patchCreateElement(cleanups: (() => void)[]) {
     // hideGuildsBar's intercept never actually did anything even though it registered correctly.
     // Found by shape (jsx/jsxs/Fragment together), not by name, for the same reason everything
     // else in this file avoids name-based lookups.
-    const jsxRuntime = find((m: any) => typeof m?.jsx === "function" && typeof m?.jsxs === "function" && "Fragment" in m);
+    const jsxRuntime = rawFind((m: any) => typeof m?.jsx === "function" && typeof m?.jsxs === "function" && "Fragment" in m);
     const restoreJsx: (() => void)[] = [];
 
     if (jsxRuntime) {
