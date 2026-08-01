@@ -18,7 +18,14 @@ const extensions = [".js", ".jsx", ".mjs", ".ts", ".tsx", ".cts", ".mts"];
 /** @type import("rollup").InputPluginOption */
 const plugins = [
     alias({
-        entries: [{ find: "@shared", replacement: resolvePath("./shared") }],
+        entries: [
+            { find: "@shared", replacement: resolvePath("./shared") },
+            // FPTE's own internal aliases, namespaced to avoid colliding with any other plugin
+            // that might want a generic "@lib"/"@ui" of its own.
+            { find: "@fpte/lib", replacement: resolvePath("./plugins/fake-profile-themes-and-effects/src/lib") },
+            { find: "@fpte/ui", replacement: resolvePath("./plugins/fake-profile-themes-and-effects/src/ui") },
+            { find: "@fpte/patches", replacement: resolvePath("./plugins/fake-profile-themes-and-effects/src/patches") },
+        ],
     }),
     nodeResolve({ extensions: [".mjs", ".js", ".json", ".node", ".ts", ".tsx"] }),
     commonjs(),
@@ -70,6 +77,13 @@ for (const plug of await readdir("./plugins")) {
         const bundle = await rollup({
             input: `./plugins/${plug}/${manifest.main}`,
             onwarn: () => {},
+            // Most plugins only ever import React/ReactNative via @vendetta/metro/common, which
+            // resolves to nothing on disk and so is treated as external automatically - but a
+            // couple of ported plugins import the bare "react"/"react-native" packages directly
+            // (like their own original build configs expected), and those DO exist in
+            // node_modules, so without this they'd actually get bundled - including react-native's
+            // real source, which contains Flow syntax this toolchain can't parse.
+            external: ["react", "react-native"],
             plugins,
         });
 
@@ -79,6 +93,7 @@ for (const plug of await readdir("./plugins")) {
                 if (id.startsWith("@vendetta")) return id.substring(1).replace(/\//g, ".");
                 const map = {
                     react: "window.React",
+                    "react-native": "vendetta.metro.common.ReactNative",
                 };
 
                 return map[id] || null;

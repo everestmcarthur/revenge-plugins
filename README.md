@@ -23,6 +23,7 @@ To install: open Discord with Revenge installed, go to **Settings → Plugins**,
 | Staff Tags | Rebuilt | OWNER/ADMIN/STAFF/MOD-style tags next to members, computed from real server permissions. Per-tag text, colors, gradients, and visibility. | `https://rp.jarviscli.dev/staff-tags/install/` |
 | RoleColorEverywhere | Revived | A member's top role color shown in mentions, the typing indicator, voice channel names, member list role headers, and optionally message text. | `https://rp.jarviscli.dev/role-color-everywhere/install/` |
 | PronounDB | Revived | Shows a user's pronouns in their profile, if they've set them at pronoundb.org (nothing to configure in the plugin itself). | `https://rp.jarviscli.dev/pronoun-db/install/` |
+| FakeProfileThemesAndEffects | Revived | Profile theming and profile effects without Nitro. Fork of [shipwr3ckd's FPTE](https://github.com/shipwr3ckd/FPTE) - fixed a crash on every profile-editor open, confirmed via on-device diagnostics. | `https://rp.jarviscli.dev/fake-profile-themes-and-effects/install/` |
 | BetterTimestamps | Revived | Calendar-relative, fully relative, ISO 8601, or a custom moment.js timestamp format, for both messages and day dividers. | `https://rp.jarviscli.dev/better-timestamps/install/` |
 | CopyRoleColor | Revived | Long-press a role pill to copy its color as hex. | `https://rp.jarviscli.dev/copy-role-color/install/` |
 
@@ -40,7 +41,7 @@ To install: open Discord with Revenge installed, go to **Settings → Plugins**,
 | Plugin | Status | Description | Install link |
 | --- | --- | --- | --- |
 | ViewRaw | Revived | See a message's raw JSON via long-press - searchable, syntax-highlighted, and copyable. Fork of [bwlok's ViewRaw](https://github.com/bwlok/revenge-plugins/tree/master/plugins/ViewRaw), GPLv3. | `https://rp.jarviscli.dev/view-raw/install/` |
-| Key Inspector | New | One-tap scan of every internal key this repo's plugins depend on, with a copyable report - for diagnosing crashes entirely from a phone. | `https://rp.jarviscli.dev/key-inspector/install/` |
+| Key Inspector | New | One-tap scan of every internal key this repo's plugins depend on, plus a full dump of Revenge's plugin API tree - for diagnosing crashes entirely from a phone. | `https://rp.jarviscli.dev/key-inspector/install/` |
 
 "Revived" means the plugin previously existed elsewhere, stopped working after a Discord/API update, and has been rebuilt here.
 "Rebuilt" means it's a from-scratch reimplementation of a previously-broken plugin with expanded features. "New" means
