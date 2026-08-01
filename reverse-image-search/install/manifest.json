@@ -1,0 +1,1 @@
+{"name":"Reverse Image Search","description":"/reverse-image-search <image-url> - open an image link in Google Lens, Yandex, or TinEye.","authors":[{"name":"everestmcarthur"}],"main":"index.js","hash":"d56a50f02ef40f183afdd360dab58f37f397829f98f7dd0636ea8abe0d83409d"}
