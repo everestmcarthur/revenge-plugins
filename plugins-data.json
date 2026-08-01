@@ -1,0 +1,72 @@
+[
+  {
+    "id": "pronoun-db",
+    "name": "PronounDB",
+    "description": "Shows a user's pronouns (from pronoundb.org) in their profile.",
+    "authors": [
+      "everestmcarthur"
+    ],
+    "category": "Identity",
+    "status": "revived",
+    "note": "Previously broken because PronounDB shut down the API it used (HTTP 410). Migrated to PronounDB's current v2 API.",
+    "installUrl": "https://everestmcarthur.github.io/revenge-plugins/pronoun-db/",
+    "sourceUrl": "https://github.com/everestmcarthur/revenge-plugins/tree/main/plugins/pronoun-db",
+    "issueUrl": "https://github.com/everestmcarthur/revenge-plugins/issues/new?title=%5BPronounDB%5D%20"
+  },
+  {
+    "id": "role-color-everywhere",
+    "name": "RoleColorEverywhere",
+    "description": "Displays a member's top role color in more places: mentions, the typing indicator, voice channel participant names, member list role headers, and optionally message text.",
+    "authors": [
+      "everestmcarthur"
+    ],
+    "category": "Moderation & Appearance",
+    "status": "revived",
+    "note": "Previously broken. Ported from the original source and hardened with the same crash-isolation fix as Staff Tags.",
+    "installUrl": "https://everestmcarthur.github.io/revenge-plugins/role-color-everywhere/",
+    "sourceUrl": "https://github.com/everestmcarthur/revenge-plugins/tree/main/plugins/role-color-everywhere",
+    "issueUrl": "https://github.com/everestmcarthur/revenge-plugins/issues/new?title=%5BRoleColorEverywhere%5D%20"
+  },
+  {
+    "id": "staff-tags",
+    "name": "Staff Tags",
+    "description": "Adds customizable tags (OWNER, ADMIN, STAFF, MOD, and more) next to members based on their server permissions. Supports per-tag colors, gradients, custom text, and visibility toggles.",
+    "authors": [
+      "everestmcarthur"
+    ],
+    "category": "Moderation & Appearance",
+    "status": "rebuilt",
+    "note": "Previously broken. Rebuilt with per-patch crash isolation, plus new customization: per-tag text, colors, gradients, and visibility.",
+    "installUrl": "https://everestmcarthur.github.io/revenge-plugins/staff-tags/",
+    "sourceUrl": "https://github.com/everestmcarthur/revenge-plugins/tree/main/plugins/staff-tags",
+    "issueUrl": "https://github.com/everestmcarthur/revenge-plugins/issues/new?title=%5BStaff%20Tags%5D%20"
+  },
+  {
+    "id": "message-snippets",
+    "name": "Message Snippets",
+    "description": "Save reusable text and send it with /snippet <name>. Manage snippets from the plugin settings, or with /snippet-save, /snippet-delete, /snippet-list.",
+    "authors": [
+      "everestmcarthur"
+    ],
+    "category": "Productivity",
+    "status": "new",
+    "note": "Didn't exist in the Revenge/Vendetta plugin ecosystem before.",
+    "installUrl": "https://everestmcarthur.github.io/revenge-plugins/message-snippets/",
+    "sourceUrl": "https://github.com/everestmcarthur/revenge-plugins/tree/main/plugins/message-snippets",
+    "issueUrl": "https://github.com/everestmcarthur/revenge-plugins/issues/new?title=%5BMessage%20Snippets%5D%20"
+  },
+  {
+    "id": "reminders",
+    "name": "Reminders",
+    "description": "Set quick reminders with /remind <time> <text>, e.g. /remind 20m Walk the dog. Fires while Discord is running in the foreground or background - it can't wake the app up if it's been fully closed.",
+    "authors": [
+      "everestmcarthur"
+    ],
+    "category": "Productivity",
+    "status": "new",
+    "note": "Didn't exist in the Revenge/Vendetta plugin ecosystem before. Only fires while Discord is running.",
+    "installUrl": "https://everestmcarthur.github.io/revenge-plugins/reminders/",
+    "sourceUrl": "https://github.com/everestmcarthur/revenge-plugins/tree/main/plugins/reminders",
+    "issueUrl": "https://github.com/everestmcarthur/revenge-plugins/issues/new?title=%5BReminders%5D%20"
+  }
+]
