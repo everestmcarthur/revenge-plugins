@@ -5,9 +5,22 @@ import { storage } from "@vendetta/plugin";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 import { waitFor } from "@shared/lib/waitFor";
 import { rawFindByTypeName } from "@shared/lib/rawFind";
+import { forceRerender } from "@shared/lib/forceRerender";
 
-/** Lets the Settings screen force the patched YouBar to re-render right after a toggle changes. */
-export let updateYouBar = () => {};
+let internalForceUpdate: (() => void) | null = null;
+let patchedComponent: any = null;
+
+/**
+ * Lets the Settings screen force the patched YouBar to re-render right after a toggle changes.
+ * Prefers the cheap in-tree hook update once our wrapper has actually rendered at least once under
+ * the patch; falls back to forceRerender's fiber-walk otherwise, since a memoized component that
+ * hasn't rendered under the patch yet has no hook state to update through (see forceRerender.ts for
+ * why that fallback is needed at all).
+ */
+export function updateYouBar(): void {
+    if (internalForceUpdate) internalForceUpdate();
+    else if (patchedComponent) forceRerender(patchedComponent);
+}
 
 /**
  * `YouBarNotificationsButton` isn't guaranteed to be registered in Metro yet at the exact moment
@@ -29,12 +42,20 @@ export default function patchYouBarButtons(): () => void {
         () => rawFindByTypeName("YouBarNotificationsButton"),
         (YouBarNotificationsButton) => {
             unpatch = applyButtonPatch(YouBarNotificationsButton);
+            patchedComponent = YouBarNotificationsButton;
+            // Finding the module and patching it doesn't make anything visible on its own - this
+            // component is React.memo'd with a stable prop, so once mounted it can go the rest of
+            // the session without ever rendering again on its own (see forceRerender.ts). Force
+            // one pass right now instead of waiting on luck for the buttons to actually appear.
+            forceRerender(YouBarNotificationsButton);
         }
     );
 
     return () => {
         handle.cancel();
         unpatch();
+        internalForceUpdate = null;
+        patchedComponent = null;
     };
 }
 
@@ -49,7 +70,7 @@ function applyButtonPatch(YouBarNotificationsButton: any): () => void {
     return instead("type", YouBarNotificationsButton, (args: any[], OriginalRender: (...a: any[]) => any) => {
         try {
             const [, forceUpdate] = React.useReducer((x: number) => ~x, 0);
-            updateYouBar = () => forceUpdate();
+            internalForceUpdate = () => forceUpdate();
 
             const res = OriginalRender(...args);
             if (!res?.props?.children) return res;
