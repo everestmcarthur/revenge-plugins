@@ -31,9 +31,18 @@ To install: open Discord with Revenge installed, go to **Settings → Plugins**,
 | Message Snippets | New | Save reusable text and send it with `/snippet <name>`. Manage snippets in-app or with `/snippet-save`, `/snippet-delete`, `/snippet-list`. | `https://rp.jarviscli.dev/message-snippets/install/` |
 | Reminders | New | `/remind 20m Walk the dog` - fires while Discord is running. Can't wake the app from fully closed (no native notification access from a JS plugin). | `https://rp.jarviscli.dev/reminders/install/` |
 
+### Utility
+
+| Plugin | Status | Description | Install link |
+| --- | --- | --- | --- |
+| ViewRaw | Revived | See a message's raw JSON via long-press - searchable, syntax-highlighted, and copyable. Fork of [bwlok's ViewRaw](https://github.com/bwlok/revenge-plugins/tree/master/plugins/ViewRaw), GPLv3. | `https://rp.jarviscli.dev/view-raw/install/` |
+
 "Revived" means the plugin previously existed elsewhere, stopped working after a Discord/API update, and has been rebuilt here.
 "Rebuilt" means it's a from-scratch reimplementation of a previously-broken plugin with expanded features. "New" means
 it didn't exist anywhere in the Revenge/Vendetta plugin ecosystem before.
+
+**Licensing note:** everything in this repo is original work except `plugins/view-raw`, which is a fork of a
+GPLv3-licensed plugin and carries its own `LICENSE` file in that folder - the rest of the repo isn't GPLv3.
 
 ## Why some of these broke before, and what's different now
 
