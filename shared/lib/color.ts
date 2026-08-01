@@ -1,4 +1,42 @@
+import { find, findByStoreName } from "@vendetta/metro";
+import { semanticColors } from "@vendetta/ui";
+
 export const HEX_REGEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+const ThemeStore = findByStoreName("ThemeStore");
+
+// @vendetta/ui exposes the semanticColors token map but not a resolver function for it - every
+// plugin that needs one has to find it the same way, so it lives here instead of being
+// reimplemented per plugin.
+const rawResolveSemanticColor: (theme: any, semanticColor: any) => string | undefined =
+    find((m: any) => m?.default?.internal?.resolveSemanticColor)?.default?.internal?.resolveSemanticColor ??
+    find((m: any) => m?.meta?.resolveSemanticColor)?.meta?.resolveSemanticColor ??
+    (() => undefined);
+
+/** Resolves a semanticColors[TOKEN_NAME] descriptor to a real color for the current theme. */
+export function resolveSemanticColor(token: any, theme: any = ThemeStore?.theme): string | undefined {
+    if (!token) return undefined;
+    try {
+        return rawResolveSemanticColor(theme, token);
+    } catch {
+        return undefined;
+    }
+}
+
+/**
+ * Same as resolveSemanticColor, but tries a list of token names in order and falls back to a
+ * hardcoded hex color if every one of them is missing or fails to resolve - Discord renames these
+ * tokens across versions often enough that a single hardcoded name isn't reliable on its own.
+ */
+export function resolveSemanticColorSafe(tokenNames: string[], fallbackHex: string, theme: any = ThemeStore?.theme): string {
+    for (const name of tokenNames) {
+        const token = (semanticColors as Record<string, any> | undefined)?.[name];
+        if (!token) continue;
+        const resolved = resolveSemanticColor(token, theme);
+        if (resolved) return resolved;
+    }
+    return fallbackHex;
+}
 
 export function isValidHex(value: string | undefined | null): value is string {
     return !!value && HEX_REGEX.test(value);
