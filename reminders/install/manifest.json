@@ -1,0 +1,1 @@
+{"name":"Reminders","description":"Set quick reminders with /remind <time> <text>, e.g. /remind 20m Walk the dog. Fires while Discord is running in the foreground or background - it can't wake the app up if it's been fully closed.","authors":[{"name":"everestmcarthur"}],"main":"index.js","hash":"6b7ba403e9083cc3207cd48e8fb26b7fbad369b5955b275f63a432163653031c"}

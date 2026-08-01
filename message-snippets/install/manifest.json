@@ -1,0 +1,1 @@
+{"name":"Message Snippets","description":"Save reusable text and send it with /snippet <name>. Manage snippets from the plugin settings, or with /snippet-save, /snippet-delete, /snippet-list.","authors":[{"name":"everestmcarthur"}],"main":"index.js","hash":"dd26ccf27afd50aa4f8859528640793b37fa4bf1e5f443ffd58f687bb260cf25"}

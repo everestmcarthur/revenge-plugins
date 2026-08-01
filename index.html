@@ -5,16 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>revenge-plugins</title>
 <meta name="description" content="Plugins for Revenge, the Discord Android client mod.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%235865f2'/%3E%3Cstop offset='1' stop-color='%239b59b6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cpath d='M9 12l7-5 7 5v9l-7 5-7-5z' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23fff'/%3E%3C/svg%3E">
 <style>
   :root {
-    --bg: #f5f6fa;
+    --bg: #f5f6fb;
     --bg-elevated: #ffffff;
-    --border: #e3e5eb;
-    --text: #1c1e26;
-    --text-muted: #61667a;
+    --bg-sunken: #eceef6;
+    --border: #e1e4ef;
+    --text: #14151f;
+    --text-muted: #62667a;
     --accent: #5865f2;
     --accent-text: #ffffff;
-    --chip-bg: #ececf5;
+    --chip-bg: #ececf7;
     --chip-bg-active: #5865f2;
     --chip-text-active: #ffffff;
     --badge-new-bg: #e6f6ec;
@@ -23,209 +25,289 @@
     --badge-revived-text: #4752c4;
     --badge-rebuilt-bg: #fff3e0;
     --badge-rebuilt-text: #b5680a;
-    --shadow: 0 1px 2px rgba(20, 21, 31, 0.06), 0 8px 24px rgba(20, 21, 31, 0.05);
+    --danger: #f23f42;
+    --shadow: 0 1px 2px rgba(20, 21, 31, 0.06), 0 10px 30px rgba(20, 21, 31, 0.06);
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #14151c;
-      --bg-elevated: #1c1e28;
-      --border: #2a2c38;
-      --text: #eef0f7;
-      --text-muted: #9297ab;
-      --accent: #7b84f7;
-      --accent-text: #10111a;
-      --chip-bg: #262838;
-      --chip-bg-active: #7b84f7;
-      --chip-text-active: #10111a;
-      --badge-new-bg: #103324;
-      --badge-new-text: #5fd493;
-      --badge-revived-bg: #21243f;
-      --badge-revived-text: #9ba3ff;
-      --badge-rebuilt-bg: #3a2a10;
-      --badge-rebuilt-text: #e6a852;
-      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+      --bg: #0d0e14; --bg-elevated: #171821; --bg-sunken: #12131b; --border: #262837;
+      --text: #eef0f9; --text-muted: #9297ab; --accent: #838cff; --accent-text: #0d0e14;
+      --chip-bg: #1e2030; --chip-bg-active: #838cff; --chip-text-active: #0d0e14;
+      --badge-new-bg: #0f2a1c; --badge-new-text: #5fd493; --badge-revived-bg: #1c1f3a; --badge-revived-text: #a6adff;
+      --badge-rebuilt-bg: #33240c; --badge-rebuilt-text: #f0b849; --danger: #ff6b6e;
+      --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 10px 30px rgba(0,0,0,0.5);
       color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
-    --bg: #14151c; --bg-elevated: #1c1e28; --border: #2a2c38; --text: #eef0f7; --text-muted: #9297ab;
-    --accent: #7b84f7; --accent-text: #10111a; --chip-bg: #262838; --chip-bg-active: #7b84f7; --chip-text-active: #10111a;
-    --badge-new-bg: #103324; --badge-new-text: #5fd493; --badge-revived-bg: #21243f; --badge-revived-text: #9ba3ff;
-    --badge-rebuilt-bg: #3a2a10; --badge-rebuilt-text: #e6a852;
-    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35); color-scheme: dark;
+    --bg: #0d0e14; --bg-elevated: #171821; --bg-sunken: #12131b; --border: #262837;
+    --text: #eef0f9; --text-muted: #9297ab; --accent: #838cff; --accent-text: #0d0e14;
+    --chip-bg: #1e2030; --chip-bg-active: #838cff; --chip-text-active: #0d0e14;
+    --badge-new-bg: #0f2a1c; --badge-new-text: #5fd493; --badge-revived-bg: #1c1f3a; --badge-revived-text: #a6adff;
+    --badge-rebuilt-bg: #33240c; --badge-rebuilt-text: #f0b849; --danger: #ff6b6e;
+    --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 10px 30px rgba(0,0,0,0.5); color-scheme: dark;
   }
   :root[data-theme="light"] {
-    --bg: #f5f6fa; --bg-elevated: #ffffff; --border: #e3e5eb; --text: #1c1e26; --text-muted: #61667a;
-    --accent: #5865f2; --accent-text: #ffffff; --chip-bg: #ececf5; --chip-bg-active: #5865f2; --chip-text-active: #ffffff;
+    --bg: #f5f6fb; --bg-elevated: #ffffff; --bg-sunken: #eceef6; --border: #e1e4ef;
+    --text: #14151f; --text-muted: #62667a; --accent: #5865f2; --accent-text: #ffffff;
+    --chip-bg: #ececf7; --chip-bg-active: #5865f2; --chip-text-active: #ffffff;
     --badge-new-bg: #e6f6ec; --badge-new-text: #1a7f4b; --badge-revived-bg: #eef0ff; --badge-revived-text: #4752c4;
-    --badge-rebuilt-bg: #fff3e0; --badge-rebuilt-text: #b5680a;
-    --shadow: 0 1px 2px rgba(20,21,31,0.06), 0 8px 24px rgba(20,21,31,0.05); color-scheme: light;
+    --badge-rebuilt-bg: #fff3e0; --badge-rebuilt-text: #b5680a; --danger: #f23f42;
+    --shadow: 0 1px 2px rgba(20,21,31,0.06), 0 10px 30px rgba(20,21,31,0.06); color-scheme: light;
   }
 
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: var(--sans);
     -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+  code, .mono { font-family: var(--mono); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+  a { color: inherit; }
 
-  header.hero {
-    padding: 56px 0 32px;
+  /* ---------- Hero ---------- */
+  .hero {
+    position: relative;
+    overflow: hidden;
     border-bottom: 1px solid var(--border);
+    padding: 64px 0 40px;
   }
-  .eyebrow {
+  .hero-mesh {
+    position: absolute;
+    inset: -20%;
+    z-index: 0;
+    opacity: 0.5;
+    background:
+      radial-gradient(38% 45% at 12% 8%, color-mix(in srgb, var(--accent) 55%, transparent), transparent 70%),
+      radial-gradient(32% 38% at 85% 15%, #9b59b688, transparent 70%),
+      radial-gradient(30% 40% at 70% 85%, #23a55a55, transparent 70%);
+    filter: blur(40px);
+    animation: drift 22s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+  @keyframes drift {
+    from { transform: translate3d(0,0,0) scale(1); }
+    to { transform: translate3d(-2%, 2%, 0) scale(1.08); }
+  }
+  .hero-spotlight {
+    position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0;
+    background: radial-gradient(280px circle at var(--sx, 50%) var(--sy, 50%), color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%);
+    transition: opacity 0.25s ease;
+  }
+  .hero:hover .hero-spotlight { opacity: 1; }
+  .hero-inner { position: relative; z-index: 1; }
+  .mark {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--accent);
-    letter-spacing: 0.02em;
-    margin-bottom: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
   }
-  h1 { font-size: 34px; line-height: 1.15; margin: 0 0 10px; letter-spacing: -0.01em; }
-  .hero p.sub { color: var(--text-muted); font-size: 16px; max-width: 620px; margin: 0 0 20px; line-height: 1.5; }
-  .hero-links { display: flex; gap: 10px; flex-wrap: wrap; }
+  .mark svg { width: 22px; height: 22px; display: block; }
+  h1 {
+    font-size: clamp(32px, 5vw, 46px);
+    line-height: 1.08;
+    margin: 0 0 14px;
+    letter-spacing: -0.02em;
+    font-weight: 800;
+  }
+  h1 .grad {
+    background: linear-gradient(100deg, var(--accent), #9b59b6 60%, #23a55a);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p.sub { color: var(--text-muted); font-size: 17px; max-width: 640px; margin: 0 0 24px; line-height: 1.55; }
+  .hero-links { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 32px; }
   .hero-links a {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text);
-    text-decoration: none;
-    padding: 8px 14px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--bg-elevated);
+    font-size: 14px; font-weight: 600; text-decoration: none;
+    padding: 9px 15px; border-radius: 9px; border: 1px solid var(--border); background: var(--bg-elevated);
   }
   .hero-links a.primary { background: var(--accent); color: var(--accent-text); border-color: transparent; }
-
-  .stats { display: flex; gap: 28px; margin-top: 28px; flex-wrap: wrap; }
-  .stats .stat-value { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+  .kbd-hint {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; color: var(--text-muted); font-weight: 600;
+  }
+  .kbd-hint kbd {
+    font-family: var(--mono); font-size: 11px; background: var(--bg-sunken);
+    border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px; padding: 2px 6px;
+  }
+  .stats { display: flex; gap: 32px; flex-wrap: wrap; }
+  .stats .stat-value { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
   .stats .stat-label { font-size: 12.5px; color: var(--text-muted); font-weight: 600; }
 
-  .controls {
-    position: sticky;
-    top: 0;
-    background: var(--bg);
-    padding: 18px 0;
-    z-index: 5;
-    border-bottom: 1px solid transparent;
-  }
+  /* ---------- Controls ---------- */
+  .controls { position: sticky; top: 0; background: var(--bg); padding: 16px 0; z-index: 5; border-bottom: 1px solid transparent; transition: border-color 0.15s; }
   .controls.stuck { border-bottom-color: var(--border); }
+  .search-row { display: flex; gap: 10px; margin-bottom: 12px; }
   .search {
-    width: 100%;
-    padding: 12px 14px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--bg-elevated);
-    color: var(--text);
-    font-size: 15px;
-    margin-bottom: 12px;
+    flex: 1; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--bg-elevated); color: var(--text); font-size: 15px;
   }
   .search:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; }
-  .chip {
-    font-size: 13px;
-    font-weight: 600;
-    padding: 7px 13px;
-    border-radius: 999px;
-    background: var(--chip-bg);
-    color: var(--text-muted);
-    border: none;
-    cursor: pointer;
-  }
+  .chip { font-size: 13px; font-weight: 600; padding: 7px 13px; border-radius: 999px; background: var(--chip-bg); color: var(--text-muted); border: none; cursor: pointer; }
   .chip[aria-pressed="true"] { background: var(--chip-bg-active); color: var(--chip-text-active); }
 
   main { padding: 24px 0 64px; }
   .count { color: var(--text-muted); font-size: 13px; margin: 0 0 16px; }
 
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
-
+  /* ---------- Grid / cards ---------- */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
   .card {
+    position: relative;
     background: var(--bg-elevated);
     border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 18px;
+    border-radius: 16px;
+    padding: 20px 20px 18px;
     box-shadow: var(--shadow);
     display: flex;
     flex-direction: column;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    width: 100%;
   }
-  .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
-  .card h3 { font-size: 17px; margin: 0; letter-spacing: -0.005em; }
-  .badge {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    padding: 3px 8px;
-    border-radius: 999px;
-    white-space: nowrap;
-    flex-shrink: 0;
+  .card::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: var(--card-accent, var(--accent));
   }
+  .card:hover, .card:focus-visible {
+    transform: translateY(-3px);
+    border-color: var(--card-accent, var(--accent));
+    box-shadow: 0 1px 2px rgba(20,21,31,0.06), 0 16px 32px -8px color-mix(in srgb, var(--card-accent, var(--accent)) 35%, transparent);
+    outline: none;
+  }
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  .card h3 { font-size: 18px; margin: 0; letter-spacing: -0.01em; }
+  .badge { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 8px; border-radius: 999px; white-space: nowrap; flex-shrink: 0; }
   .badge.new { background: var(--badge-new-bg); color: var(--badge-new-text); }
   .badge.revived { background: var(--badge-revived-bg); color: var(--badge-revived-text); }
   .badge.rebuilt { background: var(--badge-rebuilt-bg); color: var(--badge-rebuilt-text); }
-
-  .card .category { font-size: 12px; color: var(--accent); font-weight: 600; margin-bottom: 8px; }
-  .card p.desc { font-size: 14px; color: var(--text-muted); line-height: 1.5; margin: 0 0 10px; flex-grow: 1; }
-  .card p.note { font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin: 0 0 14px; padding: 8px 10px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); }
-  .card .authors { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
-
-  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  .actions button, .actions a {
-    font-size: 13px;
-    font-weight: 600;
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--bg);
-    color: var(--text);
-    text-decoration: none;
-    cursor: pointer;
-    flex: 1;
-    text-align: center;
-    min-width: 88px;
-  }
-  .actions button.install { background: var(--accent); color: var(--accent-text); border-color: transparent; }
-  .actions button.install[data-copied="true"] { background: var(--badge-new-text); }
+  .card .category { font-size: 11.5px; color: var(--card-accent, var(--accent)); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 10px; }
+  .card p.tagline { font-size: 14px; color: var(--text-muted); line-height: 1.55; margin: 0 0 14px; flex-grow: 1; }
+  .card .feature-count { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  .card .feature-count svg { width: 13px; height: 13px; opacity: 0.7; }
+  .card .cta { font-size: 13px; font-weight: 700; color: var(--card-accent, var(--accent)); display: flex; align-items: center; gap: 4px; }
 
   .empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
 
-  footer { border-top: 1px solid var(--border); padding: 24px 0 40px; }
+  footer { border-top: 1px solid var(--border); padding: 28px 0 44px; }
   footer p { color: var(--text-muted); font-size: 13px; margin: 0; }
-  footer a { color: var(--text-muted); }
 
-  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+  /* ---------- Detail view ---------- */
+  .detail { display: none; }
+  .detail.active { display: block; }
+  .grid-view.hidden, .hero.hidden, .controls.hidden { display: none; }
+
+  .detail-banner {
+    position: relative;
+    overflow: hidden;
+    padding: 48px 0 36px;
+    border-bottom: 1px solid var(--border);
+    background:
+      radial-gradient(60% 100% at 0% 0%, color-mix(in srgb, var(--page-accent, var(--accent)) 22%, transparent), transparent),
+      var(--bg);
+  }
+  .back-link {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700;
+    color: var(--text-muted); text-decoration: none; margin-bottom: 20px; background: none; border: none; cursor: pointer; padding: 0; font-family: inherit;
+  }
+  .back-link:hover { color: var(--text); }
+  .detail-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .detail-top h2 { font-size: clamp(28px, 4vw, 38px); margin: 0; letter-spacing: -0.02em; font-weight: 800; }
+  .detail-category { font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--page-accent, var(--accent)); margin-bottom: 14px; }
+  .detail-tagline { font-size: 17px; color: var(--text-muted); max-width: 680px; line-height: 1.55; margin: 0 0 22px; }
+  .detail-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .detail-actions button, .detail-actions a {
+    font-size: 14px; font-weight: 700; padding: 10px 16px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--bg-elevated); color: var(--text); text-decoration: none; cursor: pointer;
+  }
+  .detail-actions button.install { background: var(--page-accent, var(--accent)); color: var(--accent-text); border-color: transparent; }
+
+  .detail-body { padding: 36px 0 64px; display: grid; grid-template-columns: 2fr 1fr; gap: 40px; }
+  @media (max-width: 720px) { .detail-body { grid-template-columns: 1fr; } }
+  .detail-section { margin-bottom: 32px; }
+  .detail-section h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 0 0 14px; }
+  .detail-section p { font-size: 15px; line-height: 1.7; color: var(--text); margin: 0 0 14px; white-space: pre-line; }
+
+  .feature-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .feature-list li { display: flex; gap: 10px; font-size: 14.5px; line-height: 1.5; }
+  .feature-list svg { flex-shrink: 0; width: 18px; height: 18px; margin-top: 1px; color: var(--page-accent, var(--accent)); }
+
+  .cmd-table { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .cmd-row { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .cmd-row:last-child { border-bottom: none; }
+  .cmd-row code { display: block; font-size: 13.5px; font-weight: 700; color: var(--page-accent, var(--accent)); margin-bottom: 4px; }
+  .cmd-row span { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
+  .side-card { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+  .side-card h5 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin: 0 0 10px; }
+  .side-card p { font-size: 13.5px; line-height: 1.55; margin: 0; color: var(--text); }
+  .side-card.warn { border-color: color-mix(in srgb, var(--danger) 40%, var(--border)); }
+  .side-card.warn h5 { color: var(--danger); }
+  .authors-line { font-size: 13px; color: var(--text-muted); }
+
+  /* ---------- Command palette ---------- */
+  .palette-overlay {
+    position: fixed; inset: 0; background: rgba(10,10,16,0.55); backdrop-filter: blur(2px);
+    display: none; align-items: flex-start; justify-content: center; padding-top: 12vh; z-index: 100;
+  }
+  .palette-overlay.open { display: flex; }
+  .palette {
+    width: min(560px, 92vw); background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); overflow: hidden;
+  }
+  .palette input {
+    width: 100%; border: none; background: transparent; color: var(--text); font-size: 17px;
+    padding: 18px 20px; border-bottom: 1px solid var(--border);
+  }
+  .palette input:focus { outline: none; }
+  .palette-results { max-height: 50vh; overflow-y: auto; padding: 8px; }
+  .palette-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 14px;
+  }
+  .palette-item[aria-selected="true"] { background: var(--bg-sunken); }
+  .palette-item .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--item-accent, var(--accent)); flex-shrink: 0; }
+  .palette-item .name { font-weight: 600; }
+  .palette-item .cat { color: var(--text-muted); font-size: 12px; margin-left: auto; }
+  .palette-empty { padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
 
   .toast {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%) translateY(0);
-    background: var(--text);
-    color: var(--bg);
-    font-size: 13px;
-    font-weight: 600;
-    padding: 10px 16px;
-    border-radius: 999px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease, transform 0.2s ease;
-    z-index: 50;
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(0);
+    background: var(--text); color: var(--bg); font-size: 13px; font-weight: 700;
+    padding: 10px 16px; border-radius: 999px; opacity: 0; pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease; z-index: 50;
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(-8px); }
 </style>
 </head>
 <body>
 
-<header class="hero">
-  <div class="wrap">
-    <div class="eyebrow">👊 REVENGE PLUGINS</div>
-    <h1>Plugins for Revenge</h1>
-    <p class="sub">An actively maintained collection of plugins for Revenge, the Discord Android client mod. Tap Install to copy a plugin's link, then paste it into Revenge's plugin browser.</p>
+<header class="hero" id="hero">
+  <div class="hero-mesh" aria-hidden="true"></div>
+  <div class="hero-spotlight" id="heroSpotlight" aria-hidden="true"></div>
+  <div class="wrap hero-inner">
+    <div class="mark">
+      <svg viewBox="0 0 32 32" fill="none"><path d="M9 12l7-5 7 5v9l-7 5-7-5z" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="3" fill="currentColor"/></svg>
+      Revenge Plugins
+    </div>
+    <h1>Discord, <span class="grad">your way.</span></h1>
+    <p class="sub">A hand-built collection of plugins for Revenge, the Discord Android client mod - rebuilt from scratch where the old ecosystem broke, and net-new where nothing existed yet.</p>
     <div class="hero-links">
       <a class="primary" href="https://github.com/everestmcarthur/revenge-plugins">GitHub repo</a>
       <a href="https://github.com/revenge-mod/revenge-bundle">About Revenge</a>
@@ -235,9 +317,12 @@
   </div>
 </header>
 
-<div class="wrap">
+<div class="wrap grid-view" id="gridView">
   <div class="controls" id="controls">
-    <input id="search" class="search" type="search" placeholder="Search plugins…" aria-label="Search plugins">
+    <div class="search-row">
+      <input id="search" class="search" type="search" placeholder="Search plugins… (or press / )" aria-label="Search plugins">
+      <span class="kbd-hint"><kbd>&#8984;</kbd><kbd>K</kbd></span>
+    </div>
     <div class="chips" id="categoryChips" role="group" aria-label="Filter by category"></div>
   </div>
 
@@ -248,6 +333,8 @@
   </main>
 </div>
 
+<div class="detail" id="detailView"></div>
+
 <footer>
   <div class="wrap">
     <p>Built with <a href="https://github.com/everestmcarthur/revenge-plugins">revenge-plugins</a> · not affiliated with Discord or the Revenge project · install links point to this site</p>
@@ -255,6 +342,13 @@
 </footer>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="palette-overlay" id="paletteOverlay">
+  <div class="palette">
+    <input id="paletteInput" type="text" placeholder="Jump to a plugin…" aria-label="Jump to a plugin">
+    <div class="palette-results" id="paletteResults"></div>
+  </div>
+</div>
 
 <script>
 (function () {
@@ -268,18 +362,20 @@
   var searchEl = document.getElementById("search");
   var toastEl = document.getElementById("toast");
   var statsEl = document.getElementById("stats");
+  var heroEl = document.getElementById("hero");
+  var controlsEl = document.getElementById("controls");
+  var gridViewEl = document.getElementById("gridView");
+  var detailViewEl = document.getElementById("detailView");
+  var paletteOverlay = document.getElementById("paletteOverlay");
+  var paletteInput = document.getElementById("paletteInput");
+  var paletteResults = document.getElementById("paletteResults");
 
-  function renderStats() {
-    var categories = Array.from(new Set(state.plugins.map(function (p) { return p.category; })));
-    var revivedCount = state.plugins.filter(function (p) { return p.status !== "new"; }).length;
-    var stats = [
-      { value: state.plugins.length, label: "plugins" },
-      { value: categories.length, label: "categories" },
-      { value: revivedCount, label: "revived or rebuilt" }
-    ];
-    statsEl.innerHTML = stats.map(function (s) {
-      return '<div><div class="stat-value">' + s.value + '</div><div class="stat-label">' + s.label + '</div></div>';
-    }).join("");
+  var CHECK_SVG = '<svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
   }
 
   function showToast(msg) {
@@ -287,12 +383,6 @@
     toastEl.classList.add("show");
     clearTimeout(showToast._t);
     showToast._t = setTimeout(function () { toastEl.classList.remove("show"); }, 1600);
-  }
-
-  function escapeHtml(str) {
-    return String(str).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
-    });
   }
 
   function copyToClipboard(text) {
@@ -310,14 +400,61 @@
     return Promise.resolve();
   }
 
+  function installButton(url, extraStyle) {
+    var btn = document.createElement("button");
+    btn.className = "install";
+    btn.textContent = "Install";
+    if (extraStyle) btn.setAttribute("style", extraStyle);
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      copyToClipboard(url).then(function () {
+        var original = btn.textContent;
+        btn.textContent = "Copied!";
+        showToast("Install link copied - paste it into Revenge's plugin browser");
+        setTimeout(function () { btn.textContent = original; }, 1400);
+      });
+    });
+    return btn;
+  }
+
+  function countUp(el, target) {
+    var start = 0;
+    var duration = 700;
+    var startTime = null;
+    function step(ts) {
+      if (!startTime) startTime = ts;
+      var progress = Math.min((ts - startTime) / duration, 1);
+      var eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.round(start + (target - start) * eased);
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function renderStats() {
+    var categories = Array.from(new Set(state.plugins.map(function (p) { return p.category; })));
+    var revivedCount = state.plugins.filter(function (p) { return p.status !== "new"; }).length;
+    var stats = [
+      { value: state.plugins.length, label: "plugins" },
+      { value: categories.length, label: "categories" },
+      { value: revivedCount, label: "revived or rebuilt" }
+    ];
+    statsEl.innerHTML = stats.map(function (s, i) {
+      return '<div><div class="stat-value" id="stat-' + i + '">0</div><div class="stat-label">' + s.label + '</div></div>';
+    }).join("");
+    stats.forEach(function (s, i) {
+      countUp(document.getElementById("stat-" + i), s.value);
+    });
+  }
+
+  /* ---------- Grid ---------- */
+
   function render() {
     var q = state.query.trim().toLowerCase();
     var filtered = state.plugins.filter(function (p) {
       var matchesCategory = state.category === "All" || p.category === state.category;
-      var matchesQuery = !q ||
-        p.name.toLowerCase().indexOf(q) !== -1 ||
-        p.description.toLowerCase().indexOf(q) !== -1 ||
-        p.category.toLowerCase().indexOf(q) !== -1;
+      var haystack = (p.name + " " + p.description + " " + p.category + " " + (p.tagline || "")).toLowerCase();
+      var matchesQuery = !q || haystack.indexOf(q) !== -1;
       return matchesCategory && matchesQuery;
     });
 
@@ -326,35 +463,22 @@
     empty.hidden = filtered.length !== 0;
 
     filtered.forEach(function (p) {
-      var card = document.createElement("article");
+      var card = document.createElement("button");
+      card.type = "button";
       card.className = "card";
+      card.style.setProperty("--card-accent", p.accent);
       card.innerHTML =
         '<div class="card-top">' +
           '<h3>' + escapeHtml(p.name) + '</h3>' +
           '<span class="badge ' + p.status + '">' + (STATUS_LABEL[p.status] || p.status) + '</span>' +
         '</div>' +
         '<div class="category">' + escapeHtml(p.category) + '</div>' +
-        '<p class="desc">' + escapeHtml(p.description) + '</p>' +
-        (p.note ? '<p class="note">' + escapeHtml(p.note) + '</p>' : '') +
-        (p.authors && p.authors.length ? '<p class="authors">By ' + escapeHtml(p.authors.join(", ")) + '</p>' : '') +
-        '<div class="actions">' +
-          '<button class="install" data-url="' + escapeHtml(p.installUrl) + '">Install</button>' +
-          '<a href="' + escapeHtml(p.sourceUrl) + '" target="_blank" rel="noopener">Source</a>' +
-          '<a href="' + escapeHtml(p.issueUrl) + '" target="_blank" rel="noopener">Report issue</a>' +
-        '</div>';
+        '<p class="tagline">' + escapeHtml(p.tagline || p.description) + '</p>' +
+        (p.features && p.features.length ? '<div class="feature-count">' + CHECK_SVG.replace("<svg ", '<svg style="width:13px;height:13px" ') + ' ' + p.features.length + ' feature' + (p.features.length === 1 ? "" : "s") + '</div>' : '') +
+        '<div class="cta">View details &rarr;</div>';
 
-      card.querySelector("button.install").addEventListener("click", function (e) {
-        var btn = e.currentTarget;
-        copyToClipboard(btn.getAttribute("data-url")).then(function () {
-          var original = btn.textContent;
-          btn.textContent = "Copied!";
-          btn.setAttribute("data-copied", "true");
-          showToast("Install link copied - paste it into Revenge's plugin browser");
-          setTimeout(function () {
-            btn.textContent = original;
-            btn.removeAttribute("data-copied");
-          }, 1400);
-        });
+      card.addEventListener("click", function () {
+        navigateToPlugin(p.id);
       });
 
       grid.appendChild(card);
@@ -387,18 +511,219 @@
     render();
   });
 
-  var controls = document.getElementById("controls");
   window.addEventListener("scroll", function () {
-    controls.classList.toggle("stuck", window.scrollY > 8);
+    controlsEl.classList.toggle("stuck", window.scrollY > 8);
   });
 
-  fetch("https://everestmcarthur.github.io/revenge-plugins/plugins-data.json")
+  var heroSpotlight = document.getElementById("heroSpotlight");
+  heroEl.addEventListener("mousemove", function (e) {
+    var rect = heroEl.getBoundingClientRect();
+    heroSpotlight.style.setProperty("--sx", (e.clientX - rect.left) + "px");
+    heroSpotlight.style.setProperty("--sy", (e.clientY - rect.top) + "px");
+  });
+
+  /* ---------- Detail view ---------- */
+
+  function renderDetail(p) {
+    var featuresHtml = (p.features || []).map(function (f) {
+      return '<li>' + CHECK_SVG + '<span>' + escapeHtml(f) + '</span></li>';
+    }).join("");
+
+    var commandsHtml = (p.commands && p.commands.length)
+      ? '<div class="detail-section"><h4>Commands</h4><div class="cmd-table">' +
+          p.commands.map(function (c) {
+            return '<div class="cmd-row"><code>' + escapeHtml(c.cmd) + '</code><span>' + escapeHtml(c.desc) + '</span></div>';
+          }).join("") +
+        '</div></div>'
+      : "";
+
+    var howItWorksHtml = p.howItWorks
+      ? '<div class="detail-section"><h4>How it works</h4><p>' + escapeHtml(p.howItWorks) + '</p></div>'
+      : "";
+
+    var featuresSection = featuresHtml
+      ? '<div class="detail-section"><h4>Features</h4><ul class="feature-list">' + featuresHtml + '</ul></div>'
+      : "";
+
+    detailViewEl.innerHTML =
+      '<div class="detail-banner" style="--page-accent: ' + escapeHtml(p.accent) + '">' +
+        '<div class="wrap">' +
+          '<button class="back-link" id="backLink">&larr; All plugins</button>' +
+          '<div class="detail-top">' +
+            '<h2>' + escapeHtml(p.name) + '</h2>' +
+            '<span class="badge ' + p.status + '">' + (STATUS_LABEL[p.status] || p.status) + '</span>' +
+          '</div>' +
+          '<div class="detail-category">' + escapeHtml(p.category) + '</div>' +
+          '<p class="detail-tagline">' + escapeHtml(p.tagline || p.description) + '</p>' +
+          '<div class="detail-actions" id="detailActions"></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="wrap">' +
+        '<div class="detail-body" style="--page-accent: ' + escapeHtml(p.accent) + '">' +
+          '<div>' + howItWorksHtml + featuresSection + commandsHtml + '</div>' +
+          '<div>' +
+            (p.note ? '<div class="side-card"><h5>Backstory</h5><p>' + escapeHtml(p.note) + '</p></div>' : "") +
+            (p.limitations ? '<div class="side-card warn"><h5>Known limitations</h5><p>' + escapeHtml(p.limitations) + '</p></div>' : "") +
+            (p.authors && p.authors.length ? '<div class="side-card"><h5>Author</h5><p class="authors-line">' + escapeHtml(p.authors.join(", ")) + '</p></div>' : "") +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    var actions = document.getElementById("detailActions");
+    actions.appendChild(installButton(p.installUrl));
+    var sourceLink = document.createElement("a");
+    sourceLink.href = p.sourceUrl;
+    sourceLink.target = "_blank";
+    sourceLink.rel = "noopener";
+    sourceLink.textContent = "Source";
+    actions.appendChild(sourceLink);
+    var issueLink = document.createElement("a");
+    issueLink.href = p.issueUrl;
+    issueLink.target = "_blank";
+    issueLink.rel = "noopener";
+    issueLink.textContent = "Report issue";
+    actions.appendChild(issueLink);
+
+    document.getElementById("backLink").addEventListener("click", function () {
+      history.pushState(null, "", "/");
+      showGrid();
+    });
+  }
+
+  function showDetail(id) {
+    var plugin = state.plugins.filter(function (p) { return p.id === id; })[0];
+    if (!plugin) { showGrid(); return; }
+
+    renderDetail(plugin);
+    heroEl.classList.add("hidden");
+    controlsEl.classList.add("hidden");
+    gridViewEl.classList.add("hidden");
+    detailViewEl.classList.add("active");
+    window.scrollTo(0, 0);
+    document.title = plugin.name + " · revenge-plugins";
+  }
+
+  function showGrid() {
+    heroEl.classList.remove("hidden");
+    controlsEl.classList.remove("hidden");
+    gridViewEl.classList.remove("hidden");
+    detailViewEl.classList.remove("active");
+    document.title = "revenge-plugins";
+  }
+
+  /**
+   * Each plugin has a real static page at /<id>/ (a copy of this same file), so a direct visit or
+   * refresh works without any server-side routing - this just avoids a full reload when navigating
+   * from within an already-loaded page.
+   */
+  function navigateToPlugin(id) {
+    history.pushState(null, "", "/" + id + "/");
+    showDetail(id);
+  }
+
+  function routeFromLocation() {
+    var match = location.pathname.match(/^\/([\w-]+)\/?$/);
+    if (match && match[1]) {
+      showDetail(match[1]);
+    } else {
+      showGrid();
+    }
+  }
+
+  window.addEventListener("popstate", routeFromLocation);
+
+  /* ---------- Command palette ---------- */
+
+  var paletteIndex = 0;
+  var paletteMatches = [];
+
+  function openPalette() {
+    paletteOverlay.classList.add("open");
+    paletteInput.value = "";
+    renderPalette("");
+    setTimeout(function () { paletteInput.focus(); }, 0);
+  }
+
+  function closePalette() {
+    paletteOverlay.classList.remove("open");
+  }
+
+  function renderPalette(q) {
+    q = q.trim().toLowerCase();
+    paletteMatches = state.plugins.filter(function (p) {
+      return !q || (p.name + " " + p.category).toLowerCase().indexOf(q) !== -1;
+    });
+    paletteIndex = 0;
+
+    if (!paletteMatches.length) {
+      paletteResults.innerHTML = '<div class="palette-empty">No matches</div>';
+      return;
+    }
+
+    paletteResults.innerHTML = paletteMatches.map(function (p, i) {
+      return '<div class="palette-item" data-idx="' + i + '" aria-selected="' + (i === 0) + '" style="--item-accent:' + p.accent + '">' +
+        '<span class="dot"></span><span class="name">' + escapeHtml(p.name) + '</span><span class="cat">' + escapeHtml(p.category) + '</span>' +
+      '</div>';
+    }).join("");
+
+    Array.from(paletteResults.children).forEach(function (el, i) {
+      el.addEventListener("click", function () { selectPaletteItem(i); });
+    });
+  }
+
+  function updatePaletteSelection() {
+    Array.from(paletteResults.children).forEach(function (el, i) {
+      el.setAttribute("aria-selected", String(i === paletteIndex));
+    });
+    var active = paletteResults.children[paletteIndex];
+    if (active) active.scrollIntoView({ block: "nearest" });
+  }
+
+  function selectPaletteItem(i) {
+    var plugin = paletteMatches[i];
+    if (!plugin) return;
+    closePalette();
+    navigateToPlugin(plugin.id);
+  }
+
+  paletteInput.addEventListener("input", function (e) { renderPalette(e.target.value); });
+  paletteOverlay.addEventListener("click", function (e) { if (e.target === paletteOverlay) closePalette(); });
+
+  paletteInput.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowDown") { e.preventDefault(); paletteIndex = Math.min(paletteIndex + 1, paletteMatches.length - 1); updatePaletteSelection(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); paletteIndex = Math.max(paletteIndex - 1, 0); updatePaletteSelection(); }
+    else if (e.key === "Enter") { e.preventDefault(); selectPaletteItem(paletteIndex); }
+    else if (e.key === "Escape") { closePalette(); }
+  });
+
+  document.addEventListener("keydown", function (e) {
+    var isTyping = document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA");
+
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      openPalette();
+      return;
+    }
+    if (e.key === "/" && !isTyping) {
+      e.preventDefault();
+      openPalette();
+      return;
+    }
+    if (e.key === "Escape" && paletteOverlay.classList.contains("open")) {
+      closePalette();
+    }
+  });
+
+  /* ---------- Boot ---------- */
+
+  fetch("https://rp.jarviscli.dev/plugins-data.json")
     .then(function (r) { return r.json(); })
     .then(function (data) {
       state.plugins = data;
       renderStats();
       renderChips();
       render();
+      routeFromLocation();
     })
     .catch(function () {
       count.textContent = "";
