@@ -42,13 +42,15 @@ To install: open Discord with Revenge installed, go to **Settings → Plugins**,
 | --- | --- | --- | --- |
 | ViewRaw | Revived | See a message's raw JSON via long-press - searchable, syntax-highlighted, and copyable. Fork of [bwlok's ViewRaw](https://github.com/bwlok/revenge-plugins/tree/master/plugins/ViewRaw), GPLv3. | `https://rp.jarviscli.dev/view-raw/install/` |
 | Key Inspector | New | One-tap scan of every internal key this repo's plugins depend on, plus a full dump of Revenge's plugin API tree - for diagnosing crashes entirely from a phone. | `https://rp.jarviscli.dev/key-inspector/install/` |
+| RoseUtils | Revived | Spotify listen-along, a Tenor GIF fix, colorful channels, and more - independently toggleable modules. Fork of [nexpid's NexxUtils](https://github.com/nexpid/RevengePlugins/tree/main/src/plugins/nexxutils), CC-BY 4.0. | `https://rp.jarviscli.dev/rose-utils/install/` |
 
 "Revived" means the plugin previously existed elsewhere, stopped working after a Discord/API update, and has been rebuilt here.
 "Rebuilt" means it's a from-scratch reimplementation of a previously-broken plugin with expanded features. "New" means
 it didn't exist anywhere in the Revenge/Vendetta plugin ecosystem before.
 
-**Licensing note:** everything in this repo is original work except `plugins/view-raw`, which is a fork of a
-GPLv3-licensed plugin and carries its own `LICENSE` file in that folder - the rest of the repo isn't GPLv3.
+**Licensing note:** everything in this repo is original work except `plugins/view-raw` (GPLv3, forked from
+bwlok's ViewRaw) and `plugins/rose-utils` (CC-BY 4.0, forked from nexpid's NexxUtils) - the rest of the repo
+isn't under either of those licenses.
 
 ## Why some of these broke before, and what's different now
 

@@ -40,7 +40,7 @@
         "status": "revived",
         "accent": "#9B59B6",
         "tagline": "Shows a user's pronouns in their profile, pulled from pronoundb.org.",
-        "note": "Previously broken because PronounDB shut down the API it used (HTTP 410) - migrated to their current v2 API. Requires people to have set pronouns at pronoundb.org; nothing to configure in the plugin itself.",
+        "note": "Previously broken because PronounDB shut down the API it used (HTTP 410) - migrated to their current v2 API. Also fixed the profile-page lookup itself: Discord renamed the top-level profile component to UserProfileContent and the bio card to UserProfileAboutMeCard (confirmed against decompiled current-build source), so both the new and old names are checked. Requires people to have set pronouns at pronoundb.org; nothing to configure in the plugin itself.",
         "howItWorks": "PronounDB is a separate, independent service (not run by Discord or Revenge) where people manually set their own pronouns once and link the profile to their Discord account. This plugin adds a \"Pronouns\" section near the bio on anyone's profile who has done that. Lookups are batched and cached client-side, so opening a profile for the first time may take a moment while it fetches, and re-opening the same profile later is instant.",
         "features": [
             "Adds a native-feeling \"Pronouns\" section to profiles",
@@ -142,7 +142,7 @@
         "status": "revived",
         "accent": "#1ABC9C",
         "tagline": "Long-press a role pill to copy its color as hex.",
-        "note": "Previously broken (unguarded React-tree lookups that could throw on a shape mismatch). Rebuilt with defensive checks throughout.",
+        "note": "Previously broken - the component was renamed from ThemedRolePill to just RolePill (confirmed against decompiled current-build Discord source), so the old lookup never found anything. Now checks both names, with defensive checks throughout so a shape mismatch never crashes.",
         "howItWorks": "Long-press a role pill - in the member list, a role list, wherever Discord renders one as its own element - and the color gets copied to your clipboard as a hex code. Useful for designers, bot builders, or staff matching embed colors to a role.",
         "features": [
             "Works on any rendered role pill, not just one specific screen",
@@ -188,7 +188,7 @@
         "status": "revived",
         "accent": "#EB459E",
         "tagline": "Profile theming and profile effects without Nitro.",
-        "note": "Fork of shipwr3ckd's FPTE. Previously crashed every time you opened the profile editor - confirmed via on-device diagnostics that several color tokens it referenced (HEADER_SECONDARY, BACKGROUND_PRIMARY, BACKGROUND_FLOATING, TEXT_NORMAL) no longer exist on current Discord builds. Rebuilt with a fallback chain of real, currently-valid token names instead of a single hardcoded one.",
+        "note": "Fork of shipwr3ckd's FPTE. Previously crashed every time you opened the profile editor - confirmed via on-device diagnostics that several color tokens it referenced (HEADER_SECONDARY, BACKGROUND_PRIMARY, BACKGROUND_FLOATING, TEXT_NORMAL) no longer exist on current Discord builds. Rebuilt with a fallback chain of real, currently-valid token names instead of a single hardcoded one. A second, separate bug (an unguarded lookup that crashed the whole plugin bundle before it could even load) is also fixed.",
         "howItWorks": "Encodes your chosen primary color, accent color, and profile effect into invisible zero-width characters appended to your About Me - other people running a compatible plugin (this one, or the original) decode and render it as if you had real Nitro profile theming, without Discord's servers ever knowing. The builder UI for picking colors/effects lives right in the profile editor. Only the two files that were actually confirmed crashing were investigated and fixed; the rest of this plugin's original patches (Nitro upsell card, purchase checks, profile data fetching) are carried over as-is, now with crash isolation so any other latent issue only disables that one patch instead of the whole plugin.",
         "features": [
             "Pick a primary color, accent color, and profile effect from the profile editor",
@@ -197,5 +197,23 @@
         ],
         "commands": [],
         "limitations": "Only the confirmed profile-editor crash was root-caused and fixed with real on-device data. The plugin's other patches (Nitro upsell card, purchase/profile data fetching) weren't individually re-audited - crash isolation means a problem there disables just that patch rather than the whole plugin, but hasn't been proven bug-free the way the color-resolution fix has."
+    },
+    "rose-utils": {
+        "category": "Utility",
+        "status": "revived",
+        "accent": "#F0637E",
+        "tagline": "A grab-bag of independent utilities - Spotify listen-along, a Tenor fix, colorful channels, and more.",
+        "note": "Fork of nexpid's NexxUtils. Fixed the reported \"render is not a function in SpotifyPlayButton\" crash - Discord converted it from a class component to a function component, confirmed against decompiled current-build source, so patching .prototype.render no longer worked. Also fixed six other lookups across the plugin that had the same unguarded pattern that crashed FPTE's whole bundle at load time - any one of them failing would have taken the entire plugin down, not just one module.",
+        "howItWorks": "Each utility is its own independently toggleable module: Spotify listen-along buttons on activities, a fix for Tenor GIFs downloading as videos, an invite-to-listen-along button in the chat attachment menu, a fun \"minimod\" that shows member timeouts in chat, and colorful/NSFW-tagged channel icons. Every module tracks its own errors and shows a one-tap \"copy report\" row if something goes wrong, so a problem in one module is easy to report without digging through logs. The original's Material-Design component reskin (Switch/Toast/Alert) wasn't ported - it depends on react-native-reanimated, which isn't part of this build, and it was already disabled by default upstream due to known issues.",
+        "features": [
+            "Spotify listen-along buttons on activities (fixed)",
+            "Tenor GIF download fix",
+            "Send-a-Spotify-invite button in the attachment menu",
+            "Minimod: shows member timeouts in chat",
+            "Colorful, NSFW-tagged channel icons",
+            "Per-module error tracking with one-tap copy for bug reports"
+        ],
+        "commands": [],
+        "limitations": "The Material-Design component reskin from the original isn't included (needs react-native-reanimated). Each module was fixed and defensively guarded, but only the specific reported crash was verified against live decompiled source - the rest are guarded, not individually confirmed working on-device."
     }
 }
