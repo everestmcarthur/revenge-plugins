@@ -2,6 +2,7 @@ import { findByProps, findByStoreName } from "@vendetta/metro";
 import { chroma, constants } from "@vendetta/metro/common";
 import { storage } from "@vendetta/plugin";
 import { rawColors } from "@vendetta/ui";
+import { isValidHex } from "@shared/lib/color";
 
 const { Permissions } = constants;
 const permissionsModule = findByProps("computePermissions", "canEveryoneRole");
@@ -43,8 +44,6 @@ export interface ResolvedTag {
     verified: boolean;
 }
 
-const HEX_REGEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
-
 /** Lazily initializes and returns the per-tag settings object, backed directly by plugin storage. */
 export function tagSettings(id: string): TagOverride {
     storage.tags ??= {};
@@ -53,7 +52,7 @@ export function tagSettings(id: string): TagOverride {
 }
 
 function resolveBackgroundColor(def: TagDefinition, settings: TagOverride, guild: any, user: any): string {
-    if (settings.useCustomColor && settings.color && HEX_REGEX.test(settings.color)) {
+    if (settings.useCustomColor && isValidHex(settings.color)) {
         return settings.color;
     }
 
@@ -100,7 +99,7 @@ export default function getTag(guild: any, channel: any, user: any): ResolvedTag
 
         let gradientColor: string | undefined;
         if (settings.useGradient) {
-            gradientColor = settings.gradientColor && HEX_REGEX.test(settings.gradientColor)
+            gradientColor = isValidHex(settings.gradientColor)
                 ? settings.gradientColor
                 : chroma(backgroundColor).brighten(1.4).hex();
         }

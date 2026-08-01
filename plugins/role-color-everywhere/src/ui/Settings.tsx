@@ -1,16 +1,17 @@
-import { ReactNative } from "@vendetta/metro/common";
+import { React } from "@vendetta/metro/common";
 import { storage } from "@vendetta/plugin";
 import { useProxy } from "@vendetta/storage";
 import { Forms } from "@vendetta/ui/components";
+import SettingsScaffold from "@shared/ui/SettingsScaffold";
+import NoteBox from "@shared/ui/NoteBox";
 
-const { ScrollView, View } = ReactNative;
-const { FormSection, FormSwitchRow, FormInput, FormText } = Forms;
+const { FormSection, FormSwitchRow, FormInput } = Forms;
 
 export default function Settings() {
     useProxy(storage);
 
     return (
-        <ScrollView style={{ flex: 1 }}>
+        <SettingsScaffold>
             <FormSection title="Where to show the top role color">
                 <FormSwitchRow
                     label="Typing indicator"
@@ -52,13 +53,11 @@ export default function Settings() {
                     />
                 )}
             </FormSection>
-            <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-                <FormText>
-                    Some of these surfaces (especially the member list headers) rely on component internals
-                    Discord doesn't officially expose, so a future Discord update may silently turn one of
-                    these off again - the rest will keep working if that happens.
-                </FormText>
-            </View>
-        </ScrollView>
+            <NoteBox>
+                Some of these surfaces (especially the member list headers) rely on component internals
+                Discord doesn't officially expose, so a future Discord update may silently turn one of
+                these off again - the rest will keep working if that happens.
+            </NoteBox>
+        </SettingsScaffold>
     );
 }

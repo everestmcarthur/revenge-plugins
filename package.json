@@ -8,6 +8,7 @@
 		"@swc/helpers": "^0.5.17"
 	},
 	"devDependencies": {
+		"@rollup/plugin-alias": "^4.0.4",
 		"@rollup/plugin-commonjs": "^24.0.0",
 		"@rollup/plugin-node-resolve": "^15.0.1",
 		"@rollup/plugin-url": "latest",

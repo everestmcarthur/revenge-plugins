@@ -1,8 +1,9 @@
 import { readFile, writeFile, readdir } from "fs/promises";
-import { extname } from "path";
+import { extname, resolve as resolvePath } from "path";
 import { createHash } from "crypto";
 
 import { rollup } from "rollup";
+import alias from "@rollup/plugin-alias";
 import url from "@rollup/plugin-url";
 import esbuild from "rollup-plugin-esbuild";
 import commonjs from "@rollup/plugin-commonjs";
@@ -11,9 +12,15 @@ import swc from "@swc/core";
 
 const extensions = [".js", ".jsx", ".mjs", ".ts", ".tsx", ".cts", ".mts"];
 
+// Plugins are each built into an independent, self-contained bundle (users install them one at a time),
+// so they can't import from each other at runtime - but they CAN share source at build time. This alias
+// lets any plugin `import { x } from "@shared/..."` and have it inlined straight into its own bundle.
 /** @type import("rollup").InputPluginOption */
 const plugins = [
-    nodeResolve(),
+    alias({
+        entries: [{ find: "@shared", replacement: resolvePath("./shared") }],
+    }),
+    nodeResolve({ extensions: [".mjs", ".js", ".json", ".node", ".ts", ".tsx"] }),
     commonjs(),
     url({
         include: ["**/*.svg", "**/*.png", "**/*.jpg", "**/*.gif"],
