@@ -3,47 +3,35 @@
 // comes up empty, it's marked "not found" and every later call with the same search never
 // rescans window.modules again, even after the real module registers (confirmed by reading
 // Revenge's own source: metro/internals/modules.ts's getModules() returns early on a cached
-// NOT_FOUND flag, before ever reaching the loop that walks currently-registered modules). That
-// makes retry loops (this repo's waitFor/lazy helpers) pointless for any search whose first
-// attempt happens to run before the target is registered - every retry after that first miss
-// hits the same poisoned cache instead of actually looking again. This walks window.modules
-// directly, bypassing that cache entirely, for use specifically inside retry loops.
+// NOT_FOUND flag). That makes retry loops pointless for any search whose first attempt happens
+// to run before the target is registered - every retry after that first miss hits the same
+// poisoned cache instead of actually looking again.
 //
-// The module-exports cache below is shared across every call (not per-predicate) and only ever
-// grows - each call only evaluates modules it hasn't seen before, reusing everything already
-// pulled. Requiring every not-yet-loaded module in the bundle is inherently a one-time cost (the
-// exact same cost Revenge's own finders pay on their first, uncached search), but paying it once
-// and reusing the result is very different from paying it on every 200ms retry tick across
-// several different patchers, which is what calling window.__r fresh every time would do.
+// This walks window.modules directly to bypass that cache - but critically, it never forces a
+// module to initialize (never calls window.__r on something that hasn't run yet). An earlier
+// version of this file did force-require everything on every scan, which is genuinely dangerous:
+// Metro only ever runs a module's factory once and caches whatever it produced forever, so
+// force-evaluating a module before whatever it depends on on is actually ready can permanently
+// wedge it into a broken state for the rest of the session - no amount of retrying fixes that,
+// since the factory never runs again. This only inspects modules Metro's own isInitialized flag
+// says have ALREADY been required by something else, which is entirely passive and safe to poll
+// repeatedly - it just waits for Discord's own code to naturally reach the module we want.
 declare const window: any;
 
-const exportsCache = new Map<number, any>();
-
-function scanNewModules(): void {
-    const modules = window?.modules;
-    if (!modules) return;
-
-    for (const key in modules) {
-        const id = Number(key);
-        if (exportsCache.has(id)) continue;
-
-        try {
-            const exports = window.__r(id);
-            if (exports) exportsCache.set(id, exports);
-        } catch {
-            // Some modules throw when required this early/out of order - skip and try again
-            // next call, once whatever they depend on has loaded.
-        }
-    }
-}
-
 export function rawFind<T = any>(predicate: (exports: any) => boolean): T | undefined {
-    scanNewModules();
+    const modules = window?.modules;
+    if (!modules) return undefined;
 
-    for (const exports of exportsCache.values()) {
+    for (const id in modules) {
+        const def = modules[id];
+        if (!def?.isInitialized) continue;
+
+        const exports = def.publicModule?.exports;
+        if (!exports) continue;
+
         try {
             if (predicate(exports)) return exports;
-            if (exports?.default != null && predicate(exports.default)) return exports.default;
+            if (exports.default != null && predicate(exports.default)) return exports.default;
         } catch {
             // A predicate throwing on one module's shape shouldn't stop the scan.
         }
