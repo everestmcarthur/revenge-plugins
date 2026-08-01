@@ -6,6 +6,7 @@ import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import NoteBox from "@shared/ui/NoteBox";
 import PrimaryButton from "@shared/ui/PrimaryButton";
 import { runAllChecks, formatReport } from "../lib/checks";
+import { dumpVendettaApiTree } from "../lib/apiTree";
 
 const { View, Text } = ReactNative;
 const { FormSection, FormInput } = Forms;
@@ -29,6 +30,29 @@ function FullScanSection() {
                 {summary && (
                     <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7 }}>{summary}</Text>
                 )}
+            </View>
+        </FormSection>
+    );
+}
+
+function ApiTreeSection() {
+    return (
+        <FormSection title="Full Vendetta API tree">
+            <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+                <PrimaryButton
+                    label="Copy the entire plugin API tree"
+                    onPress={() => {
+                        const tree = dumpVendettaApiTree(3);
+                        const lineCount = tree.split("\n").length;
+                        clipboard.setString(tree);
+                        showToast(`Copied ${lineCount} lines - every key path under window.vendetta`, undefined);
+                    }}
+                />
+                <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7 }}>
+                    Every key path under the stable plugin API (window.vendetta), 3 levels deep - this
+                    is everything Revenge itself exposes to plugins, not Discord's raw internals (those
+                    are searchable individually below, since dumping all of them would be enormous).
+                </Text>
             </View>
         </FormSection>
     );
@@ -105,6 +129,7 @@ export default function Settings() {
     return (
         <SettingsScaffold>
             <FullScanSection />
+            <ApiTreeSection />
             <ManualSearchSection />
             <NoteBox>
                 The full scan checks every internal lookup this repo's plugins depend on (plus a few

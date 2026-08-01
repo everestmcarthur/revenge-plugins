@@ -113,12 +113,13 @@
         "howItWorks": "The main feature is a full scan: one button runs every internal lookup (findByProps, findByName, findByStoreName, specific semanticColors tokens) that this repo's plugins actually depend on, all in one pass, and copies a complete found/missing report plus the full current semanticColors and rawColors key lists to your clipboard. There's also a manual search section for anything not already in the scan list - type prop names or a component name and copy what findByProps/findByName returns for it. Nothing leaves your device; everything only touches your clipboard.",
         "features": [
             "Full scan: every known lookup, checked in one tap, with a copyable report",
+            "Full Vendetta API tree: every key path Revenge exposes to plugins, 3 levels deep, in one copy",
             "Manual findByProps(...) / findByName(...) search for anything else",
             "Includes the complete semanticColors and rawColors key lists",
             "No network requests, no data collection - clipboard only"
         ],
         "commands": [],
-        "limitations": "The full-scan list only covers lookups this repo's plugins currently use - it's meant to grow as more plugins get added or fixed, not to be exhaustive of everything Discord/Revenge expose."
+        "limitations": "The full-scan list only covers lookups this repo's plugins currently use - it's meant to grow as more plugins get added or fixed. The API tree covers Revenge's own plugin API (window.vendetta), not Discord's raw internal module registry, which is far too large to dump wholesale - use the search tools for that."
     },
     "better-timestamps": {
         "category": "Moderation & Appearance",
@@ -181,5 +182,20 @@
             { "cmd": "/reverse-image-search <image-url> [engine]", "desc": "Opens the image in your browser's reverse image search" }
         ],
         "limitations": "Needs a direct image URL, not a Discord attachment reference - use \"Copy Media Link\" first."
+    },
+    "fake-profile-themes-and-effects": {
+        "category": "Identity",
+        "status": "revived",
+        "accent": "#EB459E",
+        "tagline": "Profile theming and profile effects without Nitro.",
+        "note": "Fork of shipwr3ckd's FPTE. Previously crashed every time you opened the profile editor - confirmed via on-device diagnostics that several color tokens it referenced (HEADER_SECONDARY, BACKGROUND_PRIMARY, BACKGROUND_FLOATING, TEXT_NORMAL) no longer exist on current Discord builds. Rebuilt with a fallback chain of real, currently-valid token names instead of a single hardcoded one.",
+        "howItWorks": "Encodes your chosen primary color, accent color, and profile effect into invisible zero-width characters appended to your About Me - other people running a compatible plugin (this one, or the original) decode and render it as if you had real Nitro profile theming, without Discord's servers ever knowing. The builder UI for picking colors/effects lives right in the profile editor. Only the two files that were actually confirmed crashing were investigated and fixed; the rest of this plugin's original patches (Nitro upsell card, purchase checks, profile data fetching) are carried over as-is, now with crash isolation so any other latent issue only disables that one patch instead of the whole plugin.",
+        "features": [
+            "Pick a primary color, accent color, and profile effect from the profile editor",
+            "No Nitro required - works purely by encoding data into your bio",
+            "Crash isolation per patch, so one broken surface doesn't take down the rest"
+        ],
+        "commands": [],
+        "limitations": "Only the confirmed profile-editor crash was root-caused and fixed with real on-device data. The plugin's other patches (Nitro upsell card, purchase/profile data fetching) weren't individually re-audited - crash isolation means a problem there disables just that patch rather than the whole plugin, but hasn't been proven bug-free the way the color-resolution fix has."
     }
 }
