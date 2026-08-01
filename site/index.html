@@ -96,6 +96,12 @@
     from { transform: translate3d(0,0,0) scale(1); }
     to { transform: translate3d(-2%, 2%, 0) scale(1.08); }
   }
+  .hero-spotlight {
+    position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0;
+    background: radial-gradient(280px circle at var(--sx, 50%) var(--sy, 50%), color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%);
+    transition: opacity 0.25s ease;
+  }
+  .hero:hover .hero-spotlight { opacity: 1; }
   .hero-inner { position: relative; z-index: 1; }
   .mark {
     display: inline-flex;
@@ -294,6 +300,7 @@
 
 <header class="hero" id="hero">
   <div class="hero-mesh" aria-hidden="true"></div>
+  <div class="hero-spotlight" id="heroSpotlight" aria-hidden="true"></div>
   <div class="wrap hero-inner">
     <div class="mark">
       <svg viewBox="0 0 32 32" fill="none"><path d="M9 12l7-5 7 5v9l-7 5-7-5z" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="3" fill="currentColor"/></svg>
@@ -471,7 +478,7 @@
         '<div class="cta">View details &rarr;</div>';
 
       card.addEventListener("click", function () {
-        location.hash = "#/plugin/" + p.id;
+        navigateToPlugin(p.id);
       });
 
       grid.appendChild(card);
@@ -506,6 +513,13 @@
 
   window.addEventListener("scroll", function () {
     controlsEl.classList.toggle("stuck", window.scrollY > 8);
+  });
+
+  var heroSpotlight = document.getElementById("heroSpotlight");
+  heroEl.addEventListener("mousemove", function (e) {
+    var rect = heroEl.getBoundingClientRect();
+    heroSpotlight.style.setProperty("--sx", (e.clientX - rect.left) + "px");
+    heroSpotlight.style.setProperty("--sy", (e.clientY - rect.top) + "px");
   });
 
   /* ---------- Detail view ---------- */
@@ -571,7 +585,7 @@
     actions.appendChild(issueLink);
 
     document.getElementById("backLink").addEventListener("click", function () {
-      history.pushState(null, "", location.pathname + location.search);
+      history.pushState(null, "", "/");
       showGrid();
     });
   }
@@ -597,16 +611,26 @@
     document.title = "revenge-plugins";
   }
 
-  function routeFromHash() {
-    var match = location.hash.match(/^#\/plugin\/([\w-]+)/);
-    if (match) {
+  /**
+   * Each plugin has a real static page at /<id>/ (a copy of this same file), so a direct visit or
+   * refresh works without any server-side routing - this just avoids a full reload when navigating
+   * from within an already-loaded page.
+   */
+  function navigateToPlugin(id) {
+    history.pushState(null, "", "/" + id + "/");
+    showDetail(id);
+  }
+
+  function routeFromLocation() {
+    var match = location.pathname.match(/^\/([\w-]+)\/?$/);
+    if (match && match[1]) {
       showDetail(match[1]);
     } else {
       showGrid();
     }
   }
 
-  window.addEventListener("hashchange", routeFromHash);
+  window.addEventListener("popstate", routeFromLocation);
 
   /* ---------- Command palette ---------- */
 
@@ -659,7 +683,7 @@
     var plugin = paletteMatches[i];
     if (!plugin) return;
     closePalette();
-    location.hash = "#/plugin/" + plugin.id;
+    navigateToPlugin(plugin.id);
   }
 
   paletteInput.addEventListener("input", function (e) { renderPalette(e.target.value); });
@@ -692,14 +716,14 @@
 
   /* ---------- Boot ---------- */
 
-  fetch("https://everestmcarthur.github.io/revenge-plugins/plugins-data.json")
+  fetch("https://rp.jarviscli.dev/plugins-data.json")
     .then(function (r) { return r.json(); })
     .then(function (data) {
       state.plugins = data;
       renderStats();
       renderChips();
       render();
-      routeFromHash();
+      routeFromLocation();
     })
     .catch(function () {
       count.textContent = "";
