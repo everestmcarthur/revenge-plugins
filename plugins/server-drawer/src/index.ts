@@ -2,6 +2,7 @@ import { logger } from "@vendetta";
 import { storage } from "@vendetta/plugin";
 import { patchQuestDockRender } from "./patches/questDockRender";
 import { patchQuestDockBase } from "./patches/questDockBase";
+import { patchQuestDockVisible } from "./patches/questDockVisible";
 import { patchMobileQuestDock } from "./patches/mobileQuestDock";
 import { patchGetQuestAsset } from "./patches/getQuestAsset";
 import { patchExpanded, patchEmpty } from "./patches/contentPatch";
@@ -37,6 +38,7 @@ function applyAll() {
     const patchers: Record<string, () => boolean> = {
         questDockRender: () => patchQuestDockRender(cleanups),
         questDockBase: () => patchQuestDockBase(cleanups),
+        questDockVisible: () => patchQuestDockVisible(cleanups),
         mobileQuestDock: () => patchMobileQuestDock(cleanups),
         getQuestAsset: () => patchGetQuestAsset(cleanups),
         expanded: () => patchExpanded(cleanups),
