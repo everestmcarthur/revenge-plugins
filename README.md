@@ -1,6 +1,6 @@
 # revenge-plugins
 
-A small collection of plugins for [Revenge](https://github.com/revenge-mod/revenge-bundle), the Discord Android client mod.
+A collection of plugins for [Revenge](https://github.com/revenge-mod/revenge-bundle), the Discord Android client mod.
 
 ## Installing a plugin
 
@@ -8,29 +8,35 @@ A small collection of plugins for [Revenge](https://github.com/revenge-mod/reven
 2. Tap the `+` button and paste the plugin's install link (see below).
 3. Enable it.
 
-| Plugin | Description | Install link |
-| --- | --- | --- |
-| Staff Tags | Adds OWNER/ADMIN/STAFF/MOD-style tags next to members, based on their actual server permissions. Fully customizable: per-tag text, colors, gradients, and visibility. | `https://everestmcarthur.github.io/revenge-plugins/staff-tags/` |
+## Plugins
 
-## About Staff Tags
+### Moderation & appearance
 
-This is a rebuilt version of the old `staff-tags` plugin, which stopped working after Discord renamed some of the
-internal components it depended on (`DisplayName`, `HeaderName`, `getTagProperties`) - when any one of those lookups
-came back empty, the entire plugin used to fail to load, taking every tag down with it, everywhere.
+| Plugin | Status | Description | Install link |
+| --- | --- | --- | --- |
+| Staff Tags | Rebuilt | OWNER/ADMIN/STAFF/MOD-style tags next to members, computed from real server permissions. Per-tag text, colors, gradients, and visibility. | `https://everestmcarthur.github.io/revenge-plugins/staff-tags/` |
+| RoleColorEverywhere | Revived | A member's top role color shown in mentions, the typing indicator, voice channel names, member list role headers, and optionally message text. | `https://everestmcarthur.github.io/revenge-plugins/role-color-everywhere/` |
+| PronounDB | Revived | Shows a user's pronouns (from pronoundb.org) in their profile. | `https://everestmcarthur.github.io/revenge-plugins/pronoun-db/` |
 
-This version isolates each patch (chat tags, member list, profile, channel header) so that if Discord changes one of
-them again in the future, only that specific surface stops showing tags instead of the whole plugin breaking. It also
-adds:
+### Productivity
 
-- Per-tag show/hide toggles
-- Custom tag text
-- Custom solid colors
-- Gradient tags (member list & profile only - chat message tags are rendered from data rather than a
-  patchable element, so they always use a solid color)
-- "Use top role color" as a fallback when no custom color is set
+| Plugin | Status | Description | Install link |
+| --- | --- | --- | --- |
+| Message Snippets | New | Save reusable text and send it with `/snippet <name>`. Manage snippets in-app or with `/snippet-save`, `/snippet-delete`, `/snippet-list`. | `https://everestmcarthur.github.io/revenge-plugins/message-snippets/` |
+| Reminders | New | `/remind 20m Walk the dog` - fires while Discord is running. Can't wake the app from fully closed (no native notification access from a JS plugin). | `https://everestmcarthur.github.io/revenge-plugins/reminders/` |
 
-Tags are computed from the built-in `computePermissions` API against real permission bits (Administrator, Manage
-Server, Manage Messages, Kick/Ban, etc.), the same as the original plugin, not from role names.
+"Revived" means the plugin previously existed elsewhere, stopped working after a Discord/API update, and has been rebuilt here.
+"Rebuilt" means it's a from-scratch reimplementation of a previously-broken plugin with expanded features. "New" means
+it didn't exist anywhere in the Revenge/Vendetta plugin ecosystem before.
+
+## Why some of these broke before, and what's different now
+
+Both Staff Tags and RoleColorEverywhere previously failed completely (not just partially) when a single internal
+Discord component got renamed - one bad lookup threw during setup, which crashed the plugin's `onLoad` before it
+could apply any of its other patches. Every rebuilt/revived plugin in this repo isolates each patch surface behind
+its own guard, so if Discord changes one internal again, only that specific surface goes quiet instead of taking
+the whole plugin down. PronounDB's break was simpler: its old data source was a PronounDB API version that Discord
+had nothing to do with - PronounDB itself shut it down (HTTP 410) - so it's been migrated to their current v2 API.
 
 ## Building locally
 
