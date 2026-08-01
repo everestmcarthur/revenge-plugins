@@ -1,6 +1,7 @@
 import { React } from "@vendetta/metro/common";
 import { useProxy } from "@vendetta/storage";
 import { storage } from "@vendetta/plugin";
+import { showToast } from "@vendetta/ui/toasts";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import ListSection from "@shared/ui/ListSection";
 import NoteBox from "@shared/ui/NoteBox";
@@ -33,7 +34,10 @@ export default function Settings() {
                     key: r.id,
                     label: r.text,
                     subLabel: `${formatRemaining(r.dueAt)}  •  Tap to cancel`,
-                    onPress: () => removeReminder(r.id)
+                    onPress: () => {
+                        removeReminder(r.id);
+                        showToast("Reminder cancelled", undefined);
+                    }
                 }))}
             />
             <NoteBox>

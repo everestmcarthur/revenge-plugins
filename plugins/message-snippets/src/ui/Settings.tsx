@@ -2,6 +2,7 @@ import { React, ReactNative } from "@vendetta/metro/common";
 import { useProxy } from "@vendetta/storage";
 import { storage } from "@vendetta/plugin";
 import { Forms } from "@vendetta/ui/components";
+import { showToast } from "@vendetta/ui/toasts";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import ListSection from "@shared/ui/ListSection";
 import PrimaryButton from "@shared/ui/PrimaryButton";
@@ -25,6 +26,7 @@ function NewSnippetForm() {
                 style={{ marginTop: 8 }}
                 onPress={() => {
                     saveSnippet(name.trim(), text);
+                    showToast(`Saved snippet "${name.trim()}"`, undefined);
                     setName("");
                     setText("");
                 }}
@@ -51,7 +53,10 @@ export default function Settings() {
                     key: name,
                     label: name,
                     subLabel: `${snippets[name].slice(0, 60)}${snippets[name].length > 60 ? "…" : ""}  •  Tap to delete`,
-                    onPress: () => deleteSnippet(name)
+                    onPress: () => {
+                        deleteSnippet(name);
+                        showToast(`Deleted snippet "${name}"`, undefined);
+                    }
                 }))}
             />
         </SettingsScaffold>
