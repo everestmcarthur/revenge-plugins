@@ -1,0 +1,29 @@
+name: Feature request / new plugin idea
+description: Something you want added to an existing plugin, or a new plugin entirely
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of request is this?
+      options:
+        - New feature for an existing plugin
+        - A brand new plugin idea
+    validations:
+      required: true
+
+  - type: input
+    id: plugin
+    attributes:
+      label: Which plugin? (leave blank if this is a new plugin idea)
+      placeholder: "e.g. Staff Tags"
+    validations:
+      required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What do you want, and why?
+      description: The more concrete, the better - what would you actually do with it?
+    validations:
+      required: true

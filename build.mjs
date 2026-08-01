@@ -60,9 +60,11 @@ const plugins = [
     esbuild({ minify: true }),
 ];
 
+// Each plugin's actual install target (manifest.json + index.js) lives at /<id>/install/, so that
+// /<id>/ itself is free to be a real, bookmarkable HTML page describing the plugin (see generate-site.mjs).
 for (const plug of await readdir("./plugins")) {
     const manifest = JSON.parse(await readFile(`./plugins/${plug}/manifest.json`));
-    const outPath = `./dist/${plug}/index.js`;
+    const outPath = `./dist/${plug}/install/index.js`;
 
     try {
         const bundle = await rollup({
@@ -90,7 +92,7 @@ for (const plug of await readdir("./plugins")) {
         const toHash = await readFile(outPath);
         manifest.hash = createHash("sha256").update(toHash).digest("hex");
         manifest.main = "index.js";
-        await writeFile(`./dist/${plug}/manifest.json`, JSON.stringify(manifest));
+        await writeFile(`./dist/${plug}/install/manifest.json`, JSON.stringify(manifest));
 
         console.log(`Successfully built ${manifest.name}!`);
     } catch (e) {

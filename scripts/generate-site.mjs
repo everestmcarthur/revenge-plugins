@@ -1,6 +1,6 @@
 import { readFile, writeFile, readdir, copyFile, stat } from "fs/promises";
 
-const PAGES_BASE = "https://everestmcarthur.github.io/revenge-plugins";
+const PAGES_BASE = "https://rp.jarviscli.dev";
 const REPO_BASE = "https://github.com/everestmcarthur/revenge-plugins";
 
 const meta = JSON.parse(await readFile("./site/meta.json", "utf8"));
@@ -12,7 +12,7 @@ for (const id of await readdir("./dist")) {
 
     let manifest;
     try {
-        manifest = JSON.parse(await readFile(`${dir}/manifest.json`, "utf8"));
+        manifest = JSON.parse(await readFile(`${dir}/install/manifest.json`, "utf8"));
     } catch {
         continue; // not a plugin output directory
     }
@@ -33,7 +33,8 @@ for (const id of await readdir("./dist")) {
         features: info.features ?? [],
         commands: info.commands ?? [],
         limitations: info.limitations ?? "",
-        installUrl: `${PAGES_BASE}/${id}/`,
+        pageUrl: `${PAGES_BASE}/${id}/`,
+        installUrl: `${PAGES_BASE}/${id}/install/`,
         sourceUrl: `${REPO_BASE}/tree/main/plugins/${id}`,
         issueUrl: `${REPO_BASE}/issues/new?title=${encodeURIComponent(`[${manifest.name}] `)}`
     });
@@ -44,5 +45,12 @@ plugins.sort((a, b) => a.category.localeCompare(b.category) || a.name.localeComp
 await writeFile("./dist/plugins-data.json", JSON.stringify(plugins, null, 2));
 await copyFile("./site/index.html", "./dist/index.html");
 await copyFile("./site/index.html", "./dist/404.html");
+await copyFile("./site/CNAME", "./dist/CNAME");
+
+// Each plugin gets its own real, bookmarkable page at /<id>/ (not just a hash route) - it's the
+// same SPA shell, which reads location.pathname on boot to know which plugin to show directly.
+for (const p of plugins) {
+    await copyFile("./site/index.html", `./dist/${p.id}/index.html`);
+}
 
 console.log(`Generated site data for ${plugins.length} plugin(s).`);
