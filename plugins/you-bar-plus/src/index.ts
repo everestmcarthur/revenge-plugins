@@ -8,8 +8,8 @@ let unpatchAll: () => void = () => {};
 
 export default {
     onLoad: () => {
-        storage.slot1 ??= "dms";
-        storage.slot2 ??= "settings";
+        storage.showDMButton ??= false;
+        storage.showSettingsButton ??= true;
 
         unpatchAll = applyPatches("YouBar+", logger, {
             "YouBar buttons": patchYouBarButtons

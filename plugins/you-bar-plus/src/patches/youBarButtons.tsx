@@ -5,17 +5,7 @@ import { storage } from "@vendetta/plugin";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 import { waitFor } from "@shared/lib/waitFor";
 
-export type YouBarButtonAction = "none" | "dms" | "settings";
-
-export const YOU_BAR_BUTTON_CHOICES: YouBarButtonAction[] = ["none", "dms", "settings"];
-
-export const YOU_BAR_BUTTON_LABELS: Record<YouBarButtonAction, string> = {
-    none: "None",
-    dms: "Direct Messages",
-    settings: "Settings"
-};
-
-/** Lets the Settings screen force the patched YouBar to re-render right after a slot changes. */
+/** Lets the Settings screen force the patched YouBar to re-render right after a toggle changes. */
 export let updateYouBar = () => {};
 
 /**
@@ -48,15 +38,8 @@ function applyButtonPatch(YouBarNotificationsButton: any): () => void {
     // (see above), not a renamed-API one, so these targets are left exactly as they were.
     const userSettingsAction = findByProps("openUserSettings");
     const transitionModule = findByProps("transitionToGuild");
-    const icons: Partial<Record<YouBarButtonAction, number | undefined>> = {
-        dms: getAssetIDByName("ChatIcon"),
-        settings: getAssetIDByName("SettingsIcon")
-    };
-
-    const runAction = (action: YouBarButtonAction) => {
-        if (action === "dms") transitionModule?.transitionToGuild?.("@me");
-        else if (action === "settings") userSettingsAction?.openUserSettings?.();
-    };
+    const ChatIcon = getAssetIDByName("ChatIcon");
+    const SettingsIcon = getAssetIDByName("SettingsIcon");
 
     return instead("type", YouBarNotificationsButton, (args: any[], OriginalRender: (...a: any[]) => any) => {
         try {
@@ -68,21 +51,24 @@ function applyButtonPatch(YouBarNotificationsButton: any): () => void {
 
             const IconButton = res.props.children.type;
             const originalProps = res.props.children.props;
-            // Two independent slots, rendered left to right - each can be off, DMs, or Settings.
-            const slots: YouBarButtonAction[] = [storage.slot1, storage.slot2];
 
             return (
                 <React.Fragment>
-                    {slots.map((action, i) =>
-                        action === "none" ? null : (
-                            <IconButton
-                                key={`you-bar-plus-${i}`}
-                                variant={originalProps?.variant || "tertiary"}
-                                size={originalProps?.size || "sm"}
-                                icon={icons[action]}
-                                onPress={() => runAction(action)}
-                            />
-                        )
+                    {storage.showDMButton && (
+                        <IconButton
+                            variant={originalProps?.variant || "tertiary"}
+                            size={originalProps?.size || "sm"}
+                            icon={ChatIcon}
+                            onPress={() => transitionModule?.transitionToGuild?.("@me")}
+                        />
+                    )}
+                    {storage.showSettingsButton && (
+                        <IconButton
+                            variant={originalProps?.variant || "tertiary"}
+                            size={originalProps?.size || "sm"}
+                            icon={SettingsIcon}
+                            onPress={() => userSettingsAction?.openUserSettings?.()}
+                        />
                     )}
                     {res}
                 </React.Fragment>
