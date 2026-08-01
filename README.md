@@ -27,6 +27,7 @@ To install: open Discord with Revenge installed, go to **Settings → Plugins**,
 | BetterTimestamps | Revived | Calendar-relative, fully relative, ISO 8601, or a custom moment.js timestamp format, for both messages and day dividers. | `https://rp.jarviscli.dev/better-timestamps/install/` |
 | CopyRoleColor | Revived | Long-press a role pill to copy its color as hex. | `https://rp.jarviscli.dev/copy-role-color/install/` |
 | ServerDrawer | Revived | Replaces the Quest Dock with an expandable server grid, hides the left server rail down to a single DMs icon, long-press a server for its context menu, one-tap create/join. Fork of [kmmiio99o's ServerDrawer](https://github.com/kmmiio99o/vd-plugins/tree/main/plugins/ServerDrawer) - fixed an unguarded lookup that could silently skip every patch after it. | `https://rp.jarviscli.dev/server-drawer/install/` |
+| YouBar+ | Revived | Up to 2 configurable buttons (None/Direct Messages/Settings) on the YouBar, in your chosen order. Fork of [Purple-EyeZ's YouBar+](https://github.com/Purple-EyeZ/RevengePlugins/tree/main/plugins/YouBarPlus) - fixed a startup race condition where the button patch could silently never apply for an entire session. | `https://rp.jarviscli.dev/you-bar-plus/install/` |
 
 ### Productivity
 
