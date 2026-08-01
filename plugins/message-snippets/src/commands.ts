@@ -1,16 +1,22 @@
 import { registerCommand } from "@vendetta/commands";
+import { findByProps } from "@vendetta/metro";
 import { showToast } from "@vendetta/ui/toasts";
 import { getSnippets, saveSnippet, deleteSnippet } from "./lib/snippets";
 
 // Discord slash-command option type for a plain string argument.
 const STRING = 3;
 
+// Returning a CommandResult object from `execute` and relying on the framework to auto-send it
+// turned out to be unreliable in practice - real-world plugins (e.g. InfoCommands) route around it
+// by sending the message themselves, so this does the same instead of relying on the return value.
+const MessageActions = findByProps("sendMessage", "sendBotMessage");
+
 export default function loadCommands(): (() => void)[] {
     const unregisterSend = registerCommand({
         name: "snippet",
         description: "Send a saved text snippet",
         options: [{ name: "name", description: "Snippet name", type: STRING, required: true }],
-        execute: (args) => {
+        execute: (args, ctx) => {
             const name = args.find((a) => a.name === "name")?.value;
             const text = name ? getSnippets()[name] : undefined;
 
@@ -19,7 +25,12 @@ export default function loadCommands(): (() => void)[] {
                 return;
             }
 
-            return { content: text };
+            if (!MessageActions?.sendMessage) {
+                showToast("Couldn't send the snippet - message action not found", undefined);
+                return;
+            }
+
+            MessageActions.sendMessage(ctx.channel.id, { content: text });
         }
     });
 

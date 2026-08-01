@@ -26,7 +26,13 @@ for (const id of await readdir("./dist")) {
         authors: (manifest.authors ?? []).map((a) => a.name),
         category: info.category ?? "Other",
         status: info.status ?? "new",
+        accent: info.accent ?? "#5865f2",
+        tagline: info.tagline ?? manifest.description,
         note: info.note ?? "",
+        howItWorks: info.howItWorks ?? "",
+        features: info.features ?? [],
+        commands: info.commands ?? [],
+        limitations: info.limitations ?? "",
         installUrl: `${PAGES_BASE}/${id}/`,
         sourceUrl: `${REPO_BASE}/tree/main/plugins/${id}`,
         issueUrl: `${REPO_BASE}/issues/new?title=${encodeURIComponent(`[${manifest.name}] `)}`
