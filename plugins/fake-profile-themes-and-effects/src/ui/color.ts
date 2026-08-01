@@ -41,8 +41,13 @@ export const useAvatarColors: (
 
 export type Theme = "dark" | "light" | "midnight" | "darker";
 
+// The unguarded version of this line (`findByProps("getProfileTheme").getProfileTheme`) is what was
+// crashing the whole plugin bundle at load time on at least one Discord build - accessing a property
+// on the result of a failed findByProps throws immediately, outside any of this plugin's own
+// try/catch, since it runs while the module is being evaluated, before onLoad is ever reached.
 export const getProfileTheme: <T extends number | null | undefined>(primaryColor: T) => T extends number ? Theme : null
-    = findByProps("getProfileTheme").getProfileTheme;
+    = (findByProps("getProfileTheme") as Record<string, any> | undefined)?.getProfileTheme
+    ?? ((primaryColor: any) => (primaryColor == null ? null : "dark")) as any;
 
 export interface ThemeContext {
     theme: Theme;

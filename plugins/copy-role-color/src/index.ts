@@ -8,10 +8,13 @@ import { showToast } from "@vendetta/ui/toasts";
 import { applyPatches } from "@shared/lib/patcher";
 
 function patchRolePill(): () => void {
-    const ThemedRolePill = findByName("ThemedRolePill", false);
-    if (!ThemedRolePill) return () => {};
+    // Confirmed against decompiled current-build Discord source: the component is now just
+    // "RolePill" (at app/components_native/common/RolePill.tsx) - "ThemedRolePill" doesn't exist
+    // anywhere in it. Checking both names covers older builds that might still use the old one.
+    const RolePillComponent = findByName("RolePill", false) ?? findByName("ThemedRolePill", false);
+    if (!RolePillComponent) return () => {};
 
-    return after("default", ThemedRolePill, (_args: any[], res: any) => {
+    return after("default", RolePillComponent, (_args: any[], res: any) => {
         try {
             if (!res?.props?.onPress) return;
 
