@@ -1,0 +1,8 @@
+{
+    "name": "Reverse Image Search",
+    "description": "/reverse-image-search <image-url> - open an image link in Google Lens, Yandex, or TinEye.",
+    "authors": [
+        { "name": "everestmcarthur" }
+    ],
+    "main": "src/index.ts"
+}
