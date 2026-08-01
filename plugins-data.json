@@ -137,20 +137,23 @@
     "description": "Replaces the Quest Dock with a server grid drawer above the YouBar - tap to expand, long-press a server for its context menu, plus a one-tap create/join button.",
     "authors": [
       "everestmcarthur",
-      "kmmiio99o"
+      "kmmiio99o",
+      "fres"
     ],
     "category": "Moderation & Appearance",
     "status": "revived",
     "accent": "#F97316",
-    "tagline": "Turns the Quest Dock into an expandable server grid, above the YouBar.",
-    "note": "Fork of kmmiio99o's ServerDrawer. One lookup (useMobileQuestDock) was missing an optional-chaining guard - if that lookup came back empty, the whole onLoad threw and every patch after it in the sequence never got applied, not just that one surface. Fixed, plus every patch call is now wrapped so a single bad lookup only skips its own surface.",
+    "tagline": "Turns the Quest Dock into an expandable server grid, with smarter folders.",
+    "note": "Fork of kmmiio99o's ServerDrawer. One lookup (useMobileQuestDock) was missing an optional-chaining guard - if that lookup came back empty, the whole onLoad threw and every patch after it in the sequence never got applied, not just that one surface. Fixed, plus every patch call is now wrapped so a single bad lookup only skips its own surface. Folder options (auto-collapse, hide preview icons) are adapted from fres621's BetterFolders - its icon-hiding half patched a \"GuildContainer\" component that no longer exists anywhere in current Discord builds (confirmed against decompiled source), and only applied to the native server rail anyway, which this plugin already replaces - so it's been rebuilt as a feature of the drawer's own folders instead.",
     "howItWorks": "Hijacks the Quest Dock - the strip Discord normally uses for daily quests, right above the tab bar - and puts a grid of your servers there instead. Tap it to expand, tap a server to jump to it, long-press for the usual context menu (mark as read, notification settings, leave, etc). A + button opens Discord's own create/join-server modal. Optionally hides the left server rail down to a single DMs icon, since your servers now live in the drawer instead.",
     "features": [
       "Tap-to-expand server grid with folders, unread badges, and mention counts",
       "Long-press a server for its real context menu, not a rebuilt one",
       "One-tap create/join through Discord's native modal",
       "Optional: collapse the left server rail to a single DMs icon",
-      "Toggle unread badges independently"
+      "Toggle unread badges independently",
+      "Auto-collapse other open folders when you open a new one",
+      "Optional plain folder icon instead of the 4-server preview when collapsed"
     ],
     "commands": [],
     "limitations": "Depends on several internal Quest Dock lookups (11 in total) - each is individually guarded, so a future Discord rename degrades one surface at a time instead of breaking the whole plugin. Drawer position (left/right/top) is planned but not in this build yet - it currently only replaces the Quest Dock's native bottom position.",
