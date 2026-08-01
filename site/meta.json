@@ -87,5 +87,21 @@
             { "cmd": "/remind <in> <text>", "desc": "e.g. /remind 20m Walk the dog - fires an in-app alert when it's due" }
         ],
         "limitations": "Can't wake Discord up from fully closed - that needs a native OS-level scheduled notification, which isn't something a JS-only plugin has access to. If you force-close the app, pending reminders resume checking once you reopen it, but won't have fired while it was closed."
+    },
+    "view-raw": {
+        "category": "Utility",
+        "status": "revived",
+        "accent": "#38BDF8",
+        "tagline": "See a message's raw JSON - searchable, syntax-highlighted, and copyable.",
+        "note": "Fork of bwlok's ViewRaw (GPLv3 - see the plugin's own LICENSE file). Fixed a crash that hit every message long-press, then rebuilt the viewer with search and syntax highlighting on top.",
+        "howItWorks": "Long-press any message and pick \"View Raw\" to see exactly what Discord sent for it - every field, not just the rendered text. The original plugin crashed the long-press menu on every message because it assumed a specific internal icon shape without checking it first; this fork guards that assumption and everything else in the same patch. The viewer itself was rebuilt: a search box highlights matching lines (dimming the rest, not hiding them, so you keep the structure for context), values are color-coded by type, and there are one-tap copy buttons for either just the message content or the full JSON.",
+        "features": [
+            "Search box highlights matching keys/values across the whole payload",
+            "Syntax-colored JSON (strings, numbers, booleans, null all render differently)",
+            "Separate \"Copy Content\" and \"Copy JSON\" buttons",
+            "Crash fixed: no longer breaks the message long-press menu"
+        ],
+        "commands": [],
+        "limitations": "Licensed GPLv3 (inherited from the original), not the same terms as the rest of this repo - see plugins/view-raw/LICENSE."
     }
 }

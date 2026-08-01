@@ -1,0 +1,11 @@
+{
+    "name": "ViewRaw",
+    "description": "View a message's raw JSON data - searchable, syntax-highlighted, and copyable. Fork of bwlok's ViewRaw with a crash fix and a nicer viewer.",
+    "authors": [
+        { "name": "everestmcarthur" },
+        { "name": "sapphire" },
+        { "name": "Vendicated" },
+        { "name": "Bwlok" }
+    ],
+    "main": "src/index.tsx"
+}
