@@ -5,9 +5,14 @@
 // - Fixed a crash on every message long-press ("Cannot read property 'type' of undefined") caused
 //   by assuming Discord's ActionSheetRow icon shape without checking it first.
 // - RawPage rebuilt with a search box, syntax-highlighted JSON, and clearer copy actions.
-// - Added a third, name-independent fallback for finding the action sheet's row list, plus a
-//   diagnostics record (visible in Settings) of which strategy matched - the original had exactly
-//   two shape-specific strategies, and gave up silently if neither matched a given Discord build.
+// - Action-sheet insertion rewritten using the technique from fshinz/Revenge-Plugins'
+//   MoveForwardButton/FastCopyUserID: build the button from the real ActionSheetRow component
+//   (via findByProps("ActionSheetRow"), with its own .Icon/.Group) instead of fabricating a fake
+//   icon element by copying $$typeof/type off a sibling - and fall back to creating a brand new
+//   group if no existing group can be found, rather than giving up.
+// - Guards against re-patching the same action sheet instance twice (Discord appears to reuse the
+//   same lazy-loaded instance across opens), and against a missing Navigator lookup.
+// - Diagnostics (visible in Settings) record which strategy matched, or why none did.
 import { before, after } from "@vendetta/patcher";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 import { findInReactTree } from "@vendetta/utils";
@@ -25,127 +30,132 @@ const modalCloseButton =
   findByProps("getHeaderCloseButton")?.getHeaderCloseButton;
 const Navigator =
   findByName("Navigator") ?? findByProps("Navigator")?.Navigator;
+const { ActionSheetRow } = findByProps("ActionSheetRow") ?? {};
 const { FormRow, FormIcon } = Forms;
 
-function viewRawFormRow(navigator: () => JSX.Element) {
-  return (
-    <FormRow
-      label="View Raw"
-      leading={
-        <FormIcon
-          style={{ opacity: 1 }}
-          source={getAssetIDByName("ic_chat_bubble_16px")}
-        />
-      }
-      onPress={() => {
-        LazyActionSheet.hideActionSheet();
-        Navigation.push(navigator);
+function buildNavigator(getMessage: () => any) {
+  return () => (
+    <Navigator
+      initialRouteName="RawPage"
+      goBackOnBackPress
+      screens={{
+        RawPage: {
+          title: "ViewRaw",
+          headerLeft: modalCloseButton?.(() => Navigation.pop()),
+          render: () => <RawPage message={getMessage()} />,
+        },
       }}
     />
   );
 }
 
-const unpatch = before("openLazy", LazyActionSheet, ([component, key, msg]) => {
-  const message = msg?.message;
-  if (key !== "MessageLongPressActionSheet" || !message) return;
-  component.then((instance) => {
-    const unpatch = after("default", instance, (_, component) => {
-      React.useEffect(
-        () => () => {
-          unpatch();
-        },
-        [],
-      );
+function openRawPage(navigator: () => JSX.Element) {
+  LazyActionSheet.hideActionSheet();
+  Navigation.push(navigator);
+}
 
-      // Every branch below pokes at Discord's internal action-sheet component shape, which isn't a
-      // stable API - wrapped so a shape mismatch just skips adding the button instead of crashing
-      // the long-press menu for every message.
+function formRowButton(navigator: () => JSX.Element) {
+  return (
+    <FormRow
+      label="View Raw"
+      leading={
+        <FormIcon style={{ opacity: 1 }} source={getAssetIDByName("ic_chat_bubble_16px")} />
+      }
+      onPress={() => openRawPage(navigator)}
+    />
+  );
+}
+
+function actionSheetRowButton(navigator: () => JSX.Element) {
+  return (
+    <ActionSheetRow
+      label="View Raw"
+      icon={<ActionSheetRow.Icon source={getAssetIDByName("ic_chat_bubble_16px")} />}
+      onPress={() => openRawPage(navigator)}
+      key="view-raw"
+    />
+  );
+}
+
+const patches: (() => void)[] = [];
+
+const unpatchOpenLazy = before("openLazy", LazyActionSheet, ([component, key, msg]) => {
+  if (key !== "MessageLongPressActionSheet" || !msg?.message) return;
+
+  component.then((instance: any) => {
+    // Discord appears to reuse the same lazy-loaded instance across every action sheet open, so
+    // this only patches it once and tracks the active message on the instance itself - patching on
+    // every open would stack duplicate buttons (and duplicate patches) after enough long-presses.
+    instance.__viewRawActiveMessage = msg.message;
+    if (instance.__viewRawPatched) return;
+    instance.__viewRawPatched = true;
+
+    const unpatchDefault = after("default", instance, (_: any, component: any) => {
       try {
-        const navigator = () => (
-          <Navigator
-            initialRouteName="RawPage"
-            goBackOnBackPress
-            screens={{
-              RawPage: {
-                title: "ViewRaw",
-                headerLeft: modalCloseButton?.(() => Navigation.pop()),
-                render: () => <RawPage message={message} />,
-              },
-            }}
-          />
-        );
+        if (!Navigator) {
+          console.log("[ViewRaw] Error: Navigator not found - can't open RawPage");
+          recordDetection("none", "Navigator not found");
+          return;
+        }
+
+        const navigator = buildNavigator(() => instance.__viewRawActiveMessage);
 
         // Strategy 1: a plain list of buttons (older/simpler action sheet layouts).
-        const buttons = findInReactTree(
-          component,
-          (x) => x?.[0]?.type?.name === "ButtonRow",
-        );
-
-        // Strategy 2: the row-group layout, where we build a fake icon element to match the
-        // existing rows' internal shape.
-        const actionSheetContainer = findInReactTree(
-          component,
-          (x) => Array.isArray(x) && x[0]?.type?.name === "ActionSheetRowGroup",
-        );
-
+        const buttons = findInReactTree(component, (x) => x?.[0]?.type?.name === "ButtonRow");
         if (buttons) {
-          buttons.push(viewRawFormRow(navigator));
+          buttons.push(formRowButton(navigator));
           recordDetection("buttons");
           return;
         }
 
-        if (actionSheetContainer && actionSheetContainer[1]) {
-          const middleGroup = actionSheetContainer[1];
-          const firstChild = middleGroup?.props?.children?.[0];
-          const ActionSheetRow = firstChild?.type;
-          const iconProps = firstChild?.props?.icon;
+        // Strategy 2: real ActionSheetRow groups. Search every group for one that already has
+        // ActionSheetRow-shaped children, insert there - and if none match, create a brand new
+        // group at the top rather than giving up (this is the actual difference from before).
+        const groups = findInReactTree(
+          component,
+          (x) => Array.isArray(x) && x[0]?.type?.name === "ActionSheetRowGroup",
+        );
 
-          if (ActionSheetRow && iconProps && Array.isArray(middleGroup?.props?.children)) {
-            const viewRawButton = (
-              <ActionSheetRow
-                label="View Raw"
-                icon={{
-                  $$typeof: iconProps.$$typeof,
-                  type: iconProps.type,
-                  key: null,
-                  ref: null,
-                  props: {
-                    IconComponent: () => (
-                      <FormIcon
-                        style={{ opacity: 1 }}
-                        source={getAssetIDByName("ic_chat_bubble_32px")}
-                      />
-                    ),
-                  },
-                }}
-                onPress={() => {
-                  LazyActionSheet.hideActionSheet();
-                  Navigation.push(navigator);
-                }}
-                key="view-raw"
-              />
+        if (Array.isArray(groups) && groups.length && ActionSheetRow) {
+          const button = actionSheetRowButton(navigator);
+          let inserted = false;
+
+          for (const group of groups) {
+            const children = findInReactTree(
+              group,
+              (c) => Array.isArray(c) && c.some((child: any) => child?.type?.name === "ActionSheetRow"),
             );
+            if (Array.isArray(children)) {
+              children.push(button);
+              inserted = true;
+              break;
+            }
+          }
 
-            middleGroup.props.children.push(viewRawButton);
+          if (!inserted && typeof groups.unshift === "function" && ActionSheetRow.Group) {
+            groups.unshift(<ActionSheetRow.Group>{button}</ActionSheetRow.Group>);
+            inserted = true;
+          }
+
+          if (inserted) {
             recordDetection("actionSheetRow");
             return;
           }
         }
 
-        // Strategy 3: name-independent fallback. Rather than matching a specific component name
-        // (which changes across Discord builds/minification), look for any array where every
-        // element already looks like an action sheet row - has both a label and an onPress. This
-        // is a shape signature, not a name, so it survives renames that break strategies 1 and 2.
+        // Strategy 3: name-independent fallback. Look for any array where every element already
+        // looks like an action sheet row (has both a label and an onPress) - a shape signature
+        // rather than a name, so it survives renames that break strategies 1 and 2.
         const genericRowGroup = findInReactTree(
           component,
           (x) =>
             Array.isArray(x) &&
             x.length > 0 &&
-            x.every((el) => typeof el?.props?.label === "string" && typeof el?.props?.onPress === "function"),
+            x.every((el: any) => typeof el?.props?.label === "string" && typeof el?.props?.onPress === "function"),
         );
 
         if (Array.isArray(genericRowGroup)) {
-          genericRowGroup.push(viewRawFormRow(navigator));
+          genericRowGroup.push(formRowButton(navigator));
           recordDetection("generic");
           return;
         }
@@ -157,10 +167,14 @@ const unpatch = before("openLazy", LazyActionSheet, ([component, key, msg]) => {
         recordDetection("none", String(e));
       }
     });
+
+    patches.push(unpatchDefault);
   });
 });
 
+patches.push(unpatchOpenLazy);
+
 export default {
-  onUnload: () => unpatch(),
+  onUnload: () => patches.forEach((unpatch) => unpatch()),
   settings: Settings,
 };
