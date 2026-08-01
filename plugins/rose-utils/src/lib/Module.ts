@@ -32,7 +32,11 @@ export interface ModuleMeta {
 export type AnyModule = Module<Record<string, ModuleSetting>>;
 
 class Patches {
-    private store: (() => void)[] = [];
+    private store: (() => void)[];
+
+    constructor() {
+        this.store = [];
+    }
 
     add(patch: () => void) {
         this.store.push(patch);
@@ -55,16 +59,24 @@ export class Module<Settings extends Record<string, ModuleSetting>> {
     label: string;
     meta: ModuleMeta;
     settings: Settings;
-    errors: Record<string, string> = {};
-    patches = new Patches();
+    errors: Record<string, string>;
+    patches: Patches;
 
     private handlers: {
         onStart: (this: Module<Settings>) => void;
         onStop: (this: Module<Settings>) => void;
     };
-    private started = false;
-    private listeners = new Set<() => void>();
+    private started: boolean;
+    private listeners: Set<() => void>;
 
+    // Assigned in the constructor body rather than as class-field initializers - this repo's
+    // SWC build config lowers `class` to an ES5-style function for compatibility, and that pass
+    // doesn't also handle the separate (newer) class-fields proposal, so field initializers like
+    // `errors: Record<string, string> = {};` were silently getting dropped from the compiled
+    // output entirely. Confirmed by reading the built bundle directly: the compiled constructor
+    // only set id/label/meta/settings/handlers, nothing else - every Module instance was missing
+    // errors/patches/started/listeners, which crashed the settings screen on `Object.entries
+    // (module.errors)` and made every module's own patches silently no-op.
     constructor({ id, label, meta, settings, handlers }: {
         id: string;
         label: string;
@@ -80,6 +92,10 @@ export class Module<Settings extends Record<string, ModuleSetting>> {
         this.meta = meta;
         this.settings = settings ?? ({} as Settings);
         this.handlers = handlers;
+        this.errors = {};
+        this.patches = new Patches();
+        this.started = false;
+        this.listeners = new Set();
     }
 
     get storage(): { enabled: boolean; options: { [k in keyof Settings]: any } } {
