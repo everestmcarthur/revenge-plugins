@@ -1,6 +1,6 @@
 {
     "name": "PronounDB",
-    "description": "Shows a user's pronouns (from pronoundb.org) in their profile.",
+    "description": "Shows a user's pronouns in their profile, if they've set them at pronoundb.org - see the plugin settings for details.",
     "authors": [
         { "name": "everestmcarthur" }
     ],

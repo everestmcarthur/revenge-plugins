@@ -12,7 +12,7 @@
     "pronoun-db": {
         "category": "Identity",
         "status": "revived",
-        "note": "Previously broken because PronounDB shut down the API it used (HTTP 410). Migrated to PronounDB's current v2 API."
+        "note": "Previously broken because PronounDB shut down the API it used (HTTP 410) - migrated to their current v2 API. Requires people to have set pronouns at pronoundb.org; nothing to configure in the plugin itself."
     },
     "message-snippets": {
         "category": "Productivity",

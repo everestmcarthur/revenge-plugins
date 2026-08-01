@@ -16,7 +16,7 @@ A collection of plugins for [Revenge](https://github.com/revenge-mod/revenge-bun
 | --- | --- | --- | --- |
 | Staff Tags | Rebuilt | OWNER/ADMIN/STAFF/MOD-style tags next to members, computed from real server permissions. Per-tag text, colors, gradients, and visibility. | `https://everestmcarthur.github.io/revenge-plugins/staff-tags/` |
 | RoleColorEverywhere | Revived | A member's top role color shown in mentions, the typing indicator, voice channel names, member list role headers, and optionally message text. | `https://everestmcarthur.github.io/revenge-plugins/role-color-everywhere/` |
-| PronounDB | Revived | Shows a user's pronouns (from pronoundb.org) in their profile. | `https://everestmcarthur.github.io/revenge-plugins/pronoun-db/` |
+| PronounDB | Revived | Shows a user's pronouns in their profile, if they've set them at pronoundb.org (nothing to configure in the plugin itself). | `https://everestmcarthur.github.io/revenge-plugins/pronoun-db/` |
 
 ### Productivity
 

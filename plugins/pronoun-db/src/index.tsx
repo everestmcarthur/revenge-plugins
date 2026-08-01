@@ -3,6 +3,7 @@ import { find } from "@vendetta/metro";
 import { after } from "@vendetta/patcher";
 import { findInReactTree } from "@vendetta/utils";
 import PronounSection from "./ui/PronounSection";
+import Settings from "./ui/Settings";
 
 const UserProfile = find((m: any) => m?.type?.name === "UserProfile");
 
@@ -40,5 +41,6 @@ export default {
             logger.error(`[PronounDB] Failed to apply the profile patch: ${e}`);
         }
     },
-    onUnload: () => unpatch()
+    onUnload: () => unpatch(),
+    settings: Settings
 };
