@@ -25,20 +25,22 @@ export default new Module({
     },
     handlers: {
         onStart() {
-            if (!this.storage.options.showTimeouts || !GuildMemberStore?.getCommunicationDisabledUserMap) return;
+            // getCommunicationDisabledUserMap doesn't exist anymore (confirmed against decompiled
+            // current-build Discord source) - GuildMemberStore only exposes per-member lookups now,
+            // via getMember(guildId, userId).communicationDisabledUntil.
+            if (!this.storage.options.showTimeouts || !GuildMemberStore?.getMember) return;
 
             this.patches.add(
                 patchRows((rows) => {
                     if (!rows.some((row) => "message" in row)) return;
 
-                    const timedOut = GuildMemberStore.getCommunicationDisabledUserMap();
                     const now = Date.now();
 
                     for (const row of rows) {
                         if (row.type !== 1) continue;
 
-                        const date = new Date(timedOut[`${row.message.guildId}-${row.message.authorId}`]);
-                        if (date.getTime() > now) {
+                        const until = GuildMemberStore.getMember(row.message.guildId, row.message.authorId)?.communicationDisabledUntil;
+                        if (until && new Date(until).getTime() > now) {
                             row.message.communicationDisabled = true;
                         }
                     }

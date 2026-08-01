@@ -33,6 +33,12 @@ export default new Module({
 
             enforce();
             this.patches.add(fluxSubscribe("USER_SETTINGS_PROTO_UPDATE", enforce));
+
+            // Belt and suspenders: if whatever resets this doesn't go through
+            // USER_SETTINGS_PROTO_UPDATE for some reason, this still catches it within 5s instead
+            // of staying off for the rest of the session.
+            const interval = setInterval(enforce, 5000);
+            this.patches.add(() => clearInterval(interval));
         },
         onStop() {},
     },

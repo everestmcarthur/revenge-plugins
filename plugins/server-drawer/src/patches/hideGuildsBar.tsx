@@ -1,46 +1,24 @@
-import React from "react";
-import { find, findByName } from "@vendetta/metro";
-import { registerIntercept } from "./createElementIntercept";
+import { registerPropsIntercept } from "./createElementIntercept";
 
 const TAG = "[ServerDrawer]";
 
-// Used to replace the sidebar with a single DMs icon in its place; DMs now live in the drawer's
-// own grid (as the first tile) instead, so the rail just goes away entirely.
-function EmptyGuildsBar() {
-    return null;
-}
-
-function findGuildsBar(): any {
-    const byName = findByName("GuildsBar");
-    if (byName) return { default: byName };
-
-    let mod = find((m) => {
-        try { return m?.default?.type?.name === "GuildsBar"; } catch { return false; }
-    });
-    if (mod?.default) return mod;
-
-    mod = find((m) => {
-        try { return m?.default?.displayName === "GuildsBar"; } catch { return false; }
-    });
-    if (mod?.default) return mod;
-
-    return null;
-}
-
+/**
+ * The left server rail's root component (modules/guilds_bar/native/GuildsBar.tsx, confirmed
+ * against decompiled current-build Discord source) is a bare default export with no named export
+ * and no discoverable component name at runtime - findByName("GuildsBar") and every displayName/
+ * type.name heuristic reliably comes up empty because there's genuinely nothing to match by name.
+ * What IS reliable: the outermost View it renders is built with a literal, unminifiable
+ * `nativeID: "guilds-bar-view"` (confirmed unique - it appears exactly once in the whole decompiled
+ * bundle). Intercepting createElement calls carrying that prop and rendering nothing instead is a
+ * stable way to hide it regardless of what the component itself is named at runtime.
+ */
 export function patchHideGuildsBar(cleanups: (() => void)[]): boolean {
-    const mod = findGuildsBar();
-    if (!mod?.default) {
-        console.log(TAG, "WARN: GuildsBar not found");
-        return false;
-    }
-    const orig = mod.default;
-
-    registerIntercept(orig, EmptyGuildsBar);
-
-    mod.default = function HiddenGuildsBar() {
-        return React.createElement(EmptyGuildsBar);
-    };
-    mod.default.displayName = "GuildsBar";
-    cleanups.push(() => { mod.default = orig; });
+    registerPropsIntercept((props) => props?.nativeID === "guilds-bar-view", null);
+    cleanups.push(() => {
+        // registerPropsIntercept has no per-call unregister - the whole list gets cleared when
+        // createElementIntercept's own patch unwinds, which happens as part of the same cleanup
+        // pass this plugin already runs on unload/restart.
+    });
+    console.log(TAG, "PATCH: guilds-bar-view createElement calls now render nothing");
     return true;
 }
