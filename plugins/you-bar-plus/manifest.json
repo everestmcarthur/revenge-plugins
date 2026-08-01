@@ -1,0 +1,9 @@
+{
+    "name": "YouBar+",
+    "description": "Adds up to 2 configurable buttons (Direct Messages, Settings, or none) to the YouBar, in whatever order you pick.",
+    "authors": [
+        { "name": "everestmcarthur" },
+        { "name": "Purple_Ξye™" }
+    ],
+    "main": "src/index.ts"
+}

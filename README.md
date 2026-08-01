@@ -26,6 +26,7 @@ To install: open Discord with Revenge installed, go to **Settings → Plugins**,
 | FakeProfileThemesAndEffects | Revived | Profile theming and profile effects without Nitro. Fork of [shipwr3ckd's FPTE](https://github.com/shipwr3ckd/FPTE) - fixed a crash on every profile-editor open, confirmed via on-device diagnostics. | `https://rp.jarviscli.dev/fake-profile-themes-and-effects/install/` |
 | BetterTimestamps | Revived | Calendar-relative, fully relative, ISO 8601, or a custom moment.js timestamp format, for both messages and day dividers. | `https://rp.jarviscli.dev/better-timestamps/install/` |
 | CopyRoleColor | Revived | Long-press a role pill to copy its color as hex. | `https://rp.jarviscli.dev/copy-role-color/install/` |
+| YouBar+ | Revived | Up to 2 configurable buttons (None/Direct Messages/Settings) on the YouBar, in your chosen order. Fork of [Purple-EyeZ's YouBar+](https://github.com/Purple-EyeZ/RevengePlugins/tree/main/plugins/YouBarPlus) - fixed a startup race condition where the button patch could silently never apply for an entire session. | `https://rp.jarviscli.dev/you-bar-plus/install/` |
 
 ### Productivity
 
