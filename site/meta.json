@@ -1,219 +1,257 @@
 {
-    "staff-tags": {
-        "category": "Moderation & Appearance",
-        "status": "rebuilt",
-        "accent": "#F23F42",
-        "tagline": "OWNER/ADMIN/STAFF/MOD tags, computed from real permissions - not role names.",
-        "note": "Previously broken. Rebuilt with per-patch crash isolation, plus new customization: per-tag text, colors, gradients, and visibility.",
-        "howItWorks": "Staff Tags looks at what a member can actually do in a server - Administrator, Manage Server, Manage Messages, Kick/Ban, and so on - and shows a small colored tag next to their name based on the highest-matching tier. It doesn't care what a role is named, so a role called \"Cool Person\" with Manage Messages still shows MOD. Tags appear in chat messages, the member list, the profile popout, and channel headers.\n\nThe old version of this plugin patched four separate Discord UI surfaces, and if Discord renamed even one internal component, the whole plugin's setup would throw and every tag everywhere would silently disappear. This rebuild wraps each of the four patches in its own guard, so a single broken surface degrades gracefully instead of taking the other three down with it.",
-        "features": [
-            "Seven built-in tiers: Webhook, Owner, Admin, Staff, Mod, VC Mod, Chat Mod",
-            "Per-tag show/hide toggle",
-            "Custom tag text (rename \"MOD\" to whatever you want)",
-            "Custom solid colors with a swatch picker",
-            "Gradient tags in the member list and profile (chat tags stay solid - platform limitation, explained below)",
-            "\"Use top role color\" fallback when no custom color is set"
-        ],
-        "commands": [],
-        "limitations": "Gradient colors only render in the member list and profile popout. Chat message tags are built from plain data passed to Discord's native row renderer, not a patchable React element, so there's no element to swap in a gradient view - they always fall back to a solid color there."
-    },
-    "role-color-everywhere": {
-        "category": "Moderation & Appearance",
-        "status": "revived",
-        "accent": "#5865F2",
-        "tagline": "A member's role color, applied everywhere Discord doesn't already show it.",
-        "note": "Previously broken. Ported from the original source and hardened with the same crash-isolation fix as Staff Tags.",
-        "howItWorks": "Discord already colors a message author's name by their top role - this extends that same color into places Discord leaves plain: @mentions inside message text, the \"X is typing...\" indicator, voice channel participant lists, and the role section headers in the member list. There's also an optional (off by default) mode that tints the message text itself toward the author's color, though that comes with a real tradeoff: it disables text selection on tinted messages, since the coloring works by wrapping the text in a link-style element.",
-        "features": [
-            "Colored @mentions in chat",
-            "Colored typing indicator",
-            "Colored voice channel participant names",
-            "Colored member list role section headers",
-            "Optional message-text tinting with an adjustable strength slider (0-100)",
-            "Every surface can be toggled independently"
-        ],
-        "commands": [],
-        "limitations": "The member list header coloring works by patching a generic, unnamed internal component (there's no dedicated \"RoleHeader\" component to target), which makes it the single most fragile surface in this plugin. If a future Discord update breaks it, the other four surfaces are unaffected."
-    },
-    "pronoun-db": {
-        "category": "Identity",
-        "status": "revived",
-        "accent": "#9B59B6",
-        "tagline": "Shows a user's pronouns in their profile, pulled from pronoundb.org.",
-        "note": "Previously broken because PronounDB shut down the API it used (HTTP 410) - migrated to their current v2 API. Also fixed the profile-page lookup itself: Discord renamed the top-level profile component to UserProfileContent and the bio card to UserProfileAboutMeCard (confirmed against decompiled current-build source), so both the new and old names are checked. Requires people to have set pronouns at pronoundb.org; nothing to configure in the plugin itself.",
-        "howItWorks": "PronounDB is a separate, independent service (not run by Discord or Revenge) where people manually set their own pronouns once and link the profile to their Discord account. This plugin adds a \"Pronouns\" section near the bio on anyone's profile who has done that. Lookups are batched and cached client-side, so opening a profile for the first time may take a moment while it fetches, and re-opening the same profile later is instant.",
-        "features": [
-            "Adds a native-feeling \"Pronouns\" section to profiles",
-            "Batches and caches lookups so scrolling through many profiles doesn't spam requests",
-            "Nothing to configure - no API key, no toggle"
-        ],
-        "commands": [],
-        "limitations": "Only shows pronouns for people who have actually created a PronounDB profile and linked their Discord account. If nobody you interact with has set one, you'll never see the section - that's expected, not a bug."
-    },
-    "message-snippets": {
-        "category": "Productivity",
-        "status": "new",
-        "accent": "#23A55A",
-        "tagline": "Save reusable text once, send it anywhere with a slash command.",
-        "note": "Didn't exist in the Revenge/Vendetta plugin ecosystem before.",
-        "howItWorks": "Save a name and a block of text once - server rules, an FAQ answer, your PayPal, whatever you type often - then send it in any server or DM with a single command instead of retyping or copy-pasting from notes. Snippets are stored locally on your device and sync with nothing external. Built entirely on Revenge's built-in command API rather than patching Discord's UI internals, so it doesn't carry the \"might silently break on a Discord update\" risk that UI-patching plugins do.",
-        "features": [
-            "/snippet <name> sends the saved text as a real message",
-            "Manage everything from the plugin's settings screen: add, preview, and delete",
-            "Slash-command management too: /snippet-save, /snippet-delete, /snippet-list",
-            "No character limit beyond Discord's own message limit"
-        ],
-        "commands": [
-            { "cmd": "/snippet <name>", "desc": "Sends the saved snippet as a message in the current channel" },
-            { "cmd": "/snippet-save <name> <text>", "desc": "Saves or overwrites a snippet" },
-            { "cmd": "/snippet-delete <name>", "desc": "Deletes a saved snippet" },
-            { "cmd": "/snippet-list", "desc": "Shows your saved snippet names as a toast (not posted publicly)" }
-        ],
-        "limitations": ""
-    },
-    "reminders": {
-        "category": "Productivity",
-        "status": "new",
-        "accent": "#F0B232",
-        "tagline": "Quick reminders without leaving the chat you're in.",
-        "note": "Didn't exist in the Revenge/Vendetta plugin ecosystem before. Only fires while Discord is running.",
-        "howItWorks": "Set a reminder with a simple duration and a note, and it'll pop up as an in-app alert once it's due - no need to switch apps or set a system alarm. Reminders are checked every 15 seconds while the plugin is loaded and persist in local storage, so they survive a plugin reload, but not a fully closed app: pure-JS plugins can't schedule native OS notifications, so this can only fire while Discord's process is actually alive (foreground or backgrounded-but-running).",
-        "features": [
-            "Flexible duration parsing: 10m, 2h, 1d, 30sec, 1 week, and more",
-            "See and cancel pending reminders from the plugin's settings screen",
-            "Persists across a plugin reload"
-        ],
-        "commands": [
-            { "cmd": "/remind <in> <text>", "desc": "e.g. /remind 20m Walk the dog - fires an in-app alert when it's due" }
-        ],
-        "limitations": "Can't wake Discord up from fully closed - that needs a native OS-level scheduled notification, which isn't something a JS-only plugin has access to. If you force-close the app, pending reminders resume checking once you reopen it, but won't have fired while it was closed."
-    },
-    "view-raw": {
-        "category": "Utility",
-        "status": "revived",
-        "accent": "#38BDF8",
-        "tagline": "See a message's raw JSON - searchable, syntax-highlighted, and copyable.",
-        "note": "Fork of bwlok's ViewRaw (GPLv3 - see the plugin's own LICENSE file). Fixed a crash that hit every message long-press, then rebuilt the viewer with search and syntax highlighting on top.",
-        "howItWorks": "Long-press any message and pick \"View Raw\" to see exactly what Discord sent for it - every field, not just the rendered text. The original plugin crashed the long-press menu on every message because it assumed a specific internal icon shape without checking it first; this fork guards that assumption and everything else in the same patch. The viewer itself was rebuilt: a search box highlights matching lines (dimming the rest, not hiding them, so you keep the structure for context), values are color-coded by type, and there are one-tap copy buttons for either just the message content or the full JSON.",
-        "features": [
-            "Search box highlights matching keys/values across the whole payload",
-            "Syntax-colored JSON (strings, numbers, booleans, null all render differently)",
-            "Separate \"Copy Content\" and \"Copy JSON\" buttons",
-            "Crash fixed: no longer breaks the message long-press menu"
-        ],
-        "commands": [],
-        "limitations": "Licensed GPLv3 (inherited from the original), not the same terms as the rest of this repo - see plugins/view-raw/LICENSE. The long-press button relies on detecting Discord's internal action-sheet layout (not an official API) - the plugin's settings screen shows diagnostics if it ever stops appearing."
-    },
-    "key-inspector": {
-        "category": "Utility",
-        "status": "new",
-        "accent": "#57F287",
-        "tagline": "One-tap diagnostic scan of every internal key this repo's plugins depend on - copy the report, no computer needed.",
-        "note": "Built to support fixing other broken plugins in this ecosystem entirely from a phone: most crashes come from a plugin assuming an internal key/component still exists after a Discord update, and this lets anyone check on-device and share the exact result.",
-        "howItWorks": "The main feature is a full scan: one button runs every internal lookup (findByProps, findByName, findByStoreName, specific semanticColors tokens) that this repo's plugins actually depend on, all in one pass, and copies a complete found/missing report plus the full current semanticColors and rawColors key lists to your clipboard. There's also a manual search section for anything not already in the scan list - type prop names or a component name and copy what findByProps/findByName returns for it. Nothing leaves your device; everything only touches your clipboard.",
-        "features": [
-            "Full scan: every known lookup, checked in one tap, with a copyable report",
-            "Full Vendetta API tree: every key path Revenge exposes to plugins, 3 levels deep, in one copy",
-            "Manual findByProps(...) / findByName(...) search for anything else",
-            "Includes the complete semanticColors and rawColors key lists",
-            "No network requests, no data collection - clipboard only"
-        ],
-        "commands": [],
-        "limitations": "The full-scan list only covers lookups this repo's plugins currently use - it's meant to grow as more plugins get added or fixed. The API tree covers Revenge's own plugin API (window.vendetta), not Discord's raw internal module registry, which is far too large to dump wholesale - use the search tools for that."
-    },
-    "better-timestamps": {
-        "category": "Moderation & Appearance",
-        "status": "revived",
-        "accent": "#EB459E",
-        "tagline": "Calendar-relative, fully relative, ISO 8601, or your own custom timestamp format.",
-        "note": "Previously broken (unguarded RowManager lookup). Rebuilt with the same crash-isolation pattern as the rest of this repo.",
-        "howItWorks": "Replaces both message timestamps and the \"day divider\" text in chat with your choice of format: calendar-relative (\"Yesterday at 3:04 PM\"), fully relative (\"2 hours ago\"), ISO 8601, or a fully custom moment.js format string. There's also a toggle to always show the name/avatar/timestamp on every message instead of Discord's default grouping of consecutive messages.",
-        "features": [
-            "Four built-in formats plus a custom moment.js format string",
-            "Live preview of each format in the settings screen",
-            "Applies to both message timestamps and day dividers",
-            "Optional: always show name/avatar/timestamp per message"
-        ],
-        "commands": [],
-        "limitations": ""
-    },
-    "copy-role-color": {
-        "category": "Moderation & Appearance",
-        "status": "revived",
-        "accent": "#1ABC9C",
-        "tagline": "Long-press a role pill to copy its color as hex.",
-        "note": "Previously broken - the component was renamed from ThemedRolePill to just RolePill (confirmed against decompiled current-build Discord source), so the old lookup never found anything. Now checks both names, with defensive checks throughout so a shape mismatch never crashes.",
-        "howItWorks": "Long-press a role pill - in the member list, a role list, wherever Discord renders one as its own element - and the color gets copied to your clipboard as a hex code. Useful for designers, bot builders, or staff matching embed colors to a role.",
-        "features": [
-            "Works on any rendered role pill, not just one specific screen",
-            "Copies a ready-to-paste hex code (e.g. #5865F2)"
-        ],
-        "commands": [],
-        "limitations": "Depends on Discord's internal role pill component keeping a similar shape - guarded so a mismatch just means no long-press handler gets added, not a crash."
-    },
-    "urban-dictionary": {
-        "category": "Productivity",
-        "status": "revived",
-        "accent": "#F0B232",
-        "tagline": "Look up a definition without leaving Discord.",
-        "note": "Previously broken (dead proxy host). Rebuilt from scratch on the stable command API - no UI patching involved.",
-        "howItWorks": "Runs your term against Urban Dictionary's public API and posts the top result - definition, example, and the up/downvote count - directly into the channel. Built entirely on the same stable command API as Message Snippets and Reminders, so it doesn't carry the UI-patching fragility that most of this repo's revived plugins have to guard against.",
-        "features": [
-            "Posts the definition, an example, and vote counts",
-            "Truncates long entries so they stay readable in chat"
-        ],
-        "commands": [
-            { "cmd": "/urban <term>", "desc": "Looks up a term and posts the top Urban Dictionary result" }
-        ],
-        "limitations": "Urban Dictionary's community submissions are what they are - results aren't moderated by this plugin."
-    },
-    "reverse-image-search": {
-        "category": "Productivity",
-        "status": "new",
-        "accent": "#5865F2",
-        "tagline": "Open an image link in Google Lens, Yandex, or TinEye.",
-        "note": "Didn't exist in the Revenge/Vendetta plugin ecosystem before.",
-        "howItWorks": "Long-press an image in Discord, choose \"Copy Media Link\", then run this command with that link to open it in a reverse image search engine of your choice. Built purely on opening a URL - no Discord-internal patching at all, so it's about as low-risk as a plugin gets.",
-        "features": [
-            "Supports Google Lens, Yandex, and TinEye",
-            "Defaults to Google Lens if no engine is specified"
-        ],
-        "commands": [
-            { "cmd": "/reverse-image-search <image-url> [engine]", "desc": "Opens the image in your browser's reverse image search" }
-        ],
-        "limitations": "Needs a direct image URL, not a Discord attachment reference - use \"Copy Media Link\" first."
-    },
-    "fake-profile-themes-and-effects": {
-        "category": "Identity",
-        "status": "revived",
-        "accent": "#EB459E",
-        "tagline": "Profile theming and profile effects without Nitro.",
-        "note": "Fork of shipwr3ckd's FPTE. Previously crashed every time you opened the profile editor - confirmed via on-device diagnostics that several color tokens it referenced (HEADER_SECONDARY, BACKGROUND_PRIMARY, BACKGROUND_FLOATING, TEXT_NORMAL) no longer exist on current Discord builds. Rebuilt with a fallback chain of real, currently-valid token names instead of a single hardcoded one. A second, separate bug (an unguarded lookup that crashed the whole plugin bundle before it could even load) is also fixed.",
-        "howItWorks": "Encodes your chosen primary color, accent color, and profile effect into invisible zero-width characters appended to your About Me - other people running a compatible plugin (this one, or the original) decode and render it as if you had real Nitro profile theming, without Discord's servers ever knowing. The builder UI for picking colors/effects lives right in the profile editor. Only the two files that were actually confirmed crashing were investigated and fixed; the rest of this plugin's original patches (Nitro upsell card, purchase checks, profile data fetching) are carried over as-is, now with crash isolation so any other latent issue only disables that one patch instead of the whole plugin.",
-        "features": [
-            "Pick a primary color, accent color, and profile effect from the profile editor",
-            "No Nitro required - works purely by encoding data into your bio",
-            "Crash isolation per patch, so one broken surface doesn't take down the rest"
-        ],
-        "commands": [],
-        "limitations": "Only the confirmed profile-editor crash was root-caused and fixed with real on-device data. The plugin's other patches (Nitro upsell card, purchase/profile data fetching) weren't individually re-audited - crash isolation means a problem there disables just that patch rather than the whole plugin, but hasn't been proven bug-free the way the color-resolution fix has."
-    },
-    "rose-utils": {
-        "category": "Utility",
-        "status": "revived",
-        "accent": "#F0637E",
-        "tagline": "A grab-bag of independent utilities - Spotify listen-along, a Tenor fix, colorful channels, and more.",
-        "note": "Fork of nexpid's NexxUtils. Fixed the reported \"render is not a function in SpotifyPlayButton\" crash - Discord converted it from a class component to a function component, confirmed against decompiled current-build source, so patching .prototype.render no longer worked. Also fixed six other lookups across the plugin that had the same unguarded pattern that crashed FPTE's whole bundle at load time - any one of them failing would have taken the entire plugin down, not just one module.",
-        "howItWorks": "Each utility is its own independently toggleable module: Spotify listen-along buttons on activities, a fix for Tenor GIFs downloading as videos, an invite-to-listen-along button in the chat attachment menu, a fun \"minimod\" that shows member timeouts in chat, and colorful/NSFW-tagged channel icons. Every module tracks its own errors and shows a one-tap \"copy report\" row if something goes wrong, so a problem in one module is easy to report without digging through logs. The original's Material-Design component reskin (Switch/Toast/Alert) wasn't ported - it depends on react-native-reanimated, which isn't part of this build, and it was already disabled by default upstream due to known issues.",
-        "features": [
-            "Spotify listen-along buttons on activities (fixed)",
-            "Tenor GIF download fix",
-            "Send-a-Spotify-invite button in the attachment menu",
-            "Minimod: shows member timeouts in chat",
-            "Colorful, NSFW-tagged channel icons",
-            "Per-module error tracking with one-tap copy for bug reports"
-        ],
-        "commands": [],
-        "limitations": "The Material-Design component reskin from the original isn't included (needs react-native-reanimated). Each module was fixed and defensively guarded, but only the specific reported crash was verified against live decompiled source - the rest are guarded, not individually confirmed working on-device."
-    }
+  "staff-tags": {
+    "category": "Moderation & Appearance",
+    "status": "rebuilt",
+    "accent": "#F23F42",
+    "tagline": "OWNER/ADMIN/STAFF/MOD tags, computed from real permissions - not role names.",
+    "note": "Previously broken. Rebuilt with per-patch crash isolation, plus new customization: per-tag text, colors, gradients, and visibility.",
+    "howItWorks": "Staff Tags looks at what a member can actually do in a server - Administrator, Manage Server, Manage Messages, Kick/Ban, and so on - and shows a small colored tag next to their name based on the highest-matching tier. It doesn't care what a role is named, so a role called \"Cool Person\" with Manage Messages still shows MOD. Tags appear in chat messages, the member list, the profile popout, and channel headers.\n\nThe old version of this plugin patched four separate Discord UI surfaces, and if Discord renamed even one internal component, the whole plugin's setup would throw and every tag everywhere would silently disappear. This rebuild wraps each of the four patches in its own guard, so a single broken surface degrades gracefully instead of taking the other three down with it.",
+    "features": [
+      "Seven built-in tiers: Webhook, Owner, Admin, Staff, Mod, VC Mod, Chat Mod",
+      "Per-tag show/hide toggle",
+      "Custom tag text (rename \"MOD\" to whatever you want)",
+      "Custom solid colors with a swatch picker",
+      "Gradient tags in the member list and profile (chat tags stay solid - platform limitation, explained below)",
+      "\"Use top role color\" fallback when no custom color is set"
+    ],
+    "commands": [],
+    "limitations": "Gradient colors only render in the member list and profile popout. Chat message tags are built from plain data passed to Discord's native row renderer, not a patchable React element, so there's no element to swap in a gradient view - they always fall back to a solid color there."
+  },
+  "role-color-everywhere": {
+    "category": "Moderation & Appearance",
+    "status": "revived",
+    "accent": "#5865F2",
+    "tagline": "A member's role color, applied everywhere Discord doesn't already show it.",
+    "note": "Previously broken. Ported from the original source and hardened with the same crash-isolation fix as Staff Tags.",
+    "howItWorks": "Discord already colors a message author's name by their top role - this extends that same color into places Discord leaves plain: @mentions inside message text, the \"X is typing...\" indicator, voice channel participant lists, and the role section headers in the member list. There's also an optional (off by default) mode that tints the message text itself toward the author's color, though that comes with a real tradeoff: it disables text selection on tinted messages, since the coloring works by wrapping the text in a link-style element.",
+    "features": [
+      "Colored @mentions in chat",
+      "Colored typing indicator",
+      "Colored voice channel participant names",
+      "Colored member list role section headers",
+      "Optional message-text tinting with an adjustable strength slider (0-100)",
+      "Every surface can be toggled independently"
+    ],
+    "commands": [],
+    "limitations": "The member list header coloring works by patching a generic, unnamed internal component (there's no dedicated \"RoleHeader\" component to target), which makes it the single most fragile surface in this plugin. If a future Discord update breaks it, the other four surfaces are unaffected."
+  },
+  "pronoun-db": {
+    "category": "Identity",
+    "status": "revived",
+    "accent": "#9B59B6",
+    "tagline": "Shows a user's pronouns in their profile, pulled from pronoundb.org.",
+    "note": "Previously broken because PronounDB shut down the API it used (HTTP 410) - migrated to their current v2 API. Also fixed the profile-page lookup itself: Discord renamed the top-level profile component to UserProfileContent and the bio card to UserProfileAboutMeCard (confirmed against decompiled current-build source), so both the new and old names are checked. Requires people to have set pronouns at pronoundb.org; nothing to configure in the plugin itself.",
+    "howItWorks": "PronounDB is a separate, independent service (not run by Discord or Revenge) where people manually set their own pronouns once and link the profile to their Discord account. This plugin adds a \"Pronouns\" section near the bio on anyone's profile who has done that. Lookups are batched and cached client-side, so opening a profile for the first time may take a moment while it fetches, and re-opening the same profile later is instant.",
+    "features": [
+      "Adds a native-feeling \"Pronouns\" section to profiles",
+      "Batches and caches lookups so scrolling through many profiles doesn't spam requests",
+      "Nothing to configure - no API key, no toggle"
+    ],
+    "commands": [],
+    "limitations": "Only shows pronouns for people who have actually created a PronounDB profile and linked their Discord account. If nobody you interact with has set one, you'll never see the section - that's expected, not a bug."
+  },
+  "message-snippets": {
+    "category": "Productivity",
+    "status": "new",
+    "accent": "#23A55A",
+    "tagline": "Save reusable text once, send it anywhere with a slash command.",
+    "note": "Didn't exist in the Revenge/Vendetta plugin ecosystem before.",
+    "howItWorks": "Save a name and a block of text once - server rules, an FAQ answer, your PayPal, whatever you type often - then send it in any server or DM with a single command instead of retyping or copy-pasting from notes. Snippets are stored locally on your device and sync with nothing external. Built entirely on Revenge's built-in command API rather than patching Discord's UI internals, so it doesn't carry the \"might silently break on a Discord update\" risk that UI-patching plugins do.",
+    "features": [
+      "/snippet <name> sends the saved text as a real message",
+      "Manage everything from the plugin's settings screen: add, preview, and delete",
+      "Slash-command management too: /snippet-save, /snippet-delete, /snippet-list",
+      "No character limit beyond Discord's own message limit"
+    ],
+    "commands": [
+      {
+        "cmd": "/snippet <name>",
+        "desc": "Sends the saved snippet as a message in the current channel"
+      },
+      {
+        "cmd": "/snippet-save <name> <text>",
+        "desc": "Saves or overwrites a snippet"
+      },
+      {
+        "cmd": "/snippet-delete <name>",
+        "desc": "Deletes a saved snippet"
+      },
+      {
+        "cmd": "/snippet-list",
+        "desc": "Shows your saved snippet names as a toast (not posted publicly)"
+      }
+    ],
+    "limitations": ""
+  },
+  "reminders": {
+    "category": "Productivity",
+    "status": "new",
+    "accent": "#F0B232",
+    "tagline": "Quick reminders without leaving the chat you're in.",
+    "note": "Didn't exist in the Revenge/Vendetta plugin ecosystem before. Only fires while Discord is running.",
+    "howItWorks": "Set a reminder with a simple duration and a note, and it'll pop up as an in-app alert once it's due - no need to switch apps or set a system alarm. Reminders are checked every 15 seconds while the plugin is loaded and persist in local storage, so they survive a plugin reload, but not a fully closed app: pure-JS plugins can't schedule native OS notifications, so this can only fire while Discord's process is actually alive (foreground or backgrounded-but-running).",
+    "features": [
+      "Flexible duration parsing: 10m, 2h, 1d, 30sec, 1 week, and more",
+      "See and cancel pending reminders from the plugin's settings screen",
+      "Persists across a plugin reload"
+    ],
+    "commands": [
+      {
+        "cmd": "/remind <in> <text>",
+        "desc": "e.g. /remind 20m Walk the dog - fires an in-app alert when it's due"
+      }
+    ],
+    "limitations": "Can't wake Discord up from fully closed - that needs a native OS-level scheduled notification, which isn't something a JS-only plugin has access to. If you force-close the app, pending reminders resume checking once you reopen it, but won't have fired while it was closed."
+  },
+  "view-raw": {
+    "category": "Utility",
+    "status": "revived",
+    "accent": "#38BDF8",
+    "tagline": "See a message's raw JSON - searchable, syntax-highlighted, and copyable.",
+    "note": "Fork of bwlok's ViewRaw (GPLv3 - see the plugin's own LICENSE file). Fixed a crash that hit every message long-press, then rebuilt the viewer with search and syntax highlighting on top.",
+    "howItWorks": "Long-press any message and pick \"View Raw\" to see exactly what Discord sent for it - every field, not just the rendered text. The original plugin crashed the long-press menu on every message because it assumed a specific internal icon shape without checking it first; this fork guards that assumption and everything else in the same patch. The viewer itself was rebuilt: a search box highlights matching lines (dimming the rest, not hiding them, so you keep the structure for context), values are color-coded by type, and there are one-tap copy buttons for either just the message content or the full JSON.",
+    "features": [
+      "Search box highlights matching keys/values across the whole payload",
+      "Syntax-colored JSON (strings, numbers, booleans, null all render differently)",
+      "Separate \"Copy Content\" and \"Copy JSON\" buttons",
+      "Crash fixed: no longer breaks the message long-press menu"
+    ],
+    "commands": [],
+    "limitations": "Licensed GPLv3 (inherited from the original), not the same terms as the rest of this repo - see plugins/view-raw/LICENSE. The long-press button relies on detecting Discord's internal action-sheet layout (not an official API) - the plugin's settings screen shows diagnostics if it ever stops appearing."
+  },
+  "key-inspector": {
+    "category": "Utility",
+    "status": "new",
+    "accent": "#57F287",
+    "tagline": "One-tap diagnostic scan of every internal key this repo's plugins depend on - copy the report, no computer needed.",
+    "note": "Built to support fixing other broken plugins in this ecosystem entirely from a phone: most crashes come from a plugin assuming an internal key/component still exists after a Discord update, and this lets anyone check on-device and share the exact result.",
+    "howItWorks": "The main feature is a full scan: one button runs every internal lookup (findByProps, findByName, findByStoreName, specific semanticColors tokens) that this repo's plugins actually depend on, all in one pass, and copies a complete found/missing report plus the full current semanticColors and rawColors key lists to your clipboard. There's also a manual search section for anything not already in the scan list - type prop names or a component name and copy what findByProps/findByName returns for it. Nothing leaves your device; everything only touches your clipboard.",
+    "features": [
+      "Full scan: every known lookup, checked in one tap, with a copyable report",
+      "Full Vendetta API tree: every key path Revenge exposes to plugins, 3 levels deep, in one copy",
+      "Manual findByProps(...) / findByName(...) search for anything else",
+      "Includes the complete semanticColors and rawColors key lists",
+      "No network requests, no data collection - clipboard only"
+    ],
+    "commands": [],
+    "limitations": "The full-scan list only covers lookups this repo's plugins currently use - it's meant to grow as more plugins get added or fixed. The API tree covers Revenge's own plugin API (window.vendetta), not Discord's raw internal module registry, which is far too large to dump wholesale - use the search tools for that."
+  },
+  "better-timestamps": {
+    "category": "Moderation & Appearance",
+    "status": "revived",
+    "accent": "#EB459E",
+    "tagline": "Calendar-relative, fully relative, ISO 8601, or your own custom timestamp format.",
+    "note": "Previously broken (unguarded RowManager lookup). Rebuilt with the same crash-isolation pattern as the rest of this repo.",
+    "howItWorks": "Replaces both message timestamps and the \"day divider\" text in chat with your choice of format: calendar-relative (\"Yesterday at 3:04 PM\"), fully relative (\"2 hours ago\"), ISO 8601, or a fully custom moment.js format string. There's also a toggle to always show the name/avatar/timestamp on every message instead of Discord's default grouping of consecutive messages.",
+    "features": [
+      "Four built-in formats plus a custom moment.js format string",
+      "Live preview of each format in the settings screen",
+      "Applies to both message timestamps and day dividers",
+      "Optional: always show name/avatar/timestamp per message"
+    ],
+    "commands": [],
+    "limitations": ""
+  },
+  "copy-role-color": {
+    "category": "Moderation & Appearance",
+    "status": "revived",
+    "accent": "#1ABC9C",
+    "tagline": "Long-press a role pill to copy its color as hex.",
+    "note": "Previously broken - the component was renamed from ThemedRolePill to just RolePill (confirmed against decompiled current-build Discord source), so the old lookup never found anything. Now checks both names, with defensive checks throughout so a shape mismatch never crashes.",
+    "howItWorks": "Long-press a role pill - in the member list, a role list, wherever Discord renders one as its own element - and the color gets copied to your clipboard as a hex code. Useful for designers, bot builders, or staff matching embed colors to a role.",
+    "features": [
+      "Works on any rendered role pill, not just one specific screen",
+      "Copies a ready-to-paste hex code (e.g. #5865F2)"
+    ],
+    "commands": [],
+    "limitations": "Depends on Discord's internal role pill component keeping a similar shape - guarded so a mismatch just means no long-press handler gets added, not a crash."
+  },
+  "urban-dictionary": {
+    "category": "Productivity",
+    "status": "revived",
+    "accent": "#F0B232",
+    "tagline": "Look up a definition without leaving Discord.",
+    "note": "Previously broken (dead proxy host). Rebuilt from scratch on the stable command API - no UI patching involved.",
+    "howItWorks": "Runs your term against Urban Dictionary's public API and posts the top result - definition, example, and the up/downvote count - directly into the channel. Built entirely on the same stable command API as Message Snippets and Reminders, so it doesn't carry the UI-patching fragility that most of this repo's revived plugins have to guard against.",
+    "features": [
+      "Posts the definition, an example, and vote counts",
+      "Truncates long entries so they stay readable in chat"
+    ],
+    "commands": [
+      {
+        "cmd": "/urban <term>",
+        "desc": "Looks up a term and posts the top Urban Dictionary result"
+      }
+    ],
+    "limitations": "Urban Dictionary's community submissions are what they are - results aren't moderated by this plugin."
+  },
+  "reverse-image-search": {
+    "category": "Productivity",
+    "status": "new",
+    "accent": "#5865F2",
+    "tagline": "Open an image link in Google Lens, Yandex, or TinEye.",
+    "note": "Didn't exist in the Revenge/Vendetta plugin ecosystem before.",
+    "howItWorks": "Long-press an image in Discord, choose \"Copy Media Link\", then run this command with that link to open it in a reverse image search engine of your choice. Built purely on opening a URL - no Discord-internal patching at all, so it's about as low-risk as a plugin gets.",
+    "features": [
+      "Supports Google Lens, Yandex, and TinEye",
+      "Defaults to Google Lens if no engine is specified"
+    ],
+    "commands": [
+      {
+        "cmd": "/reverse-image-search <image-url> [engine]",
+        "desc": "Opens the image in your browser's reverse image search"
+      }
+    ],
+    "limitations": "Needs a direct image URL, not a Discord attachment reference - use \"Copy Media Link\" first."
+  },
+  "fake-profile-themes-and-effects": {
+    "category": "Identity",
+    "status": "revived",
+    "accent": "#EB459E",
+    "tagline": "Profile theming and profile effects without Nitro.",
+    "note": "Fork of shipwr3ckd's FPTE. Previously crashed every time you opened the profile editor - confirmed via on-device diagnostics that several color tokens it referenced (HEADER_SECONDARY, BACKGROUND_PRIMARY, BACKGROUND_FLOATING, TEXT_NORMAL) no longer exist on current Discord builds. Rebuilt with a fallback chain of real, currently-valid token names instead of a single hardcoded one. A second, separate bug (an unguarded lookup that crashed the whole plugin bundle before it could even load) is also fixed.",
+    "howItWorks": "Encodes your chosen primary color, accent color, and profile effect into invisible zero-width characters appended to your About Me - other people running a compatible plugin (this one, or the original) decode and render it as if you had real Nitro profile theming, without Discord's servers ever knowing. The builder UI for picking colors/effects lives right in the profile editor. Only the two files that were actually confirmed crashing were investigated and fixed; the rest of this plugin's original patches (Nitro upsell card, purchase checks, profile data fetching) are carried over as-is, now with crash isolation so any other latent issue only disables that one patch instead of the whole plugin.",
+    "features": [
+      "Pick a primary color, accent color, and profile effect from the profile editor",
+      "No Nitro required - works purely by encoding data into your bio",
+      "Crash isolation per patch, so one broken surface doesn't take down the rest"
+    ],
+    "commands": [],
+    "limitations": "Only the confirmed profile-editor crash was root-caused and fixed with real on-device data. The plugin's other patches (Nitro upsell card, purchase/profile data fetching) weren't individually re-audited - crash isolation means a problem there disables just that patch rather than the whole plugin, but hasn't been proven bug-free the way the color-resolution fix has."
+  },
+  "rose-utils": {
+    "category": "Utility",
+    "status": "revived",
+    "accent": "#F0637E",
+    "tagline": "A grab-bag of independent utilities - Spotify listen-along, a Tenor fix, colorful channels, and more.",
+    "note": "Fork of nexpid's NexxUtils. Fixed the reported \"render is not a function in SpotifyPlayButton\" crash - Discord converted it from a class component to a function component, confirmed against decompiled current-build source, so patching .prototype.render no longer worked. Also fixed six other lookups across the plugin that had the same unguarded pattern that crashed FPTE's whole bundle at load time - any one of them failing would have taken the entire plugin down, not just one module.",
+    "howItWorks": "Each utility is its own independently toggleable module: Spotify listen-along buttons on activities, a fix for Tenor GIFs downloading as videos, an invite-to-listen-along button in the chat attachment menu, a fun \"minimod\" that shows member timeouts in chat, and colorful/NSFW-tagged channel icons. Every module tracks its own errors and shows a one-tap \"copy report\" row if something goes wrong, so a problem in one module is easy to report without digging through logs. The original's Material-Design component reskin (Switch/Toast/Alert) wasn't ported - it depends on react-native-reanimated, which isn't part of this build, and it was already disabled by default upstream due to known issues.",
+    "features": [
+      "Spotify listen-along buttons on activities (fixed)",
+      "Tenor GIF download fix",
+      "Send-a-Spotify-invite button in the attachment menu",
+      "Minimod: shows member timeouts in chat",
+      "Colorful, NSFW-tagged channel icons",
+      "Per-module error tracking with one-tap copy for bug reports"
+    ],
+    "commands": [],
+    "limitations": "The Material-Design component reskin from the original isn't included (needs react-native-reanimated). Each module was fixed and defensively guarded, but only the specific reported crash was verified against live decompiled source - the rest are guarded, not individually confirmed working on-device."
+  },
+  "server-drawer": {
+    "category": "Moderation & Appearance",
+    "status": "revived",
+    "accent": "#F97316",
+    "tagline": "Turns the Quest Dock into an expandable server grid, above the YouBar.",
+    "note": "Fork of kmmiio99o's ServerDrawer. One lookup (useMobileQuestDock) was missing an optional-chaining guard - if that lookup came back empty, the whole onLoad threw and every patch after it in the sequence never got applied, not just that one surface. Fixed, plus every patch call is now wrapped so a single bad lookup only skips its own surface.",
+    "howItWorks": "Hijacks the Quest Dock - the strip Discord normally uses for daily quests, right above the tab bar - and puts a grid of your servers there instead. Tap it to expand, tap a server to jump to it, long-press for the usual context menu (mark as read, notification settings, leave, etc). A + button opens Discord's own create/join-server modal. Optionally hides the left server rail down to a single DMs icon, since your servers now live in the drawer instead.",
+    "features": [
+      "Tap-to-expand server grid with folders, unread badges, and mention counts",
+      "Long-press a server for its real context menu, not a rebuilt one",
+      "One-tap create/join through Discord's native modal",
+      "Optional: collapse the left server rail to a single DMs icon",
+      "Toggle unread badges independently"
+    ],
+    "commands": [],
+    "limitations": "Depends on several internal Quest Dock lookups (11 in total) - each is individually guarded, so a future Discord rename degrades one surface at a time instead of breaking the whole plugin. Drawer position (left/right/top) is planned but not in this build yet - it currently only replaces the Quest Dock's native bottom position."
+  }
 }
