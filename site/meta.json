@@ -102,6 +102,84 @@
             "Crash fixed: no longer breaks the message long-press menu"
         ],
         "commands": [],
-        "limitations": "Licensed GPLv3 (inherited from the original), not the same terms as the rest of this repo - see plugins/view-raw/LICENSE."
+        "limitations": "Licensed GPLv3 (inherited from the original), not the same terms as the rest of this repo - see plugins/view-raw/LICENSE. The long-press button relies on detecting Discord's internal action-sheet layout (not an official API) - the plugin's settings screen shows diagnostics if it ever stops appearing."
+    },
+    "key-inspector": {
+        "category": "Utility",
+        "status": "new",
+        "accent": "#57F287",
+        "tagline": "One-tap diagnostic scan of every internal key this repo's plugins depend on - copy the report, no computer needed.",
+        "note": "Built to support fixing other broken plugins in this ecosystem entirely from a phone: most crashes come from a plugin assuming an internal key/component still exists after a Discord update, and this lets anyone check on-device and share the exact result.",
+        "howItWorks": "The main feature is a full scan: one button runs every internal lookup (findByProps, findByName, findByStoreName, specific semanticColors tokens) that this repo's plugins actually depend on, all in one pass, and copies a complete found/missing report plus the full current semanticColors and rawColors key lists to your clipboard. There's also a manual search section for anything not already in the scan list - type prop names or a component name and copy what findByProps/findByName returns for it. Nothing leaves your device; everything only touches your clipboard.",
+        "features": [
+            "Full scan: every known lookup, checked in one tap, with a copyable report",
+            "Manual findByProps(...) / findByName(...) search for anything else",
+            "Includes the complete semanticColors and rawColors key lists",
+            "No network requests, no data collection - clipboard only"
+        ],
+        "commands": [],
+        "limitations": "The full-scan list only covers lookups this repo's plugins currently use - it's meant to grow as more plugins get added or fixed, not to be exhaustive of everything Discord/Revenge expose."
+    },
+    "better-timestamps": {
+        "category": "Moderation & Appearance",
+        "status": "revived",
+        "accent": "#EB459E",
+        "tagline": "Calendar-relative, fully relative, ISO 8601, or your own custom timestamp format.",
+        "note": "Previously broken (unguarded RowManager lookup). Rebuilt with the same crash-isolation pattern as the rest of this repo.",
+        "howItWorks": "Replaces both message timestamps and the \"day divider\" text in chat with your choice of format: calendar-relative (\"Yesterday at 3:04 PM\"), fully relative (\"2 hours ago\"), ISO 8601, or a fully custom moment.js format string. There's also a toggle to always show the name/avatar/timestamp on every message instead of Discord's default grouping of consecutive messages.",
+        "features": [
+            "Four built-in formats plus a custom moment.js format string",
+            "Live preview of each format in the settings screen",
+            "Applies to both message timestamps and day dividers",
+            "Optional: always show name/avatar/timestamp per message"
+        ],
+        "commands": [],
+        "limitations": ""
+    },
+    "copy-role-color": {
+        "category": "Moderation & Appearance",
+        "status": "revived",
+        "accent": "#1ABC9C",
+        "tagline": "Long-press a role pill to copy its color as hex.",
+        "note": "Previously broken (unguarded React-tree lookups that could throw on a shape mismatch). Rebuilt with defensive checks throughout.",
+        "howItWorks": "Long-press a role pill - in the member list, a role list, wherever Discord renders one as its own element - and the color gets copied to your clipboard as a hex code. Useful for designers, bot builders, or staff matching embed colors to a role.",
+        "features": [
+            "Works on any rendered role pill, not just one specific screen",
+            "Copies a ready-to-paste hex code (e.g. #5865F2)"
+        ],
+        "commands": [],
+        "limitations": "Depends on Discord's internal role pill component keeping a similar shape - guarded so a mismatch just means no long-press handler gets added, not a crash."
+    },
+    "urban-dictionary": {
+        "category": "Productivity",
+        "status": "revived",
+        "accent": "#F0B232",
+        "tagline": "Look up a definition without leaving Discord.",
+        "note": "Previously broken (dead proxy host). Rebuilt from scratch on the stable command API - no UI patching involved.",
+        "howItWorks": "Runs your term against Urban Dictionary's public API and posts the top result - definition, example, and the up/downvote count - directly into the channel. Built entirely on the same stable command API as Message Snippets and Reminders, so it doesn't carry the UI-patching fragility that most of this repo's revived plugins have to guard against.",
+        "features": [
+            "Posts the definition, an example, and vote counts",
+            "Truncates long entries so they stay readable in chat"
+        ],
+        "commands": [
+            { "cmd": "/urban <term>", "desc": "Looks up a term and posts the top Urban Dictionary result" }
+        ],
+        "limitations": "Urban Dictionary's community submissions are what they are - results aren't moderated by this plugin."
+    },
+    "reverse-image-search": {
+        "category": "Productivity",
+        "status": "new",
+        "accent": "#5865F2",
+        "tagline": "Open an image link in Google Lens, Yandex, or TinEye.",
+        "note": "Didn't exist in the Revenge/Vendetta plugin ecosystem before.",
+        "howItWorks": "Long-press an image in Discord, choose \"Copy Media Link\", then run this command with that link to open it in a reverse image search engine of your choice. Built purely on opening a URL - no Discord-internal patching at all, so it's about as low-risk as a plugin gets.",
+        "features": [
+            "Supports Google Lens, Yandex, and TinEye",
+            "Defaults to Google Lens if no engine is specified"
+        ],
+        "commands": [
+            { "cmd": "/reverse-image-search <image-url> [engine]", "desc": "Opens the image in your browser's reverse image search" }
+        ],
+        "limitations": "Needs a direct image URL, not a Discord attachment reference - use \"Copy Media Link\" first."
     }
 }

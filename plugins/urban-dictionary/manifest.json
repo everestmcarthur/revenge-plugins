@@ -1,0 +1,8 @@
+{
+    "name": "Urban Dictionary",
+    "description": "/urban <term> - look up a definition from Urban Dictionary and send it to the channel.",
+    "authors": [
+        { "name": "everestmcarthur" }
+    ],
+    "main": "src/index.ts"
+}

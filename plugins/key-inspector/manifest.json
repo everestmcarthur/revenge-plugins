@@ -1,0 +1,8 @@
+{
+    "name": "Key Inspector",
+    "description": "Dev utility: copies live Discord/Revenge color token keys to your clipboard, for diagnosing plugin crashes without needing a computer.",
+    "authors": [
+        { "name": "everestmcarthur" }
+    ],
+    "main": "src/index.tsx"
+}
