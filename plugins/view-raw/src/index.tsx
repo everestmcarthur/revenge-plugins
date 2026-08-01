@@ -59,7 +59,7 @@ function formRowButton(navigator: () => JSX.Element) {
     <FormRow
       label="View Raw"
       leading={
-        <FormIcon style={{ opacity: 1 }} source={getAssetIDByName("ic_chat_bubble_16px")} />
+        <FormIcon style={{ opacity: 1 }} source={getAssetIDByName("ic_chat_bubble_32px")} />
       }
       onPress={() => openRawPage(navigator)}
     />
@@ -70,7 +70,7 @@ function actionSheetRowButton(navigator: () => JSX.Element) {
   return (
     <ActionSheetRow
       label="View Raw"
-      icon={<ActionSheetRow.Icon source={getAssetIDByName("ic_chat_bubble_16px")} />}
+      icon={<ActionSheetRow.Icon source={getAssetIDByName("ic_chat_bubble_32px")} />}
       onPress={() => openRawPage(navigator)}
       key="view-raw"
     />
