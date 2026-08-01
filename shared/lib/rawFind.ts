@@ -8,24 +8,42 @@
 // attempt happens to run before the target is registered - every retry after that first miss
 // hits the same poisoned cache instead of actually looking again. This walks window.modules
 // directly, bypassing that cache entirely, for use specifically inside retry loops.
+//
+// The module-exports cache below is shared across every call (not per-predicate) and only ever
+// grows - each call only evaluates modules it hasn't seen before, reusing everything already
+// pulled. Requiring every not-yet-loaded module in the bundle is inherently a one-time cost (the
+// exact same cost Revenge's own finders pay on their first, uncached search), but paying it once
+// and reusing the result is very different from paying it on every 200ms retry tick across
+// several different patchers, which is what calling window.__r fresh every time would do.
 declare const window: any;
 
-export function rawFind<T = any>(predicate: (exports: any) => boolean): T | undefined {
+const exportsCache = new Map<number, any>();
+
+function scanNewModules(): void {
     const modules = window?.modules;
-    if (!modules) return undefined;
+    if (!modules) return;
 
-    for (const id in modules) {
-        let exports: any;
+    for (const key in modules) {
+        const id = Number(key);
+        if (exportsCache.has(id)) continue;
+
         try {
-            exports = window.__r(Number(id));
+            const exports = window.__r(id);
+            if (exports) exportsCache.set(id, exports);
         } catch {
-            continue;
+            // Some modules throw when required this early/out of order - skip and try again
+            // next call, once whatever they depend on has loaded.
         }
-        if (!exports) continue;
+    }
+}
 
+export function rawFind<T = any>(predicate: (exports: any) => boolean): T | undefined {
+    scanNewModules();
+
+    for (const exports of exportsCache.values()) {
         try {
             if (predicate(exports)) return exports;
-            if (exports.default != null && predicate(exports.default)) return exports.default;
+            if (exports?.default != null && predicate(exports.default)) return exports.default;
         } catch {
             // A predicate throwing on one module's shape shouldn't stop the scan.
         }
