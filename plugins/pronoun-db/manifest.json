@@ -1,0 +1,11 @@
+{
+    "name": "PronounDB",
+    "description": "Shows a user's pronouns (from pronoundb.org) in their profile.",
+    "authors": [
+        { "name": "everestmcarthur" }
+    ],
+    "main": "src/index.tsx",
+    "vendetta": {
+        "icon": "ic_group"
+    }
+}
