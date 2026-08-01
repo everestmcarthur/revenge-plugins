@@ -1,1 +1,1 @@
-{"name":"PronounDB","description":"Shows a user's pronouns (from pronoundb.org) in their profile.","authors":[{"name":"everestmcarthur"}],"main":"index.js","vendetta":{"icon":"ic_group"},"hash":"ac7d15900334016be2f13c94a4331eba31d7bb8bebdb46a1dcae5e259cb12558"}
+{"name":"PronounDB","description":"Shows a user's pronouns in their profile, if they've set them at pronoundb.org - see the plugin settings for details.","authors":[{"name":"everestmcarthur"}],"main":"index.js","vendetta":{"icon":"ic_group"},"hash":"d2636beadb89325f5c9f75306cb0f0e426f540bfadfac3b90bf0837e34d69d34"}

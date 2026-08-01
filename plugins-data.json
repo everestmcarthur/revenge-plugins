@@ -2,13 +2,13 @@
   {
     "id": "pronoun-db",
     "name": "PronounDB",
-    "description": "Shows a user's pronouns (from pronoundb.org) in their profile.",
+    "description": "Shows a user's pronouns in their profile, if they've set them at pronoundb.org - see the plugin settings for details.",
     "authors": [
       "everestmcarthur"
     ],
     "category": "Identity",
     "status": "revived",
-    "note": "Previously broken because PronounDB shut down the API it used (HTTP 410). Migrated to PronounDB's current v2 API.",
+    "note": "Previously broken because PronounDB shut down the API it used (HTTP 410) - migrated to their current v2 API. Requires people to have set pronouns at pronoundb.org; nothing to configure in the plugin itself.",
     "installUrl": "https://everestmcarthur.github.io/revenge-plugins/pronoun-db/",
     "sourceUrl": "https://github.com/everestmcarthur/revenge-plugins/tree/main/plugins/pronoun-db",
     "issueUrl": "https://github.com/everestmcarthur/revenge-plugins/issues/new?title=%5BPronounDB%5D%20"
