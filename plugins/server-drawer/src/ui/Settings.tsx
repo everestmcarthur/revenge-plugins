@@ -16,12 +16,13 @@ export default function Settings() {
             <NoteBox>
                 Server Drawer takes over the Quest Dock (the strip above the tab bar) to show your
                 servers as a grid instead - tap to expand, long-press a server for its usual context
-                menu, and use the + button to create or join a server through Discord's own modal.
+                menu, the chat bubble jumps to DMs, the + button creates or joins a server through
+                Discord's own modal, and the check button marks every channel in every server as read.
             </NoteBox>
             <FormSection title="Layout">
                 <FormSwitchRow
                     label="Hide the left server rail"
-                    subLabel="Replaces it with a single DMs icon since your servers now live in the drawer"
+                    subLabel="Your servers and DMs already live in the drawer, so the rail is redundant"
                     value={storage.hideGuildsBar !== false}
                     onValueChange={(v: boolean) => {
                         storage.hideGuildsBar = v;

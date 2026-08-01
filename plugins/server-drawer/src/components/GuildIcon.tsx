@@ -3,10 +3,14 @@ import { View, Text, Image, StyleSheet } from "react-native";
 import { findByStoreName, findByProps } from "@vendetta/metro";
 
 const GuildStore = findByStoreName("GuildStore");
+const Flux = findByProps("useStateFromStores");
 const colors = findByProps("colors", "unsafe_rawColors")?.colors;
 
 export default function GuildIcon({ id, size = 48 }: { id: string; size?: number }) {
-    const g = GuildStore?.getGuild(id);
+    // Guild data streams in progressively after connect, so a one-shot GuildStore.getGuild(id)
+    // taken at mount can miss it entirely and never recover - subscribing means the icon fills in
+    // as soon as its guild finishes loading instead of staying blank for the rest of the session.
+    const g = Flux?.useStateFromStores?.([GuildStore], () => GuildStore?.getGuild?.(id), [id]) ?? null;
     if (!g) return null;
     const rad = size >= 40 ? 16 : 8;
     if (g.icon) {
