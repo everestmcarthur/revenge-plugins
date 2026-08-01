@@ -1,0 +1,27 @@
+{
+    "staff-tags": {
+        "category": "Moderation & Appearance",
+        "status": "rebuilt",
+        "note": "Previously broken. Rebuilt with per-patch crash isolation, plus new customization: per-tag text, colors, gradients, and visibility."
+    },
+    "role-color-everywhere": {
+        "category": "Moderation & Appearance",
+        "status": "revived",
+        "note": "Previously broken. Ported from the original source and hardened with the same crash-isolation fix as Staff Tags."
+    },
+    "pronoun-db": {
+        "category": "Identity",
+        "status": "revived",
+        "note": "Previously broken because PronounDB shut down the API it used (HTTP 410). Migrated to PronounDB's current v2 API."
+    },
+    "message-snippets": {
+        "category": "Productivity",
+        "status": "new",
+        "note": "Didn't exist in the Revenge/Vendetta plugin ecosystem before."
+    },
+    "reminders": {
+        "category": "Productivity",
+        "status": "new",
+        "note": "Didn't exist in the Revenge/Vendetta plugin ecosystem before. Only fires while Discord is running."
+    }
+}

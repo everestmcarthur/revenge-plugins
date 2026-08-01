@@ -2,7 +2,7 @@
 	"name": "revenge-plugins",
 	"private": true,
 	"scripts": {
-		"build": "node build.mjs"
+		"build": "node build.mjs && node scripts/generate-site.mjs"
 	},
 	"dependencies": {
 		"@swc/helpers": "^0.5.17"

@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>revenge-plugins</title>
+<meta name="description" content="Plugins for Revenge, the Discord Android client mod.">
+<style>
+  :root {
+    --bg: #f5f6fa;
+    --bg-elevated: #ffffff;
+    --border: #e3e5eb;
+    --text: #1c1e26;
+    --text-muted: #61667a;
+    --accent: #5865f2;
+    --accent-text: #ffffff;
+    --chip-bg: #ececf5;
+    --chip-bg-active: #5865f2;
+    --chip-text-active: #ffffff;
+    --badge-new-bg: #e6f6ec;
+    --badge-new-text: #1a7f4b;
+    --badge-revived-bg: #eef0ff;
+    --badge-revived-text: #4752c4;
+    --badge-rebuilt-bg: #fff3e0;
+    --badge-rebuilt-text: #b5680a;
+    --shadow: 0 1px 2px rgba(20, 21, 31, 0.06), 0 8px 24px rgba(20, 21, 31, 0.05);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14151c;
+      --bg-elevated: #1c1e28;
+      --border: #2a2c38;
+      --text: #eef0f7;
+      --text-muted: #9297ab;
+      --accent: #7b84f7;
+      --accent-text: #10111a;
+      --chip-bg: #262838;
+      --chip-bg-active: #7b84f7;
+      --chip-text-active: #10111a;
+      --badge-new-bg: #103324;
+      --badge-new-text: #5fd493;
+      --badge-revived-bg: #21243f;
+      --badge-revived-text: #9ba3ff;
+      --badge-rebuilt-bg: #3a2a10;
+      --badge-rebuilt-text: #e6a852;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14151c; --bg-elevated: #1c1e28; --border: #2a2c38; --text: #eef0f7; --text-muted: #9297ab;
+    --accent: #7b84f7; --accent-text: #10111a; --chip-bg: #262838; --chip-bg-active: #7b84f7; --chip-text-active: #10111a;
+    --badge-new-bg: #103324; --badge-new-text: #5fd493; --badge-revived-bg: #21243f; --badge-revived-text: #9ba3ff;
+    --badge-rebuilt-bg: #3a2a10; --badge-rebuilt-text: #e6a852;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35); color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6fa; --bg-elevated: #ffffff; --border: #e3e5eb; --text: #1c1e26; --text-muted: #61667a;
+    --accent: #5865f2; --accent-text: #ffffff; --chip-bg: #ececf5; --chip-bg-active: #5865f2; --chip-text-active: #ffffff;
+    --badge-new-bg: #e6f6ec; --badge-new-text: #1a7f4b; --badge-revived-bg: #eef0ff; --badge-revived-text: #4752c4;
+    --badge-rebuilt-bg: #fff3e0; --badge-rebuilt-text: #b5680a;
+    --shadow: 0 1px 2px rgba(20,21,31,0.06), 0 8px 24px rgba(20,21,31,0.05); color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+
+  header.hero {
+    padding: 56px 0 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+    margin-bottom: 12px;
+  }
+  h1 { font-size: 34px; line-height: 1.15; margin: 0 0 10px; letter-spacing: -0.01em; }
+  .hero p.sub { color: var(--text-muted); font-size: 16px; max-width: 620px; margin: 0 0 20px; line-height: 1.5; }
+  .hero-links { display: flex; gap: 10px; flex-wrap: wrap; }
+  .hero-links a {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    text-decoration: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+  }
+  .hero-links a.primary { background: var(--accent); color: var(--accent-text); border-color: transparent; }
+
+  .stats { display: flex; gap: 28px; margin-top: 28px; flex-wrap: wrap; }
+  .stats .stat-value { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+  .stats .stat-label { font-size: 12.5px; color: var(--text-muted); font-weight: 600; }
+
+  .controls {
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    padding: 18px 0;
+    z-index: 5;
+    border-bottom: 1px solid transparent;
+  }
+  .controls.stuck { border-bottom-color: var(--border); }
+  .search {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    color: var(--text);
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+  .search:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 13px;
+    border-radius: 999px;
+    background: var(--chip-bg);
+    color: var(--text-muted);
+    border: none;
+    cursor: pointer;
+  }
+  .chip[aria-pressed="true"] { background: var(--chip-bg-active); color: var(--chip-text-active); }
+
+  main { padding: 24px 0 64px; }
+  .count { color: var(--text-muted); font-size: 13px; margin: 0 0 16px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+
+  .card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+  }
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+  .card h3 { font-size: 17px; margin: 0; letter-spacing: -0.005em; }
+  .badge {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 3px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .badge.new { background: var(--badge-new-bg); color: var(--badge-new-text); }
+  .badge.revived { background: var(--badge-revived-bg); color: var(--badge-revived-text); }
+  .badge.rebuilt { background: var(--badge-rebuilt-bg); color: var(--badge-rebuilt-text); }
+
+  .card .category { font-size: 12px; color: var(--accent); font-weight: 600; margin-bottom: 8px; }
+  .card p.desc { font-size: 14px; color: var(--text-muted); line-height: 1.5; margin: 0 0 10px; flex-grow: 1; }
+  .card p.note { font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin: 0 0 14px; padding: 8px 10px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); }
+  .card .authors { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .actions button, .actions a {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    text-decoration: none;
+    cursor: pointer;
+    flex: 1;
+    text-align: center;
+    min-width: 88px;
+  }
+  .actions button.install { background: var(--accent); color: var(--accent-text); border-color: transparent; }
+  .actions button.install[data-copied="true"] { background: var(--badge-new-text); }
+
+  .empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+
+  footer { border-top: 1px solid var(--border); padding: 24px 0 40px; }
+  footer p { color: var(--text-muted); font-size: 13px; margin: 0; }
+  footer a { color: var(--text-muted); }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    background: var(--text);
+    color: var(--bg);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 16px;
+    border-radius: 999px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 50;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-8px); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">👊 REVENGE PLUGINS</div>
+    <h1>Plugins for Revenge</h1>
+    <p class="sub">An actively maintained collection of plugins for Revenge, the Discord Android client mod. Tap Install to copy a plugin's link, then paste it into Revenge's plugin browser.</p>
+    <div class="hero-links">
+      <a class="primary" href="https://github.com/everestmcarthur/revenge-plugins">GitHub repo</a>
+      <a href="https://github.com/revenge-mod/revenge-bundle">About Revenge</a>
+      <a href="https://github.com/everestmcarthur/revenge-plugins/issues/new">Report an issue</a>
+    </div>
+    <div class="stats" id="stats" aria-hidden="true"></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="controls" id="controls">
+    <input id="search" class="search" type="search" placeholder="Search plugins…" aria-label="Search plugins">
+    <div class="chips" id="categoryChips" role="group" aria-label="Filter by category"></div>
+  </div>
+
+  <main>
+    <p class="count" id="count"></p>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty" hidden>No plugins match your search.</div>
+  </main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <p>Built with <a href="https://github.com/everestmcarthur/revenge-plugins">revenge-plugins</a> · not affiliated with Discord or the Revenge project · install links point to this site</p>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  var STATUS_LABEL = { new: "New", revived: "Revived", rebuilt: "Rebuilt" };
+  var state = { plugins: [], query: "", category: "All" };
+
+  var grid = document.getElementById("grid");
+  var empty = document.getElementById("empty");
+  var count = document.getElementById("count");
+  var chipsEl = document.getElementById("categoryChips");
+  var searchEl = document.getElementById("search");
+  var toastEl = document.getElementById("toast");
+  var statsEl = document.getElementById("stats");
+
+  function renderStats() {
+    var categories = Array.from(new Set(state.plugins.map(function (p) { return p.category; })));
+    var revivedCount = state.plugins.filter(function (p) { return p.status !== "new"; }).length;
+    var stats = [
+      { value: state.plugins.length, label: "plugins" },
+      { value: categories.length, label: "categories" },
+      { value: revivedCount, label: "revived or rebuilt" }
+    ];
+    statsEl.innerHTML = stats.map(function (s) {
+      return '<div><div class="stat-value">' + s.value + '</div><div class="stat-label">' + s.label + '</div></div>';
+    }).join("");
+  }
+
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function () { toastEl.classList.remove("show"); }, 1600);
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+    return Promise.resolve();
+  }
+
+  function render() {
+    var q = state.query.trim().toLowerCase();
+    var filtered = state.plugins.filter(function (p) {
+      var matchesCategory = state.category === "All" || p.category === state.category;
+      var matchesQuery = !q ||
+        p.name.toLowerCase().indexOf(q) !== -1 ||
+        p.description.toLowerCase().indexOf(q) !== -1 ||
+        p.category.toLowerCase().indexOf(q) !== -1;
+      return matchesCategory && matchesQuery;
+    });
+
+    count.textContent = filtered.length + " plugin" + (filtered.length === 1 ? "" : "s");
+    grid.innerHTML = "";
+    empty.hidden = filtered.length !== 0;
+
+    filtered.forEach(function (p) {
+      var card = document.createElement("article");
+      card.className = "card";
+      card.innerHTML =
+        '<div class="card-top">' +
+          '<h3>' + escapeHtml(p.name) + '</h3>' +
+          '<span class="badge ' + p.status + '">' + (STATUS_LABEL[p.status] || p.status) + '</span>' +
+        '</div>' +
+        '<div class="category">' + escapeHtml(p.category) + '</div>' +
+        '<p class="desc">' + escapeHtml(p.description) + '</p>' +
+        (p.note ? '<p class="note">' + escapeHtml(p.note) + '</p>' : '') +
+        (p.authors && p.authors.length ? '<p class="authors">By ' + escapeHtml(p.authors.join(", ")) + '</p>' : '') +
+        '<div class="actions">' +
+          '<button class="install" data-url="' + escapeHtml(p.installUrl) + '">Install</button>' +
+          '<a href="' + escapeHtml(p.sourceUrl) + '" target="_blank" rel="noopener">Source</a>' +
+          '<a href="' + escapeHtml(p.issueUrl) + '" target="_blank" rel="noopener">Report issue</a>' +
+        '</div>';
+
+      card.querySelector("button.install").addEventListener("click", function (e) {
+        var btn = e.currentTarget;
+        copyToClipboard(btn.getAttribute("data-url")).then(function () {
+          var original = btn.textContent;
+          btn.textContent = "Copied!";
+          btn.setAttribute("data-copied", "true");
+          showToast("Install link copied - paste it into Revenge's plugin browser");
+          setTimeout(function () {
+            btn.textContent = original;
+            btn.removeAttribute("data-copied");
+          }, 1400);
+        });
+      });
+
+      grid.appendChild(card);
+    });
+  }
+
+  function renderChips() {
+    var categories = ["All"].concat(
+      Array.from(new Set(state.plugins.map(function (p) { return p.category; }))).sort()
+    );
+    chipsEl.innerHTML = "";
+    categories.forEach(function (cat) {
+      var chip = document.createElement("button");
+      chip.className = "chip";
+      chip.textContent = cat;
+      chip.setAttribute("aria-pressed", String(cat === state.category));
+      chip.addEventListener("click", function () {
+        state.category = cat;
+        Array.from(chipsEl.children).forEach(function (c) {
+          c.setAttribute("aria-pressed", String(c === chip));
+        });
+        render();
+      });
+      chipsEl.appendChild(chip);
+    });
+  }
+
+  searchEl.addEventListener("input", function (e) {
+    state.query = e.target.value;
+    render();
+  });
+
+  var controls = document.getElementById("controls");
+  window.addEventListener("scroll", function () {
+    controls.classList.toggle("stuck", window.scrollY > 8);
+  });
+
+  fetch("https://everestmcarthur.github.io/revenge-plugins/plugins-data.json")
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      state.plugins = data;
+      renderStats();
+      renderChips();
+      render();
+    })
+    .catch(function () {
+      count.textContent = "";
+      empty.hidden = false;
+      empty.textContent = "Couldn't load the plugin list - try refreshing.";
+    });
+})();
+</script>
+</body>
+</html>
