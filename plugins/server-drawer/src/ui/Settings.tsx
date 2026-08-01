@@ -35,6 +35,26 @@ export default function Settings() {
                     onValueChange={(v: boolean) => { storage.showUnreadBadges = v; }}
                 />
             </FormSection>
+            <FormSection title="Folders">
+                <FormSwitchRow
+                    label="Auto-collapse other folders"
+                    subLabel="Opening a folder collapses any other folder that was already open"
+                    value={!!storage.autoCollapseFolders}
+                    onValueChange={(v: boolean) => { storage.autoCollapseFolders = v; }}
+                />
+                <FormSwitchRow
+                    label="Hide icons in collapsed folders"
+                    subLabel="Show a plain folder icon instead of a 4-server preview"
+                    value={!!storage.hideFolderIcons}
+                    onValueChange={(v: boolean) => { storage.hideFolderIcons = v; }}
+                />
+            </FormSection>
+            <NoteBox>
+                The folder options above are ported from fres621's BetterFolders - its other half
+                (hiding icons in the native left server rail) patched a component that no longer
+                exists in current Discord builds, so it's been rebuilt here instead, where it
+                actually applies to what you see.
+            </NoteBox>
         </SettingsScaffold>
     );
 }

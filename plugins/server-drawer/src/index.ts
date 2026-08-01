@@ -7,6 +7,7 @@ import { patchGetQuestAsset } from "./patches/getQuestAsset";
 import { patchExpanded, patchEmpty } from "./patches/contentPatch";
 import { patchHideGuildsBar } from "./patches/hideGuildsBar";
 import { patchCreateElement } from "./patches/createElementIntercept";
+import { patchAutoCollapseFolders } from "./patches/autoCollapseFolders";
 import Settings from "./ui/Settings";
 
 let cleanups: (() => void)[] = [];
@@ -44,7 +45,9 @@ function applyAll() {
         if (tryPatch("hideGuildsBar", () => patchHideGuildsBar(cleanups))) applied.push("hideGuildsBar");
     }
 
-    logger.log(`[ServerDrawer] onLoad done - ${applied.length}/11 patches applied (${applied.join(", ") || "none"})`);
+    if (tryPatch("autoCollapseFolders", () => patchAutoCollapseFolders(cleanups))) applied.push("autoCollapseFolders");
+
+    logger.log(`[ServerDrawer] onLoad done - ${applied.length}/12 patches applied (${applied.join(", ") || "none"})`);
 }
 
 function unpatchAll() {
@@ -67,6 +70,8 @@ export default {
     onLoad: () => {
         storage.hideGuildsBar ??= true;
         storage.showUnreadBadges ??= true;
+        storage.autoCollapseFolders ??= false;
+        storage.hideFolderIcons ??= false;
 
         applyAll();
     },

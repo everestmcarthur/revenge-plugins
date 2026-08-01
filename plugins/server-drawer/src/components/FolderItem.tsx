@@ -2,6 +2,8 @@ import React from "react";
 import { View, Text, Animated, Pressable, Image, ViewStyle, StyleSheet } from "react-native";
 import { findByProps, findByStoreName } from "@vendetta/metro";
 import { getAssetIDByName } from "@vendetta/ui/assets";
+import { storage } from "@vendetta/plugin";
+import { useProxy } from "@vendetta/storage";
 import { useFolderExpanded, GuildNode } from "../utils/theme";
 import GuildIcon from "./GuildIcon";
 import GuildItem from "./GuildItem";
@@ -53,15 +55,23 @@ function FolderBadge({ node }: { node: GuildNode }) {
 }
 
 function FolderCover({ node }: { node: GuildNode }) {
+    useProxy(storage);
     const col = folderColor(node.color);
+
     return (
         <View style={fc.outer}>
             <View style={[fc.icon, { backgroundColor: col }]}>
-                {node.children.slice(0, 4).map((ch, i) => (
-                    <View key={ch.id} style={[fc.cell, POS[i]]}>
-                        <GuildIcon id={ch.id as string} size={MINI} />
+                {storage.hideFolderIcons ? (
+                    <View style={fc.plainIcon}>
+                        <Image source={FOLDER_ASSET} style={fo.folderImg} tintColor="#fff" />
                     </View>
-                ))}
+                ) : (
+                    node.children.slice(0, 4).map((ch, i) => (
+                        <View key={ch.id} style={[fc.cell, POS[i]]}>
+                            <GuildIcon id={ch.id as string} size={MINI} />
+                        </View>
+                    ))
+                )}
             </View>
             <FolderBadge node={node} />
         </View>
@@ -72,6 +82,7 @@ const fc = StyleSheet.create({
     outer: { width: ICON, height: ICON },
     icon: { width: ICON, height: ICON, borderRadius: 16, overflow: "hidden" },
     cell: { position: "absolute", width: MINI, height: MINI, borderRadius: 8, overflow: "hidden" },
+    plainIcon: { width: ICON, height: ICON, alignItems: "center", justifyContent: "center" },
 });
 
 function FadeIn({ children }: { children: React.ReactNode }) {
