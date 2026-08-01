@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, Pressable, Animated, Dimensions, StyleSheet, BackHandler } from "react-native";
 import { find, findByProps, findByStoreName } from "@vendetta/metro";
 import { lazy } from "@shared/lib/lazy";
+import { rawFind, rawFindByProps } from "@shared/lib/rawFind";
 import { GuildNode } from "../utils/theme";
 import GuildItem from "./GuildItem";
 import FolderItem from "./FolderItem";
@@ -13,15 +14,18 @@ const SortedGuildStore = findByStoreName("SortedGuildStore");
 
 // These are looked up lazily (retried on first real use, not cached the moment this file is
 // required) because this whole module gets evaluated as soon as the plugin's bundle loads - which
-// can be before Discord's own routing/navigation modules have been required yet. A one-shot
-// findByProps() here would then permanently cache undefined even though the real module shows up
-// moments later, which is exactly what made tapping a server in the drawer silently do nothing.
-const getRootNav = lazy(() => findByProps("getRootNavigationRef"));
-const getHaptic = lazy(() => findByProps("triggerHapticFeedback", "HapticFeedbackTypes"));
-const getRouting = lazy(() => findByProps("transitionToGuild"));
-const getCreateJoinGuildMod = lazy(() => find((m: any) => typeof m?.handleCreateJoinGuildPress === "function"));
-const getCirclePlusIcon = lazy(() => find((m: any) => m?.CirclePlusIcon)?.CirclePlusIcon);
-const getRawColors = lazy(() => findByProps("colors", "unsafe_rawColors")?.unsafe_rawColors);
+// can be before Discord's own routing/navigation modules have been required yet. Crucially, they
+// use rawFind/rawFindByProps (not @vendetta/metro's cached finders) - Revenge's own finders
+// permanently cache a "not found" result and never rescan, so retrying a cached findByProps would
+// just hit that poisoned cache every time instead of ever finding the real module once it
+// registers (confirmed by reading Revenge's own metro finder source). This is what actually made
+// tapping a server in the drawer silently do nothing even after adding retries.
+const getRootNav = lazy(() => rawFindByProps("getRootNavigationRef"));
+const getHaptic = lazy(() => rawFindByProps("triggerHapticFeedback", "HapticFeedbackTypes"));
+const getRouting = lazy(() => rawFindByProps("transitionToGuild"));
+const getCreateJoinGuildMod = lazy(() => rawFind((m: any) => typeof m?.handleCreateJoinGuildPress === "function"));
+const getCirclePlusIcon = lazy(() => rawFind((m: any) => m?.CirclePlusIcon)?.CirclePlusIcon);
+const getRawColors = lazy(() => rawFindByProps("colors", "unsafe_rawColors")?.unsafe_rawColors);
 
 const ExternalCoordinationMod = find((m: any) => m?.QuestDockExternalCoordinationContext);
 const ExternalContext = ExternalCoordinationMod?.QuestDockExternalCoordinationContext;

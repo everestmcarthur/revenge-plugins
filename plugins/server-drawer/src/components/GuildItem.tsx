@@ -6,6 +6,7 @@ import { storage } from "@vendetta/plugin";
 import { useProxy } from "@vendetta/storage";
 import { showToast } from "@vendetta/ui/toasts";
 import { lazy } from "@shared/lib/lazy";
+import { rawFindByProps } from "@shared/lib/rawFind";
 import { GuildNode } from "../utils/theme";
 import GuildIcon from "./GuildIcon";
 import { ContextMenuModal, ContextMenuItem } from "./ContextMenuModal";
@@ -19,8 +20,10 @@ const GuildChannelStore = findByStoreName("GuildChannelStore");
 const ChannelStore = findByStoreName("ChannelStore");
 const Haptic = findByProps("triggerHapticFeedback", "HapticFeedbackTypes");
 
-const getBulkAck = lazy(() => findByProps("bulkAck", "ackChannel"));
-const getReadStateTypes = lazy(() => findByProps("ReadStateTypes", "UnreadSetting")?.ReadStateTypes);
+// rawFindByProps, not findByProps, because these are retried via lazy() - see rawFind.ts for why
+// a retried cached findByProps call is a no-op after its first failure.
+const getBulkAck = lazy(() => rawFindByProps("bulkAck", "ackChannel"));
+const getReadStateTypes = lazy(() => rawFindByProps("ReadStateTypes", "UnreadSetting")?.ReadStateTypes);
 
 // Discord's own per-guild context menu (getGuildsBarGuildMenuItems) is a bare default export with
 // no named export - findByName/`.default.name` heuristics for it are unreliable, since a plain
