@@ -1,0 +1,12 @@
+{
+    "name": "ServerDrawer",
+    "description": "Replaces the Quest Dock with a server grid drawer above the YouBar - tap to expand, long-press a server for its context menu, plus a one-tap create/join button.",
+    "authors": [
+        { "name": "everestmcarthur" },
+        { "name": "kmmiio99o" }
+    ],
+    "main": "src/index.ts",
+    "vendetta": {
+        "icon": "ServerIcon"
+    }
+}
