@@ -188,6 +188,34 @@
     "issueUrl": "https://github.com/everestmcarthur/revenge-plugins/issues/new?title=%5BStaff%20Tags%5D%20"
   },
   {
+    "id": "you-bar-plus",
+    "name": "YouBar+",
+    "description": "Adds up to 2 configurable buttons (Direct Messages, Settings, or none) to the YouBar, in whatever order you pick.",
+    "authors": [
+      "everestmcarthur",
+      "Purple_Ξye™"
+    ],
+    "category": "Moderation & Appearance",
+    "status": "revived",
+    "accent": "#5865F2",
+    "tagline": "Configurable buttons on the YouBar - up to 2 at a time, in your chosen order.",
+    "note": "Fork of Purple-EyeZ's YouBar+. Fixed a startup race condition: the original did a single one-shot component lookup during onLoad and silently gave up for the rest of the session if it ran before the target had registered in Metro yet (a real risk on a cold app start) - restarting Discord just got lucky on a re-roll. This port polls for the component instead of looking it up once. Also replaced the original's two independent on/off toggles with a real slot-based system: 2 ordered slots, each set to None, Direct Messages, or Settings.",
+    "howItWorks": "The YouBar is the row near your avatar/status at the top of the app. This plugin patches its notification button area to also render up to 2 extra icon buttons, each pulled from one of 2 configurable slots. Each slot cycles between None, Direct Messages (jumps to your DMs), and Settings (opens user settings) - tap a slot in the plugin's settings to cycle it. Slot order controls left-to-right button order, and each slot is independent, so you can run just one button, both, or neither. Both slots default to Direct Messages then Settings, matching the original plugin's default look.",
+    "features": [
+      "Up to 2 buttons on the YouBar, each independently configurable",
+      "Choices per slot: None, Direct Messages, Settings",
+      "Slot order controls left-to-right button order",
+      "Settings changes apply immediately, no restart needed",
+      "Startup race condition fixed - polls for the target component instead of a single one-shot lookup"
+    ],
+    "commands": [],
+    "limitations": "Only wires up to actions with a confirmed, still-working lookup (jump to DMs, open Settings) - no additional slot choices were added beyond what could be verified against a real findByProps target.",
+    "pageUrl": "https://rp.jarviscli.dev/you-bar-plus/",
+    "installUrl": "https://rp.jarviscli.dev/you-bar-plus/install/",
+    "sourceUrl": "https://github.com/everestmcarthur/revenge-plugins/tree/main/plugins/you-bar-plus",
+    "issueUrl": "https://github.com/everestmcarthur/revenge-plugins/issues/new?title=%5BYouBar%2B%5D%20"
+  },
+  {
     "id": "message-snippets",
     "name": "Message Snippets",
     "description": "Save reusable text and send it with /snippet <name>. Manage snippets from the plugin settings, or with /snippet-save, /snippet-delete, /snippet-list.",
