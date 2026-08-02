@@ -1,11 +1,12 @@
-import { rawFindByProps } from "../lib/rawFind";
+import { rawFindByFunctionProps } from "../lib/rawFind";
 
 const TAG = "[ServerDrawer]";
 
-// rawFindByProps, not findByProps - see questDockRender.ts for why (retried lookup, and
-// Revenge's own findByProps permanently caches a "not found" result and never rescans).
+// rawFindByFunctionProps, not findByProps or rawFindByProps - see questDockRender.ts for why
+// (retried lookup that a caching findByProps would defeat, plus a confirmed-live decoy module
+// with the same property names but non-function values that a plain rawFindByProps was matching).
 export function patchGetQuestAsset(cleanups: (() => void)[]): boolean {
-    const mod = rawFindByProps("getQuestAsset");
+    const mod = rawFindByFunctionProps("getQuestAsset");
     if (!mod?.getQuestAsset) {
         console.log(TAG, "WARN: getQuestAsset not found");
         return false;
