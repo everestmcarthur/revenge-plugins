@@ -352,7 +352,7 @@
   {
     "id": "key-inspector",
     "name": "Key Inspector",
-    "description": "Dev utility: copies live Discord/Revenge color token keys to your clipboard, for diagnosing plugin crashes without needing a computer.",
+    "description": "Plugin-dev toolkit: on-device module search (incl. a cache-safe raw mode), a Flux event logger, a component render/props logger, an eval console, and full API/color-token dumps - for diagnosing and building plugins without needing a computer.",
     "authors": [
       "everestmcarthur"
     ],
