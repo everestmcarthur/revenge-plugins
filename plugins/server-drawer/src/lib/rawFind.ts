@@ -68,6 +68,27 @@ export function rawFindByFunctionProps<T = any>(...props: string[]): T | undefin
     return rawFind<T>((m) => props.every((p) => typeof m?.[p] === "function"));
 }
 
+/**
+ * Same idea as rawFindByFunctionProps, but for properties whose real value is an object/enum, not
+ * a function (e.g. ReadStateTypes, HapticFeedbackTypes) - "is it a function" can't discriminate
+ * those from the same decoy module rawFindByFunctionProps was built for, since the decoy's version
+ * is *also* an object. Confirmed live that the decoy's enum-shaped properties don't hold the real
+ * values (e.g. its ReadStateTypes/UnreadSetting come back null/empty on direct access, despite
+ * matching a plain "property exists" check) - so this instead requires each named property to pass
+ * its own validator against a value only the real implementation would actually have, e.g.:
+ * rawFindByValidProps({ ReadStateTypes: (v) => v?.CHANNEL !== undefined }).
+ */
+export function rawFindByValidProps<T = any>(validators: Record<string, (value: any) => boolean>): T | undefined {
+    const props = Object.keys(validators);
+    return rawFind<T>((m) => props.every((p) => {
+        try {
+            return validators[p](m?.[p]);
+        } catch {
+            return false;
+        }
+    }));
+}
+
 // Matches Revenge's own byStoreName filter (metro/filters.ts): a zero-arg getName() returning
 // the store's name.
 export function rawFindByStoreName<T = any>(name: string): T | undefined {

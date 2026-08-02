@@ -1,21 +1,24 @@
-import { find, findByStoreName } from "@vendetta/metro";
 import { semanticColors } from "@vendetta/ui";
+import { lazy } from "./lazy";
+import { rawFind, rawFindByStoreName } from "./rawFind";
 
 export const HEX_REGEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
-const ThemeStore = findByStoreName("ThemeStore");
+// Switched from the caching findByStoreName/find (permanently wrong if either runs before its
+// target module registers) to lazy + raw variants for the same timing reason established
+// elsewhere in this plugin.
+const getThemeStore = lazy(() => rawFindByStoreName<any>("ThemeStore"));
 
 // @vendetta/ui exposes the semanticColors token map but not a resolver function for it.
-const rawResolveSemanticColor: (theme: any, semanticColor: any) => string | undefined =
-    find((m: any) => m?.default?.internal?.resolveSemanticColor)?.default?.internal?.resolveSemanticColor ??
-    find((m: any) => m?.meta?.resolveSemanticColor)?.meta?.resolveSemanticColor ??
-    (() => undefined);
+const getRawResolveSemanticColor = lazy((): ((theme: any, semanticColor: any) => string | undefined) | undefined =>
+    rawFind((m: any) => m?.default?.internal?.resolveSemanticColor)?.default?.internal?.resolveSemanticColor ??
+    rawFind((m: any) => m?.meta?.resolveSemanticColor)?.meta?.resolveSemanticColor);
 
 /** Resolves a semanticColors[TOKEN_NAME] descriptor to a real color for the current theme. */
-export function resolveSemanticColor(token: any, theme: any = ThemeStore?.theme): string | undefined {
+export function resolveSemanticColor(token: any, theme: any = getThemeStore()?.theme): string | undefined {
     if (!token) return undefined;
     try {
-        return rawResolveSemanticColor(theme, token);
+        return getRawResolveSemanticColor()?.(theme, token);
     } catch {
         return undefined;
     }
@@ -26,7 +29,7 @@ export function resolveSemanticColor(token: any, theme: any = ThemeStore?.theme)
  * hardcoded hex color if every one of them is missing or fails to resolve - Discord renames these
  * tokens across versions often enough that a single hardcoded name isn't reliable on its own.
  */
-export function resolveSemanticColorSafe(tokenNames: string[], fallbackHex: string, theme: any = ThemeStore?.theme): string {
+export function resolveSemanticColorSafe(tokenNames: string[], fallbackHex: string, theme: any = getThemeStore()?.theme): string {
     for (const name of tokenNames) {
         const token = (semanticColors as Record<string, any> | undefined)?.[name];
         if (!token) continue;

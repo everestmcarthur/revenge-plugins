@@ -1,10 +1,15 @@
-import { findByProps, findByStoreName } from "@vendetta/metro";
+import { lazy } from "../lib/lazy";
+import { rawFindByStoreName } from "../lib/rawFind";
+import { getFlux, getColorModule } from "../lib/commonModules";
 
-const Flux = findByProps("useStateFromStores");
-const colors = findByProps("colors", "unsafe_rawColors")?.colors;
-const ExpandedGuildFolderStore = findByStoreName("ExpandedGuildFolderStore");
+// getFlux/getColorModule come from lib/commonModules.ts - see that file for the decoy-module
+// writeup. ExpandedGuildFolderStore switches from an eager, module-load-time findByStoreName (the
+// caching finder, permanently wrong if it runs before the store module has registered) to lazy +
+// rawFindByStoreName for the same timing reason established elsewhere in this plugin.
+const getExpandedGuildFolderStore = lazy(() => rawFindByStoreName("ExpandedGuildFolderStore"));
 
 export function useTheme() {
+    const colors = getColorModule()?.colors;
     return {
         text: colors?.TEXT_NORMAL ?? "#dbdee1",
         folder: "#5865f2",
@@ -13,6 +18,8 @@ export function useTheme() {
 }
 
 export function useFolderExpanded(folderId: string | number): boolean {
+    const Flux = getFlux();
+    const ExpandedGuildFolderStore = getExpandedGuildFolderStore();
     return Flux?.useStateFromStores?.(
         [ExpandedGuildFolderStore],
         () => {

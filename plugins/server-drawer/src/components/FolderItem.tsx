@@ -1,16 +1,21 @@
 import React from "react";
 import { View, Text, Animated, Pressable, Image, ViewStyle, StyleSheet } from "react-native";
-import { findByProps, findByStoreName } from "@vendetta/metro";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 import { storage } from "@vendetta/plugin";
 import { useProxy } from "@vendetta/storage";
 import { useFolderExpanded, GuildNode } from "../utils/theme";
+import { lazy } from "../lib/lazy";
+import { rawFindByFunctionProps, rawFindByStoreName } from "../lib/rawFind";
+import { getFlux } from "../lib/commonModules";
 import GuildIcon from "./GuildIcon";
 import GuildItem from "./GuildItem";
 
-const GuildActions = findByProps("toggleGuildFolderExpand");
-const Flux = findByProps("useStateFromStores");
-const GuildReadStateStore = findByStoreName("GuildReadStateStore");
+// getFlux comes from lib/commonModules.ts - see that file for the decoy-module writeup.
+// GuildActions/GuildReadStateStore switch from eager, module-load-time findByProps/findByStoreName
+// (the caching finders) to lazy + raw variants for the same reasons established elsewhere in this
+// plugin - timing (permanent-negative-cache) for the store, and decoy-avoidance for the function.
+const getGuildActions = lazy(() => rawFindByFunctionProps<any>("toggleGuildFolderExpand"));
+const getGuildReadStateStore = lazy(() => rawFindByStoreName("GuildReadStateStore"));
 
 const ICON = 48;
 const MINI = 16;
@@ -30,6 +35,9 @@ function folderColor(color?: number | null): string {
 }
 
 function FolderBadge({ node }: { node: GuildNode }) {
+    const Flux = getFlux();
+    const GuildReadStateStore = getGuildReadStateStore();
+
     const total = Flux?.useStateFromStores?.(
         [GuildReadStateStore],
         () => {
@@ -97,7 +105,7 @@ export default function FolderItem({ node, onPick }: { node: GuildNode; onPick: 
     const open = useFolderExpanded(node.id);
 
     const toggle = () => {
-        GuildActions?.toggleGuildFolderExpand?.(node.id);
+        getGuildActions()?.toggleGuildFolderExpand?.(node.id);
     };
 
     if (open) {
