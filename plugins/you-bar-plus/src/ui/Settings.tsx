@@ -17,9 +17,11 @@ export default function Settings() {
     return (
         <SettingsScaffold>
             <NoteBox>
-                Fork of Purple-EyeZ's YouBar+, ported to Revenge's Vendetta-compat API. Like the
-                original, this patches the YouBar the moment it loads - if you enable it while
-                Discord's already running, you may need to restart once for the buttons to appear.
+                Fork of Purple-EyeZ's YouBar+, ported to Revenge's Vendetta-compat API, with a fix
+                for a startup race where Metro hadn't always registered the YouBar component yet by
+                the time this patch ran - if you toggle this on while Discord's already running,
+                the buttons should still appear without a restart once they mount, but a fresh
+                reload is the most reliable way to see them.
             </NoteBox>
             <FormSection title="Buttons">
                 <FormSwitchRow

@@ -1,29 +1,50 @@
-import { findByProps, findByTypeName } from "@vendetta/metro";
+import { findByProps } from "@vendetta/metro";
 import { React } from "@vendetta/metro/common";
 import { instead } from "@vendetta/patcher";
 import { storage } from "@vendetta/plugin";
 import { getAssetIDByName } from "@vendetta/ui/assets";
+import { waitFor } from "@shared/lib/waitFor";
+import { rawFindByTypeName } from "@shared/lib/rawFind";
 
-// Reset to Purple-EyeZ's original upstream logic, verbatim aside from the import path
-// (@revenge-mod/metro -> @vendetta/metro, since this repo only has the vendetta-compat alias
-// configured) - no retry loop, no raw* passive finder, no forced re-render. Every one of those
-// layers added this session was meant to fix "sometimes needs a reload," but on the actual device
-// buttons stopped appearing at all, even after ten restarts - worse than upstream's own documented
-// "requires a restart" baseline. Resetting to the exact known-quantity upstream version first, to
-// find out whether the *added* logic was the actual problem or something else in this port
-// (a renamed lookup, a build difference) was always broken and just wasn't visible under the retry
-// logic's own try/catch swallowing it.
 export let updateYouBar = () => {};
 
+/**
+ * Confirmed on-device, not just theorized: the exact upstream one-shot `findByTypeName` lookup at
+ * onLoad is genuinely non-deterministic across app boots - it found the component on one reload and
+ * came up empty on the very next one, same code, same device, nothing else changed. Metro doesn't
+ * guarantee YouBarNotificationsButton's module has been required by the time a plugin's onLoad
+ * runs; which reload wins that race varies. waitFor keeps checking after a first miss instead of
+ * giving up for the whole session - and it has to use the passive rawFindByTypeName specifically,
+ * because Revenge's own findByTypeName permanently caches a negative result and never rescans,
+ * which would make retrying it pointless.
+ *
+ * Deliberately NOT reintroducing anything beyond this. The force-render attempts tried earlier this
+ * session (walking React's DevTools fiber registry, nudging live navigation state) were aimed at a
+ * different problem - buttons not appearing on a hot toggle without ever restarting - and one of
+ * them caused a real regression. This only fixes the reload-timing race; "no restart ever needed"
+ * is a separate, deliberately deferred piece of work.
+ */
 export default function patchYouBarButtons(): () => void {
-    const YouBarNotificationsButton = findByTypeName("YouBarNotificationsButton");
+    let unpatch: () => void = () => {};
+
+    const handle = waitFor(
+        () => rawFindByTypeName("YouBarNotificationsButton"),
+        (YouBarNotificationsButton) => {
+            unpatch = applyButtonPatch(YouBarNotificationsButton);
+        }
+    );
+
+    return () => {
+        handle.cancel();
+        unpatch();
+    };
+}
+
+function applyButtonPatch(YouBarNotificationsButton: any): () => void {
     const userSettingsAction = findByProps("openUserSettings");
     const transitionModule = findByProps("transitionToGuild");
-
-    const SettingsIcon = getAssetIDByName("SettingsIcon");
     const ChatIcon = getAssetIDByName("ChatIcon");
-
-    if (!YouBarNotificationsButton) return () => {};
+    const SettingsIcon = getAssetIDByName("SettingsIcon");
 
     return instead("type", YouBarNotificationsButton, (args: any[], OriginalRender: (...a: any[]) => any) => {
         const [, forceUpdate] = React.useReducer((x: number) => ~x, 0);

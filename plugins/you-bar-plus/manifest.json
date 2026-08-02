@@ -1,6 +1,6 @@
 {
     "name": "YouBar+",
-    "description": "Adds Settings and DM buttons to the YouBar. (May require a restart after enabling.)",
+    "description": "Adds Settings and DM buttons to the YouBar. Toggling while Discord's already running may need one reload to take effect.",
     "authors": [
         { "name": "everestmcarthur" },
         { "name": "Purple_Ξye™" }
