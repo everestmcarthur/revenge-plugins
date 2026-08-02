@@ -289,6 +289,71 @@ function RawSearchSection() {
     );
 }
 
+function FiberCaptureSection() {
+    const [status, setStatus] = React.useState(
+        "Not captured yet - scroll this section into view (or reopen this screen) to trigger the ref."
+    );
+
+    const captureRef = (instance: any) => {
+        if (!instance) return;
+        try {
+            let fiber: any = null;
+            let method = "";
+
+            if (instance._internalFiberInstanceHandleDEV) {
+                fiber = instance._internalFiberInstanceHandleDEV;
+                method = "_internalFiberInstanceHandleDEV";
+            } else if (instance._internalInstanceHandle) {
+                fiber = instance._internalInstanceHandle;
+                method = "_internalInstanceHandle";
+            } else {
+                const fiberKey = Object.keys(instance).find(
+                    (k) => k.startsWith("__reactFiber$") || k.startsWith("__reactInternalInstance$")
+                );
+                if (fiberKey) {
+                    fiber = instance[fiberKey];
+                    method = fiberKey;
+                }
+            }
+
+            if (!fiber) {
+                setStatus(`No fiber pointer found on the instance. Instance keys: ${Object.keys(instance).join(", ") || "(none)"}`);
+                return;
+            }
+
+            let root = fiber;
+            let guard = 0;
+            while (root.return && guard < 5000) {
+                root = root.return;
+                guard++;
+            }
+
+            (window as any).__keyInspectorFiberRoot = root;
+            (window as any).__keyInspectorFiberSelf = fiber;
+            setStatus(`Captured via "${method}" (walked up ${guard} level(s) to the root). window.__keyInspectorFiberRoot and window.__keyInspectorFiberSelf are now set - use Eval to walk them.`);
+        } catch (e) {
+            setStatus(`Error: ${e}`);
+        }
+    };
+
+    return (
+        <FormSection title="Fiber capture (for Eval)">
+            <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+                <View ref={captureRef} style={{ width: 1, height: 1 }} />
+                <Text style={{ fontSize: 12.5, opacity: 0.85 }} selectable>{status}</Text>
+                <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7 }}>
+                    Reads React's own internal fiber pointer directly off a native view instance -
+                    works without React DevTools (confirmed absent on this build), since it's the
+                    same internal linkage React itself relies on to route touch events, not an
+                    inspector-only feature. Walks up to the root fiber automatically so Eval can
+                    search the whole live tree (whatever's actually mounted right now, not
+                    module-registry guessing) from window.__keyInspectorFiberRoot afterward.
+                </Text>
+            </View>
+        </FormSection>
+    );
+}
+
 function ApiTreeSection() {
     return (
         <FormSection title="Full Vendetta API tree">
@@ -422,6 +487,7 @@ export default function Settings() {
     return (
         <SettingsScaffold>
             <FullScanSection />
+            <FiberCaptureSection />
             <RawSearchSection />
             <ManualSearchSection />
             <FluxLoggerSection />
