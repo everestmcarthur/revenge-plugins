@@ -2,6 +2,7 @@ import { findByProps, findByName, findByTypeName, findByStoreName, findByPropsAl
 import { React, ReactNative, FluxDispatcher } from "@vendetta/metro/common";
 import { instead, before, after } from "@vendetta/patcher";
 import { getAssetIDByName } from "@vendetta/ui/assets";
+import { showToast } from "@vendetta/ui/toasts";
 import { rawFind, rawFindByTypeName, rawFindByProps, rawFindByName, rawFindByStoreName } from "@shared/lib/rawFind";
 
 declare const window: any;
@@ -86,6 +87,7 @@ export async function runEval(rawCode: string): Promise<string> {
             "before",
             "after",
             "getAssetIDByName",
+            "showToast",
             "React",
             "ReactNative",
             "FluxDispatcher",
@@ -110,6 +112,7 @@ export async function runEval(rawCode: string): Promise<string> {
             before,
             after,
             getAssetIDByName,
+            showToast,
             React,
             ReactNative,
             FluxDispatcher,

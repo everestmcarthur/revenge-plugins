@@ -89,7 +89,7 @@ function EvalSection() {
                     outside the sandbox. In scope: findByProps/findByName/
                     findByTypeName/findByStoreName/findByPropsAll/findByNameAll/find, the raw*
                     passive variants (rawFind/rawFindByTypeName/rawFindByProps/rawFindByName/
-                    rawFindByStoreName), instead/before/after, getAssetIDByName, React, ReactNative,
+                    rawFindByStoreName), instead/before/after, getAssetIDByName, showToast, React, ReactNative,
                     FluxDispatcher, and window. Nothing runs until you tap the button.
                 </Text>
             </View>
