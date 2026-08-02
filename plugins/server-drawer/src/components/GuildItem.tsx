@@ -7,7 +7,7 @@ import { showToast } from "@vendetta/ui/toasts";
 import { lazy } from "../lib/lazy";
 import { rawFindByStoreName } from "../lib/rawFind";
 import { getFlux, getHaptic, getBulkAckMod, getReadStateTypesMod } from "../lib/commonModules";
-import { GuildNode } from "../utils/theme";
+import { GuildNode, useTheme } from "../utils/theme";
 import GuildIcon from "./GuildIcon";
 import { ContextMenuModal, ContextMenuItem } from "./ContextMenuModal";
 
@@ -104,6 +104,30 @@ function Badge({ guildId }: { guildId: string }) {
     return null;
 }
 
+function GuildLabel({ guildId }: { guildId: string }) {
+    useProxy(storage);
+    const theme = useTheme();
+
+    const Flux = getFlux();
+    const GuildStore = getGuildStore();
+
+    // Same reasoning as GuildIcon: guild data streams in progressively after connect, so this
+    // subscribes rather than reading the name once at mount.
+    const name = Flux?.useStateFromStores?.(
+        [GuildStore],
+        () => GuildStore?.getGuild?.(guildId)?.name ?? "",
+        [guildId],
+    ) ?? "";
+
+    if (storage.showGuildNames === false || !name) return null;
+
+    return (
+        <Text numberOfLines={2} style={[lb.label, { color: theme.text }]}>
+            {name}
+        </Text>
+    );
+}
+
 export default function GuildItem({ node, onPick }: { node: GuildNode; onPick: (id: string) => void }) {
     const viewRef = React.useRef<View>(null);
     const scale = React.useRef(new Animated.Value(1)).current;
@@ -165,11 +189,14 @@ export default function GuildItem({ node, onPick }: { node: GuildNode; onPick: (
                 onLongPress={handleLongPress}
                 delayLongPress={500}
             >
-                <View ref={viewRef} style={st.outer} collapsable={false}>
-                    <Animated.View style={[st.icon, { transform: [{ scale }] }]}>
-                        <GuildIcon id={guildId} />
-                    </Animated.View>
-                    <Badge guildId={guildId} />
+                <View style={st.outer}>
+                    <View ref={viewRef} style={st.iconWrap} collapsable={false}>
+                        <Animated.View style={[st.icon, { transform: [{ scale }] }]}>
+                            <GuildIcon id={guildId} />
+                        </Animated.View>
+                        <Badge guildId={guildId} />
+                    </View>
+                    <GuildLabel guildId={guildId} />
                 </View>
             </Pressable>
             <ContextMenuModal
@@ -185,8 +212,19 @@ export default function GuildItem({ node, onPick }: { node: GuildNode; onPick: (
 }
 
 const st = StyleSheet.create({
-    outer: { width: ICON, height: ICON },
+    outer: { width: ICON },
+    iconWrap: { width: ICON, height: ICON },
     icon: { width: ICON, height: ICON, borderRadius: 16, overflow: "hidden" },
+});
+
+const lb = StyleSheet.create({
+    label: {
+        width: ICON,
+        marginTop: 4,
+        fontSize: 10,
+        lineHeight: 12,
+        textAlign: "center",
+    },
 });
 
 const bd = StyleSheet.create({

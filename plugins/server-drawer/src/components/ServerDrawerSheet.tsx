@@ -1,5 +1,7 @@
 import React from "react";
 import { View, Text, Pressable, Animated, Dimensions, StyleSheet, BackHandler } from "react-native";
+import { storage } from "@vendetta/plugin";
+import { useProxy } from "@vendetta/storage";
 import { lazy } from "../lib/lazy";
 import { rawFind, rawFindByFunctionProps } from "../lib/rawFind";
 import { getFlux, getHaptic, getColorModule } from "../lib/commonModules";
@@ -57,6 +59,8 @@ function CreateJoinButton() {
 }
 
 export default function ServerDrawerSheet({ gestureContext }: { gestureContext: any }) {
+    useProxy(storage);
+
     const pick = React.useCallback((id: string) => {
         const haptic = getHaptic();
         haptic?.triggerHapticFeedback?.(haptic.HapticFeedbackTypes.SOFT);
@@ -132,7 +136,7 @@ export default function ServerDrawerSheet({ gestureContext }: { gestureContext: 
                 style={[st.grid, { paddingHorizontal: padX, gap: GAP }]}
                 onLayout={onLayout}
             >
-                <DmTile />
+                {!storage.hideDmTile && <DmTile />}
                 {nodes.map((node) =>
                     node.type === "folder"
                         ? <FolderItem key={node.id} node={node} onPick={pick} />
