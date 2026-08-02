@@ -82,13 +82,15 @@ function EvalSection() {
                     </Text>
                 )}
                 <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7 }}>
-                    Runs as the body of an async function - a bare expression, `return ...`, or
-                    `await ...` all work. In scope: findByProps/findByName/findByTypeName/
-                    findByStoreName/findByPropsAll/findByNameAll/find, the raw* passive variants
-                    (rawFind/rawFindByTypeName/rawFindByProps/rawFindByName/rawFindByStoreName),
-                    instead/before/after, getAssetIDByName, React, ReactNative, FluxDispatcher, and
-                    window - enough to prototype a real patch here before it goes in a plugin.
-                    Nothing runs until you tap the button.
+                    Runs as a plain (non-async) function body - a bare expression or `return ...`
+                    works, but not the async/await keywords (Hermes doesn't support those in
+                    dynamically-eval'd code). For timed/async checks, return a Promise built with a
+                    plain function instead of an arrow/async function - it gets awaited for you
+                    outside the sandbox. In scope: findByProps/findByName/
+                    findByTypeName/findByStoreName/findByPropsAll/findByNameAll/find, the raw*
+                    passive variants (rawFind/rawFindByTypeName/rawFindByProps/rawFindByName/
+                    rawFindByStoreName), instead/before/after, getAssetIDByName, React, ReactNative,
+                    FluxDispatcher, and window. Nothing runs until you tap the button.
                 </Text>
             </View>
         </FormSection>
