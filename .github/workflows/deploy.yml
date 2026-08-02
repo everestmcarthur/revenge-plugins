@@ -7,8 +7,6 @@ on:
 jobs:
     deploy:
         runs-on: ubuntu-latest
-        permissions:
-            contents: write
 
         steps:
             - uses: actions/checkout@v4
@@ -24,8 +22,13 @@ jobs:
             - name: Build plugin(s) and site
               run: npm run build
 
-            - name: Deploy to GitHub Pages
-              uses: peaceiris/actions-gh-pages@v3
-              with:
-                  github_token: ${{ secrets.GITHUB_TOKEN }}
-                  publish_dir: ./dist
+            - name: Install API deps
+              working-directory: api
+              run: npm install
+
+            - name: Deploy to Cloudflare Workers
+              working-directory: api
+              env:
+                  CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
+                  CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
+              run: npx wrangler deploy

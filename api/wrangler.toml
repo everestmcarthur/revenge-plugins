@@ -1,0 +1,16 @@
+name = "revenge-plugins"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+
+[assets]
+directory = "../dist"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "revenge-plugins-overlay"
+database_id = "639fef3c-6583-4128-adbd-b5f5f4761483"
+
+[[kv_namespaces]]
+binding = "OVERLAY_CACHE"
+id = "e56d183bdcd64f5facade1c3fe04eb08"
