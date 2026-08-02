@@ -5,7 +5,13 @@ import getTag from "../lib/getTag";
 import GradientTag from "../ui/GradientTag";
 
 // Covers the name row shown in chat messages (next to the display name + timestamp) and channel headers.
-const DisplayName = findByName("DisplayName", false);
+// findByName("DisplayName", false) stopped matching - confirmed live (Key Inspector's Eval console,
+// a full module-key scan) that the module still exports a property literally named DisplayName, but
+// findByName matches by the component's own runtime .name/.displayName, which doesn't survive
+// production minification the way the export's property key does. findByProps looks at property
+// keys instead, so the patch target changes from DisplayName.default to DisplayNameModule.DisplayName.
+// HeaderName's current name isn't confirmed yet - still guarded, just not fixed.
+const DisplayNameModule = findByProps("DisplayName") as any;
 const HeaderName = findByName("HeaderName", false);
 const TagModule = findByProps("getBotLabel");
 
@@ -21,8 +27,8 @@ export default () => {
         }));
     }
 
-    if (DisplayName) {
-        patches.push(after("default", DisplayName, ([{ guildId, channelId, user }], ret) => {
+    if (DisplayNameModule?.DisplayName) {
+        patches.push(after("DisplayName", DisplayNameModule, ([{ guildId, channelId, user }], ret) => {
             try {
                 const tagComponent = findInReactTree(ret, (c) => c?.type?.Types);
 
