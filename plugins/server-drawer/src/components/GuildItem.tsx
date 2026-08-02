@@ -1,29 +1,31 @@
 import React from "react";
 import { View, Text, Pressable, Animated, StyleSheet } from "react-native";
-import { findByProps, findByStoreName } from "@vendetta/metro";
 import { clipboard } from "@vendetta/metro/common";
 import { storage } from "@vendetta/plugin";
 import { useProxy } from "@vendetta/storage";
 import { showToast } from "@vendetta/ui/toasts";
 import { lazy } from "../lib/lazy";
-import { rawFindByProps } from "../lib/rawFind";
+import { rawFindByStoreName } from "../lib/rawFind";
+import { getFlux, getHaptic, getBulkAckMod, getReadStateTypesMod } from "../lib/commonModules";
 import { GuildNode } from "../utils/theme";
 import GuildIcon from "./GuildIcon";
 import { ContextMenuModal, ContextMenuItem } from "./ContextMenuModal";
 
 const ICON = 48;
 
-const Flux = findByProps("useStateFromStores");
-const GuildReadStateStore = findByStoreName("GuildReadStateStore");
-const GuildStore = findByStoreName("GuildStore");
-const GuildChannelStore = findByStoreName("GuildChannelStore");
-const ChannelStore = findByStoreName("ChannelStore");
-const Haptic = findByProps("triggerHapticFeedback", "HapticFeedbackTypes");
+// getFlux/getHaptic/getBulkAckMod/getReadStateTypesMod come from lib/commonModules.ts - see that
+// file for the decoy-module writeup.
+const getBulkAck = getBulkAckMod;
+const getReadStateTypes = lazy(() => getReadStateTypesMod()?.ReadStateTypes);
 
-// rawFindByProps, not findByProps, because these are retried via lazy() - see rawFind.ts for why
-// a retried cached findByProps call is a no-op after its first failure.
-const getBulkAck = lazy(() => rawFindByProps("bulkAck", "ackChannel"));
-const getReadStateTypes = lazy(() => rawFindByProps("ReadStateTypes", "UnreadSetting")?.ReadStateTypes);
+// These four switch from an eager, module-load-time findByStoreName (the caching finder, permanently
+// wrong if it runs before the store module has registered) to lazy + rawFindByStoreName for the same
+// reason established earlier this session, not the decoy-module issue above - unverified whether the
+// decoy fakes a getName() zero-arg store-name match too, so not claiming that's the cause here.
+const getGuildReadStateStore = lazy(() => rawFindByStoreName("GuildReadStateStore"));
+const getGuildStore = lazy(() => rawFindByStoreName("GuildStore"));
+const getGuildChannelStore = lazy(() => rawFindByStoreName("GuildChannelStore"));
+const getChannelStore = lazy(() => rawFindByStoreName("ChannelStore"));
 
 // Discord's own per-guild context menu (getGuildsBarGuildMenuItems) is a bare default export with
 // no named export - findByName/`.default.name` heuristics for it are unreliable, since a plain
@@ -35,6 +37,8 @@ const getReadStateTypes = lazy(() => rawFindByProps("ReadStateTypes", "UnreadSet
 function markGuildRead(guildId: string) {
     const bulkAck = getBulkAck();
     const ReadStateTypes = getReadStateTypes();
+    const GuildChannelStore = getGuildChannelStore();
+    const ChannelStore = getChannelStore();
     if (!bulkAck?.bulkAck || ReadStateTypes?.CHANNEL == null || !GuildChannelStore?.getSelectableChannelIds) {
         showToast("Couldn't find Discord's read-state action - this may be unavailable on your version.", undefined);
         return;
@@ -61,6 +65,9 @@ function markGuildRead(guildId: string) {
 
 function Badge({ guildId }: { guildId: string }) {
     useProxy(storage);
+
+    const Flux = getFlux();
+    const GuildReadStateStore = getGuildReadStateStore();
 
     const mentionCount = Flux?.useStateFromStores?.(
         [GuildReadStateStore],
@@ -113,7 +120,7 @@ export default function GuildItem({ node, onPick }: { node: GuildNode; onPick: (
 
     const showMenu = React.useCallback(() => {
         const guildId = node.id as string;
-        const guild = GuildStore?.getGuild?.(guildId);
+        const guild = getGuildStore()?.getGuild?.(guildId);
         if (!guild) return;
 
         const ref = viewRef.current as any;
@@ -142,6 +149,7 @@ export default function GuildItem({ node, onPick }: { node: GuildNode; onPick: (
     }, [node.id]);
 
     const handleLongPress = React.useCallback(() => {
+        const Haptic = getHaptic();
         Haptic?.triggerHapticFeedback?.(Haptic.HapticFeedbackTypes.IMPACT_MEDIUM);
         showMenu();
     }, [showMenu]);

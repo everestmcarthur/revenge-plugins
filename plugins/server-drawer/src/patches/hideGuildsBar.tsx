@@ -6,8 +6,14 @@ function Nothing() {
     return null;
 }
 
+// Confirmed live (Key Inspector's fiber capture): the parent creates GuildsBar via its OUTER
+// React.memo wrapper object ($$typeof: Symbol(react.memo)), which has no own .name/.displayName at
+// all - those only exist on the memo's inner function, at type.type.name/type.type.displayName.
+// Checking only the outer two (as the first version of this file did) never matches anything,
+// which is why the intercept never fired despite the underlying mechanism being sound.
 function isGuildsBar(type: any): boolean {
-    return type?.name === "GuildsBar" || type?.displayName === "GuildsBar";
+    return type?.name === "GuildsBar" || type?.displayName === "GuildsBar" ||
+        type?.type?.name === "GuildsBar" || type?.type?.displayName === "GuildsBar";
 }
 
 /**

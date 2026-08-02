@@ -1,11 +1,17 @@
 import React from "react";
 import { View, Text, Pressable, Image, Modal, StyleSheet, Dimensions, Animated } from "react-native";
 import { semanticColors } from "@vendetta/ui";
-import { findByProps } from "@vendetta/metro";
 import { resolveSemanticColor } from "../lib/color";
+import { lazy } from "../lib/lazy";
+import { rawFindByValidProps } from "../lib/rawFind";
+import { getHaptic } from "../lib/commonModules";
 
-const TextStyleSheet = findByProps("TextStyleSheet")?.TextStyleSheet;
-const Haptic = findByProps("triggerHapticFeedback", "HapticFeedbackTypes");
+// getHaptic comes from lib/commonModules.ts - see that file for the decoy-module writeup.
+// TextStyleSheet is object-shaped (a style lookup table), so it needs the same shape-validated
+// lookup rather than a plain "does this property exist" check.
+const getTextStyleSheet = lazy(() => rawFindByValidProps<any>({
+    TextStyleSheet: (v) => v?.["text-md/bold"] !== undefined,
+})?.TextStyleSheet);
 
 function resolve(token: any, fallback: string): string {
     return resolveSemanticColor(token) ?? fallback;
@@ -44,6 +50,9 @@ export function ContextMenuModal({
     anchorY: number;
     onClose: () => void;
 }) {
+    const TextStyleSheet = getTextStyleSheet();
+    const Haptic = getHaptic();
+
     const { width: winW, height: winH } = Dimensions.get("window");
 
     const titleH = title ? PAD + 20 + DIVIDER_H : 0;

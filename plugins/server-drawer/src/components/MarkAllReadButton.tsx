@@ -1,30 +1,33 @@
 import React from "react";
 import { Pressable, Image, StyleSheet } from "react-native";
-import { findByProps, findByStoreName } from "@vendetta/metro";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 import { showToast } from "@vendetta/ui/toasts";
 import { lazy } from "../lib/lazy";
-import { rawFindByProps } from "../lib/rawFind";
+import { rawFindByStoreName } from "../lib/rawFind";
+import { getHaptic, getBulkAckMod, getReadStateTypesMod } from "../lib/commonModules";
 
 const ICON = 48;
 
 const CheckIcon = getAssetIDByName("CheckmarkLargeIcon");
-const SortedGuildStore = findByStoreName("SortedGuildStore");
-const GuildChannelStore = findByStoreName("GuildChannelStore");
-const ChannelStore = findByStoreName("ChannelStore");
 
-// Lazy + rawFindByProps (not findByProps) because bulkAck lives on an action-creator module that,
-// like routing, may not be required by Discord's own code yet at the moment this plugin's bundle
-// loads - and a retried findByProps call is a no-op after its first failure (see rawFind.ts).
-const getHaptic = lazy(() => rawFindByProps("triggerHapticFeedback", "HapticFeedbackTypes"));
-const getBulkAck = lazy(() => rawFindByProps("bulkAck", "ackChannel"));
-const getReadStateTypes = lazy(() => rawFindByProps("ReadStateTypes", "UnreadSetting")?.ReadStateTypes);
+// getHaptic/getBulkAckMod/getReadStateTypesMod come from lib/commonModules.ts - see that file for
+// the decoy-module writeup.
+const getBulkAck = getBulkAckMod;
+const getReadStateTypes = lazy(() => getReadStateTypesMod()?.ReadStateTypes);
+
+// These three switch from an eager, module-load-time findByStoreName (the caching finder,
+// permanently wrong if it runs before the store module has registered) to lazy + rawFindByStoreName
+// for the same reason established earlier this session, not the decoy-module issue above -
+// unverified whether the decoy fakes a getName() zero-arg store-name match too.
+const getSortedGuildStore = lazy(() => rawFindByStoreName("SortedGuildStore"));
+const getGuildChannelStore = lazy(() => rawFindByStoreName("GuildChannelStore"));
+const getChannelStore = lazy(() => rawFindByStoreName("ChannelStore"));
 
 function collectGuildIds(): string[] {
     // Same tree ServerDrawerSheet already renders from (SortedGuildStore.getGuildsTree()), so this
     // reaches every guild the drawer shows, folders included, using data already proven to resolve
     // correctly rather than a separately-shaped GuildStore method.
-    const tree = SortedGuildStore?.getGuildsTree?.();
+    const tree = getSortedGuildStore()?.getGuildsTree?.();
     const roots = (tree?.root?.children ?? []).filter((n: any) => n?.type !== "root");
 
     const ids: string[] = [];
@@ -46,6 +49,8 @@ function collectGuildIds(): string[] {
 function markAllServersRead() {
     const bulkAck = getBulkAck();
     const ReadStateTypes = getReadStateTypes();
+    const GuildChannelStore = getGuildChannelStore();
+    const ChannelStore = getChannelStore();
     if (
         !bulkAck?.bulkAck || ReadStateTypes?.CHANNEL == null ||
         !GuildChannelStore?.getSelectableChannelIds || !GuildChannelStore?.getVocalChannelIds
