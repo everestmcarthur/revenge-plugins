@@ -51,6 +51,23 @@ export function rawFindByProps<T = any>(...props: string[]): T | undefined {
     return rawFind<T>((m) => props.every((p) => m?.[p] !== undefined));
 }
 
+/**
+ * Same as rawFindByProps, but additionally requires every named property to be a function - not
+ * just "defined." Confirmed live (Key Inspector's Eval console, direct window.modules scan) that
+ * plain rawFindByProps can and does match a completely unrelated module whose properties happen to
+ * share the same names as the real hook/utility functions being searched for, but hold non-function
+ * values (e.g. a type-shape/declaration-style object) - and since window.modules iterates in
+ * ascending numeric id order, a lower-id decoy module reliably wins over the real, higher-id
+ * implementation *every single time*, not occasionally. This was confirmed to be the actual cause
+ * of the Quest Dock hijack's unreliability: rawFindByProps("useMobileQuestDock") was silently
+ * patching an object-shaped decoy at a lower module id instead of the real hook. Use this whenever
+ * what's being searched for is specifically a function (hooks, utility functions), not just any
+ * export with that name.
+ */
+export function rawFindByFunctionProps<T = any>(...props: string[]): T | undefined {
+    return rawFind<T>((m) => props.every((p) => typeof m?.[p] === "function"));
+}
+
 // Matches Revenge's own byStoreName filter (metro/filters.ts): a zero-arg getName() returning
 // the store's name.
 export function rawFindByStoreName<T = any>(name: string): T | undefined {

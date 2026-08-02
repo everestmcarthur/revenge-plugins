@@ -1,9 +1,10 @@
-import { rawFindByProps } from "../lib/rawFind";
+import { rawFindByFunctionProps } from "../lib/rawFind";
 
-// rawFindByProps, not findByProps - see questDockRender.ts for why (retried lookup, and
-// Revenge's own findByProps permanently caches a "not found" result and never rescans).
+// rawFindByFunctionProps, not findByProps or rawFindByProps - see questDockRender.ts for why
+// (retried lookup that a caching findByProps would defeat, plus a confirmed-live decoy module
+// with the same property names but non-function values that a plain rawFindByProps was matching).
 export function patchQuestDockBase(cleanups: (() => void)[]): boolean {
-    const mod = rawFindByProps("useIsMobileQuestDockRenderedBase");
+    const mod = rawFindByFunctionProps("useIsMobileQuestDockRenderedBase");
     if (!mod?.useIsMobileQuestDockRenderedBase) return false;
 
     const orig = mod.useIsMobileQuestDockRenderedBase;

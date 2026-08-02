@@ -1,4 +1,4 @@
-import { rawFindByProps } from "../lib/rawFind";
+import { rawFindByFunctionProps } from "../lib/rawFind";
 
 // A third gate alongside useIsMobileQuestDockRendered/useIsMobileQuestDockRenderedBase, found by
 // reading the component that actually consumes all three together
@@ -7,7 +7,7 @@ import { rawFindByProps } from "../lib/rawFind";
 // the dock is visible right now based on navigation route and channel-focus state - so without
 // forcing it too, the drawer could still never show up depending on what screen you're on.
 export function patchQuestDockVisible(cleanups: (() => void)[]): boolean {
-    const mod = rawFindByProps("useIsMobileQuestDockVisibleToUser");
+    const mod = rawFindByFunctionProps("useIsMobileQuestDockVisibleToUser");
     if (!mod?.useIsMobileQuestDockVisibleToUser) return false;
 
     const orig = mod.useIsMobileQuestDockVisibleToUser;
