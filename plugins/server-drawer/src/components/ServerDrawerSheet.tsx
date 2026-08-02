@@ -3,6 +3,7 @@ import { View, Text, Pressable, Animated, Dimensions, StyleSheet, BackHandler } 
 import { lazy } from "../lib/lazy";
 import { rawFind, rawFindByFunctionProps } from "../lib/rawFind";
 import { getFlux, getHaptic, getColorModule } from "../lib/commonModules";
+import { captureFiberRef } from "../lib/fiberCapture";
 import { GuildNode } from "../utils/theme";
 import GuildItem from "./GuildItem";
 import FolderItem from "./FolderItem";
@@ -122,6 +123,11 @@ export default function ServerDrawerSheet({ gestureContext }: { gestureContext: 
 
     return (
         <View style={st.alignTop}>
+            {/* Invisible - see lib/fiberCapture.ts. This is the reliable capture point: it's
+                guaranteed to mount whenever the drawer itself is visibly rendering, independent of
+                whether hideGuildsBar.tsx's own capture point (which depends on that separate
+                intercept actually firing) works or not. */}
+            <View ref={captureFiberRef} style={{ width: 1, height: 1 }} />
             <View
                 style={[st.grid, { paddingHorizontal: padX, gap: GAP }]}
                 onLayout={onLayout}
