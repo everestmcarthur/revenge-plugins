@@ -1,9 +1,70 @@
+import React from "react";
+import { View } from "react-native";
 import { registerTypeDetector, registerIntercept } from "../lib/createElementIntercept";
 
 const TAG = "[ServerDrawer]";
 
+// Key Inspector's own fiber capture only fires from a View rendered inside ITS OWN Settings
+// screen - and Settings very likely renders as a separate native modal/root from MainTabs' guild
+// tab content, so a fiber captured there can never reach anything under the Guilds tab (Quest
+// Dock included) via .return, no matter what screen was visited beforehand. Confirmed live: two
+// independent searches for Quest Dock components both came up empty even while a real quest was
+// visibly rendering on the Guilds screen, and a fiber-tree walk from a Settings-screen capture
+// couldn't find QuestDockWithQuestContext at all.
+//
+// GuildsBar's hidden slot is a reliable alternative capture point: it's confirmed to actually
+// mount on the Guilds screen (that's this whole file's job), and it's a sibling of the Quest Dock
+// in the same tree (both live under MainTabsNavigatorPanel), so walking up from here and back down
+// reaches Quest Dock correctly. Stored under the same window.__keyInspectorFiberRoot/
+// __keyInspectorFiberSelf globals Key Inspector's Eval scripts already expect, so no existing
+// script needs to change - this just gives them a capture point that's actually reachable.
+function captureFiberRef(instance: any) {
+    if (!instance) return;
+    try {
+        let fiber: any = null;
+
+        if (instance._internalFiberInstanceHandleDEV) {
+            fiber = instance._internalFiberInstanceHandleDEV;
+        } else if (instance._internalInstanceHandle) {
+            fiber = instance._internalInstanceHandle;
+        } else if (instance.__internalInstanceHandle) {
+            fiber = instance.__internalInstanceHandle;
+        } else {
+            const fiberKey = Object.keys(instance).find(
+                (k) => k.startsWith("__reactFiber$") || k.startsWith("__reactInternalInstance$")
+            );
+            if (fiberKey) fiber = instance[fiberKey];
+        }
+        if (!fiber) return;
+
+        if (fiber.return === undefined && fiber.child === undefined) {
+            const nested = fiber.stateNode ?? fiber.fiber ?? fiber._debugOwner;
+            if (nested && (nested.return !== undefined || nested.child !== undefined)) {
+                fiber = nested;
+            } else {
+                return;
+            }
+        }
+
+        let root = fiber;
+        let guard = 0;
+        while (root.return && guard < 5000) {
+            root = root.return;
+            guard++;
+        }
+
+        (window as any).__keyInspectorFiberRoot = root;
+        (window as any).__keyInspectorFiberSelf = fiber;
+    } catch {
+        // Best-effort diagnostic capture - a failure here shouldn't affect GuildsBar staying hidden.
+    }
+}
+
 function Nothing() {
-    return null;
+    return React.createElement(View, {
+        ref: captureFiberRef,
+        style: { width: 1, height: 1 },
+    });
 }
 
 // Confirmed live (Key Inspector's fiber capture): the parent creates GuildsBar via its OUTER
