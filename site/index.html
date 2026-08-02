@@ -678,22 +678,64 @@
     }
   });
 
-  /* ---------- Boot ---------- */
+  /* ---------- Boot + live updates ---------- */
 
-  fetch("https://rp.jarviscli.dev/plugins-data.json")
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-      state.plugins = data;
-      renderStats();
-      renderChips();
-      render();
-      routeFromLocation();
-    })
-    .catch(function () {
-      count.textContent = "";
-      empty.hidden = false;
-      empty.textContent = "Couldn't load the plugin list - try refreshing.";
+  function reloadPlugins(isInitial) {
+    return fetch("https://rp.jarviscli.dev/plugins-data.json", { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        state.plugins = data;
+        renderStats();
+        renderChips();
+        render();
+
+        var match = location.pathname.match(/^\/([\w-]+)\/?$/);
+        if (isInitial) {
+          routeFromLocation();
+        } else if (match && match[1]) {
+          // Re-render the open detail page too, in case what changed is the plugin being viewed
+          // right now (e.g. it just got marked broken).
+          showDetail(match[1]);
+          showToast("Updated");
+        } else {
+          showToast("Updated");
+        }
+      })
+      .catch(function () {
+        if (!isInitial) return;
+        count.textContent = "";
+        empty.hidden = false;
+        empty.textContent = "Couldn't load the plugin list - try refreshing.";
+      });
+  }
+
+  /**
+   * One shared WebSocket room (api/src/index.ts's OverlayHub Durable Object) that every open tab
+   * connects to - any successful admin write broadcasts through it, so a change from the admin
+   * plugin shows up here without needing a manual refresh. Reconnects with backoff if it drops
+   * (Cloudflare recycling the connection, a network blip, etc) rather than just giving up.
+   */
+  var liveRetryDelay = 2000;
+  function connectLive() {
+    var proto = location.protocol === "https:" ? "wss:" : "ws:";
+    var ws;
+    try {
+      ws = new WebSocket(proto + "//" + location.host + "/ws");
+    } catch (e) {
+      return;
+    }
+
+    ws.addEventListener("open", function () { liveRetryDelay = 2000; });
+    ws.addEventListener("message", function () { reloadPlugins(false); });
+    ws.addEventListener("close", function () {
+      setTimeout(connectLive, liveRetryDelay);
+      liveRetryDelay = Math.min(liveRetryDelay * 1.5, 30000);
     });
+    ws.addEventListener("error", function () { ws.close(); });
+  }
+
+  reloadPlugins(true);
+  connectLive();
 })();
 </script>
 </body>
