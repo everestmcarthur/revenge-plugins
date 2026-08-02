@@ -6,7 +6,7 @@ import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import ColorInput from "@shared/ui/ColorInput";
 import NoteBox from "@shared/ui/NoteBox";
 
-const { FormSection, FormInput } = Forms;
+const { FormSection, FormInput, FormSwitchRow } = Forms;
 
 const STATUSES: { key: string; label: string; defaultColor: string }[] = [
     { key: "online", label: "Online", defaultColor: "#23A55A" },
@@ -36,9 +36,18 @@ export default function Settings() {
     return (
         <SettingsScaffold>
             <NoteBox>
-                Replaces the small presence dot on an avatar with a colored ring instead, per status
-                below. Leave a status blank to keep showing the normal dot for it.
+                Off by default right now - the current matching logic was confirmed to corrupt member
+                list rows and the profile status indicator, and to miss YouBar's own indicator
+                entirely. Being properly re-diagnosed; only turn this on if you're helping test it.
             </NoteBox>
+            <FormSection title="Enable">
+                <FormSwitchRow
+                    label="Draw ring around avatars"
+                    subLabel="Known broken right now - see the note above"
+                    value={!!storage.enabled}
+                    onValueChange={(v: boolean) => { storage.enabled = v; }}
+                />
+            </FormSection>
             <FormSection title="Ring colors">
                 {STATUSES.map(({ key, label, defaultColor }) => (
                     <ColorInput

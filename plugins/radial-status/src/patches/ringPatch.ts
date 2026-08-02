@@ -20,6 +20,13 @@ export default function patchRing(): () => void {
 
     return before("render", General.View, (args: any[]) => {
         try {
+            // Off by default - the broadened circle match below turned out to false-positive on
+            // unrelated Views in the member list (confirmed by on-device testing: it visibly
+            // corrupted member list rows and the profile status indicator, and never matched
+            // YouBar's own indicator at all), so this no longer runs unless explicitly turned on
+            // while it's being properly re-diagnosed with live capture data.
+            if (!storage.enabled) return;
+
             const [wrapper] = args;
             if (!wrapper || !Array.isArray(wrapper.style)) return;
 
