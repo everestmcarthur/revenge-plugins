@@ -4,6 +4,7 @@ import { applyPatches } from "@shared/lib/patcher";
 import patchChat from "./patches/chat";
 import patchName from "./patches/name";
 import patchDetails from "./patches/details";
+import patchProfile from "./patches/profile";
 import patchTag from "./patches/tag";
 import Settings from "./ui/Settings";
 
@@ -17,7 +18,8 @@ export default {
             tag: patchTag,
             chat: patchChat,
             name: patchName,
-            details: patchDetails
+            details: patchDetails,
+            profile: patchProfile
         });
     },
     onUnload: () => unpatchAll(),
