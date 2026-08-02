@@ -20,6 +20,7 @@ interface PropsTransform {
 interface TypeDetector {
     predicate: (type: any) => boolean;
     onDetected: (type: any) => void;
+    persistent: boolean;
 }
 
 const intercepts = new Map<React.ComponentType<any>, Intercept>();
@@ -65,9 +66,9 @@ export function registerPropsTransform(predicate: (props: any) => boolean, trans
 }
 
 /**
- * Purely observational, one-shot: the first time an element is created whose `type` matches
- * `predicate`, calls `onDetected(type)` with the real, live type reference and then stops
- * watching - it never alters what actually renders.
+ * Purely observational: the first time an element is created whose `type` matches `predicate`,
+ * calls `onDetected(type)` with the real, live type reference - it never alters what actually
+ * renders (pair with registerIntercept/registerPropsIntercept in the callback for that).
  *
  * This exists for components that can't be found reliably by searching Metro's module registry
  * after the fact (findByTypeName/rawFindByTypeName), because that races against whenever the
@@ -77,9 +78,20 @@ export function registerPropsTransform(predicate: (props: any) => boolean, trans
  * creation instead sidesteps the race entirely: by the time ANYTHING calls createElement/jsx with
  * this component as `type`, that reference already exists and is already the real one about to be
  * used - there's no way to observe the call any earlier than this.
+ *
+ * `persistent` (default false, one-shot): keeps watching and firing `onDetected` again for every
+ * later match too, instead of stopping after the first. Needed when the component's own type
+ * reference isn't a stable session-long singleton - confirmed live for GuildsBar, whose reference
+ * changes on some navigation paths (e.g. switching servers via this plugin's own drawer), which a
+ * one-shot detector plus registerIntercept's identity-keyed map can't follow: the intercept stays
+ * registered for the old, now-abandoned reference while the new one renders unmodified.
  */
-export function registerTypeDetector(predicate: (type: any) => boolean, onDetected: (type: any) => void) {
-    typeDetectors.push({ predicate, onDetected });
+export function registerTypeDetector(
+    predicate: (type: any) => boolean,
+    onDetected: (type: any) => void,
+    options?: { persistent?: boolean },
+) {
+    typeDetectors.push({ predicate, onDetected, persistent: options?.persistent ?? false });
 }
 
 function runTypeDetectors(type: any) {
@@ -98,6 +110,7 @@ function runTypeDetectors(type: any) {
             } catch {
                 // Same - a detector's own handler throwing shouldn't take anything else down.
             }
+            if (detector.persistent) remaining.push(detector);
         } else {
             remaining.push(detector);
         }

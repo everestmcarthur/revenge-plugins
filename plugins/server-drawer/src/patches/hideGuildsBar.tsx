@@ -51,8 +51,8 @@ function isGuildsBar(type: any): boolean {
 export function patchHideGuildsBar(cleanups: (() => void)[]): boolean {
     registerTypeDetector(isGuildsBar, (realGuildsBar) => {
         registerIntercept(realGuildsBar, Nothing);
-        console.log(TAG, "PATCH: found the real GuildsBar reference, now rendering nothing");
-    });
+        console.log(TAG, "PATCH: found a real GuildsBar reference, now rendering nothing");
+    }, { persistent: true });
     cleanups.push(() => {
         // No per-call unregister needed - the whole detector/intercept state gets cleared when
         // createElementIntercept's own patch unwinds, part of the same cleanup pass this plugin
