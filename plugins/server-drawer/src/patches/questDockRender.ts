@@ -1,4 +1,4 @@
-import { rawFindByProps } from "@shared/lib/rawFind";
+import { rawFindByProps } from "../lib/rawFind";
 
 // rawFindByProps, not findByProps - this gets retried by index.ts's fast-retry loop, and
 // Revenge's own findByProps permanently caches a "not found" result and never rescans (see
