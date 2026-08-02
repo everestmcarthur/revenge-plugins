@@ -18,7 +18,15 @@ export function patchMobileQuestDock(cleanups: (() => void)[]): boolean {
             id: "server-drawer",
             config: {
                 quest_content_type: 0,
-                assets: { questBarHeroVideo: null, questBarHero: null },
+                // Empty strings, not null: confirmed live (crash stack trace) that Discord's real
+                // getQuestAsset -> resolveAsset -> buildUrl calls .startsWith() on whichever asset
+                // field it reads, uncaught by this repo's own getQuestAsset try/catch patch (meaning
+                // useQuestDockHeroAsset calls a reference that patch never actually reaches - likely
+                // an internal same-module call that bypasses the exports-object property it mutates).
+                // An empty string is falsy (same as null for any truthiness check upstream) but is a
+                // valid string .startsWith() can safely be called on, so it can't crash regardless of
+                // which exact code path reads it.
+                assets: { questBarHeroVideo: "", questBarHero: "" },
                 features: [],
             },
             userStatus: { enrolledAt: "2099-01-01", claimedAt: null },
