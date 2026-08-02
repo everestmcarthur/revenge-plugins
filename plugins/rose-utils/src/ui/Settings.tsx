@@ -1,4 +1,4 @@
-import { React, clipboard } from "@vendetta/metro/common";
+import { React, ReactNative, clipboard } from "@vendetta/metro/common";
 import { Forms } from "@vendetta/ui/components";
 import { showToast } from "@vendetta/ui/toasts";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
@@ -6,10 +6,31 @@ import NoteBox from "@shared/ui/NoteBox";
 import modules from "../modules";
 import { ModuleCategory, type AnyModule, type ModuleSetting } from "../lib/Module";
 
-const { FormSection, FormSwitchRow, FormRow } = Forms;
+const { View, Text, TouchableOpacity } = ReactNative;
+const { FormSection, FormSwitchRow, FormRow, FormInput } = Forms;
 
 function resolveSubLabel(setting: ModuleSetting, value: any): string | undefined {
     return typeof setting.subLabel === "function" ? setting.subLabel(value) : setting.subLabel;
+}
+
+function moduleMatchesQuery(module: AnyModule, query: string): boolean {
+    if (!query) return true;
+    const needle = query.toLowerCase();
+
+    if (module.label.toLowerCase().includes(needle)) return true;
+    if (module.meta.sublabel.toLowerCase().includes(needle)) return true;
+
+    return Object.values(module.settings).some((setting) => {
+        if (setting.label.toLowerCase().includes(needle)) return true;
+        const subLabel = typeof setting.subLabel === "string" ? setting.subLabel : undefined;
+        return subLabel?.toLowerCase().includes(needle) ?? false;
+    });
+}
+
+function setModulesEnabled(mods: AnyModule[], enabled: boolean) {
+    for (const module of mods) {
+        if (module.storage.enabled !== enabled) module.toggle();
+    }
 }
 
 function ModuleSettingRow({ module, settingKey }: { module: AnyModule; settingKey: string }) {
@@ -91,9 +112,68 @@ function ModuleSection({ module }: { module: AnyModule }) {
     );
 }
 
+function CategoryHeader({
+    category,
+    mods,
+    collapsed,
+    onToggleCollapse,
+}: {
+    category: ModuleCategory;
+    mods: AnyModule[];
+    collapsed: boolean;
+    onToggleCollapse: () => void;
+}) {
+    const enabledCount = mods.filter((m) => m.storage.enabled).length;
+
+    return (
+        <View
+            style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingHorizontal: 16,
+                paddingTop: 20,
+                paddingBottom: 4,
+            }}
+        >
+            <TouchableOpacity onPress={onToggleCollapse} style={{ flexDirection: "row", alignItems: "center", flexShrink: 1 }}>
+                <Text style={{ fontSize: 12, fontWeight: "700", opacity: 0.6 }}>
+                    {collapsed ? "▸" : "▾"} {category.toUpperCase()} · {enabledCount}/{mods.length}
+                </Text>
+            </TouchableOpacity>
+            <View style={{ flexDirection: "row" }}>
+                <TouchableOpacity onPress={() => setModulesEnabled(mods, true)}>
+                    <Text style={{ fontSize: 12, fontWeight: "600", opacity: 0.6 }}>All</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setModulesEnabled(mods, false)} style={{ marginLeft: 16 }}>
+                    <Text style={{ fontSize: 12, fontWeight: "600", opacity: 0.6 }}>None</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+}
+
 const CATEGORY_ORDER: ModuleCategory[] = [ModuleCategory.Useful, ModuleCategory.Fixes, ModuleCategory.Fun];
 
 export default function Settings() {
+    // Every module's own toggle already re-renders its own ModuleSection via module.useRefresh()
+    // inside ModuleSection - but the category headers here (enabled counts) live in this parent
+    // component, which isn't otherwise subscribed to anything. Subscribing every module here too,
+    // in this same fixed order every render, keeps those counts in sync with both individual
+    // toggles and the bulk All/None actions below.
+    for (const module of modules) module.useRefresh();
+
+    const [query, setQuery] = React.useState("");
+    const [collapsed, setCollapsed] = React.useState<Set<ModuleCategory>>(new Set());
+
+    const searching = query.trim().length > 0;
+    const visibleByCategory = CATEGORY_ORDER.map((category) => ({
+        category,
+        mods: modules.filter((m) => m.meta.category === category && moduleMatchesQuery(m, query.trim())),
+    })).filter(({ mods }) => mods.length > 0);
+
+    const allVisible = visibleByCategory.flatMap(({ mods }) => mods);
+
     return (
         <SettingsScaffold>
             <NoteBox>
@@ -102,11 +182,59 @@ export default function Settings() {
                 Discord versions. If a module shows an error below, tap it to copy the details for
                 a bug report.
             </NoteBox>
-            {CATEGORY_ORDER.flatMap((category) =>
-                modules
-                    .filter((m) => m.meta.category === category)
-                    .map((module) => <ModuleSection key={module.id} module={module} />),
+
+            <View style={{ paddingHorizontal: 16 }}>
+                <FormInput
+                    title="Search"
+                    placeholder="Search modules and settings..."
+                    value={query}
+                    onChange={setQuery}
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                />
+            </View>
+
+            <View style={{ flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: 16, paddingTop: 8 }}>
+                <TouchableOpacity onPress={() => setModulesEnabled(allVisible, true)}>
+                    <Text style={{ fontSize: 13, fontWeight: "600", opacity: 0.75 }}>
+                        Enable {searching ? "matching" : "all"}
+                    </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setModulesEnabled(allVisible, false)} style={{ marginLeft: 16 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "600", opacity: 0.75 }}>
+                        Disable {searching ? "matching" : "all"}
+                    </Text>
+                </TouchableOpacity>
+            </View>
+
+            {allVisible.length === 0 && (
+                <NoteBox>No modules or settings match "{query.trim()}".</NoteBox>
             )}
+
+            {visibleByCategory.map(({ category, mods }) => {
+                // Collapse state is ignored while searching, so a match inside a collapsed
+                // category doesn't just disappear.
+                const isCollapsed = !searching && collapsed.has(category);
+
+                return (
+                    <View key={category}>
+                        <CategoryHeader
+                            category={category}
+                            mods={mods}
+                            collapsed={isCollapsed}
+                            onToggleCollapse={() => {
+                                setCollapsed((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(category)) next.delete(category);
+                                    else next.add(category);
+                                    return next;
+                                });
+                            }}
+                        />
+                        {!isCollapsed && mods.map((module) => <ModuleSection key={module.id} module={module} />)}
+                    </View>
+                );
+            })}
         </SettingsScaffold>
     );
 }
