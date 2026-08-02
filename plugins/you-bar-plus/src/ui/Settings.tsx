@@ -17,8 +17,9 @@ export default function Settings() {
     return (
         <SettingsScaffold>
             <NoteBox>
-                Fork of Purple-EyeZ's YouBar+, ported to Revenge's Vendetta-compat API with a fix
-                for a startup race that could silently skip the button patch for an entire session.
+                Fork of Purple-EyeZ's YouBar+, ported to Revenge's Vendetta-compat API. Like the
+                original, this patches the YouBar the moment it loads - if you enable it while
+                Discord's already running, you may need to restart once for the buttons to appear.
             </NoteBox>
             <FormSection title="Buttons">
                 <FormSwitchRow
