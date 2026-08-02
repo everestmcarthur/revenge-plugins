@@ -195,7 +195,7 @@
   {
     "id": "you-bar-plus",
     "name": "YouBar+",
-    "description": "Adds up to 2 configurable buttons (Direct Messages, Settings, or none) to the YouBar, in whatever order you pick.",
+    "description": "Adds Settings and DM buttons to the YouBar. (May require a restart after enabling.)",
     "authors": [
       "everestmcarthur",
       "Purple_Ξye™"

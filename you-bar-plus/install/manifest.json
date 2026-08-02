@@ -1,1 +1,1 @@
-{"name":"YouBar+","description":"Adds up to 2 configurable buttons (Direct Messages, Settings, or none) to the YouBar, in whatever order you pick.","authors":[{"name":"everestmcarthur"},{"name":"Purple_Ξye™"}],"main":"index.js","hash":"ed5316de1defefd80433dac7bc947670300b5086a434dfa8551725a53a354f91"}
+{"name":"YouBar+","description":"Adds Settings and DM buttons to the YouBar. (May require a restart after enabling.)","authors":[{"name":"everestmcarthur"},{"name":"Purple_Ξye™"}],"main":"index.js","hash":"7dc56dabb979819b5940681e8812fd01c092a9c717e10268201bc86486b7c905"}
