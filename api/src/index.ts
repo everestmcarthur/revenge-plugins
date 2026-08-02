@@ -2,7 +2,49 @@ export interface Env {
     ASSETS: Fetcher;
     DB: D1Database;
     OVERLAY_CACHE: KVNamespace;
+    HUB: DurableObjectNamespace;
     ADMIN_TOKEN: string;
+}
+
+// Single global room every browser tab connects to - broadcasts "something changed, refetch" to
+// every open tab the moment an admin write succeeds, instead of tabs only picking it up on their
+// next natural fetch. Uses the Hibernatable WebSockets API (acceptWebSocket/getWebSockets) so the
+// object doesn't have to stay pinned in memory (and billed) between messages - it wakes on a new
+// connection, a client event, or an incoming /broadcast call, and can go back to sleep otherwise.
+export class OverlayHub {
+    constructor(private state: DurableObjectState, private env: Env) {}
+
+    async fetch(request: Request): Promise<Response> {
+        const url = new URL(request.url);
+
+        if (url.pathname === "/broadcast") {
+            const body = await request.text();
+            for (const ws of this.state.getWebSockets()) {
+                try { ws.send(body); } catch { /* dead socket, ignore */ }
+            }
+            return new Response("ok");
+        }
+
+        if (request.headers.get("Upgrade") !== "websocket") {
+            return new Response("expected websocket", { status: 426 });
+        }
+
+        const pair = new WebSocketPair();
+        const [client, server] = Object.values(pair);
+        this.state.acceptWebSocket(server);
+        return new Response(null, { status: 101, webSocket: client });
+    }
+
+    async webSocketMessage() { /* clients never need to send anything, ignore */ }
+
+    async webSocketClose(ws: WebSocket) {
+        try { ws.close(); } catch { /* already closing */ }
+    }
+}
+
+async function broadcast(env: Env, message: unknown) {
+    const stub = env.HUB.get(env.HUB.idFromName("global"));
+    await stub.fetch("https://internal/broadcast", { method: "POST", body: JSON.stringify(message) });
 }
 
 interface Command {
@@ -136,6 +178,13 @@ async function handle(request: Request, env: Env): Promise<Response> {
         return new Response(null, { headers: CORS_HEADERS });
     }
 
+    // Live-update channel - the site connects here once on load; every successful overlay write
+    // broadcasts through it so an already-open tab updates without the visitor doing anything.
+    if (url.pathname === "/ws") {
+        const stub = env.HUB.get(env.HUB.idFromName("global"));
+        return stub.fetch(request);
+    }
+
     // The site's actual data file - computed fresh on every request by merging the git-tracked base
     // (plugins-base.json, written by generate-site.mjs at build time) with the live overlay, so any
     // change from the admin plugin is visible immediately, with no rebuild. Draft-only plugins (no
@@ -249,12 +298,14 @@ async function handle(request: Request, env: Env): Promise<Response> {
             ).run();
 
             await env.OVERLAY_CACHE.delete(CACHE_KEY);
+            await broadcast(env, { type: "overlay-updated", id });
             return json({ ok: true });
         }
 
         if (request.method === "DELETE") {
             await env.DB.prepare("DELETE FROM overlay WHERE id = ?1").bind(id).run();
             await env.OVERLAY_CACHE.delete(CACHE_KEY);
+            await broadcast(env, { type: "overlay-updated", id });
             return json({ ok: true });
         }
     }

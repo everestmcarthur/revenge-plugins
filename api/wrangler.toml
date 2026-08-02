@@ -15,3 +15,11 @@ database_id = "639fef3c-6583-4128-adbd-b5f5f4761483"
 [[kv_namespaces]]
 binding = "OVERLAY_CACHE"
 id = "e56d183bdcd64f5facade1c3fe04eb08"
+
+[[durable_objects.bindings]]
+name = "HUB"
+class_name = "OverlayHub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["OverlayHub"]
