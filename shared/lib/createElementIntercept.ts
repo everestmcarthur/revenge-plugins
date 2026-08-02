@@ -11,8 +11,14 @@ interface PropsIntercept {
     replacement: React.ComponentType<any> | null;
 }
 
+interface TypeDetector {
+    predicate: (type: any) => boolean;
+    onDetected: (type: any) => void;
+}
+
 const intercepts = new Map<React.ComponentType<any>, Intercept>();
 const propsIntercepts: PropsIntercept[] = [];
+let typeDetectors: TypeDetector[] = [];
 let isPatched = false;
 
 export function registerIntercept(
@@ -34,8 +40,51 @@ export function registerPropsIntercept(predicate: (props: any) => boolean, repla
     propsIntercepts.push({ predicate, replacement });
 }
 
+/**
+ * Purely observational, one-shot: the first time an element is created whose `type` matches
+ * `predicate`, calls `onDetected(type)` with the real, live type reference and then stops
+ * watching - it never alters what actually renders.
+ *
+ * This exists for components that can't be found reliably by searching Metro's module registry
+ * after the fact (findByTypeName/rawFindByTypeName), because that races against whenever the
+ * component first mounts - if it mounts before the search finds it, and it never mounts again for
+ * the rest of the session (true for some React.memo'd chrome components), the search losing that
+ * race means the patch never gets a chance to apply at all, permanently. Intercepting element
+ * creation instead sidesteps the race entirely: by the time ANYTHING calls createElement/jsx with
+ * this component as `type`, that reference already exists and is already the real one about to be
+ * used - there's no way to observe the call any earlier than this.
+ */
+export function registerTypeDetector(predicate: (type: any) => boolean, onDetected: (type: any) => void) {
+    typeDetectors.push({ predicate, onDetected });
+}
+
+function runTypeDetectors(type: any) {
+    if (typeDetectors.length === 0) return;
+    const remaining: TypeDetector[] = [];
+    for (const detector of typeDetectors) {
+        let matched = false;
+        try {
+            matched = detector.predicate(type);
+        } catch {
+            // A bad predicate shouldn't block every other detector or every element from rendering.
+        }
+        if (matched) {
+            try {
+                detector.onDetected(type);
+            } catch {
+                // Same - a detector's own handler throwing shouldn't take anything else down.
+            }
+        } else {
+            remaining.push(detector);
+        }
+    }
+    typeDetectors = remaining;
+}
+
 /** Returns a replacement type if this element should be intercepted, `null` to render nothing, or `undefined` to pass through unchanged. */
 function resolveReplacement(type: any, props: any): { type: any; props: any } | null | undefined {
+    runTypeDetectors(type);
+
     if (props) {
         for (const { predicate, replacement } of propsIntercepts) {
             try {
@@ -61,7 +110,7 @@ export function patchCreateElement(cleanups: (() => void)[]) {
 
     const origCreateElement = React.createElement;
     if (!origCreateElement) {
-        console.warn("[ServerDrawer] React.createElement is null, skipping patch");
+        console.warn("[createElementIntercept] React.createElement is null, skipping patch");
         return;
     }
 
@@ -78,10 +127,9 @@ export function patchCreateElement(cleanups: (() => void)[]) {
 
     // Modern React/RN builds (Discord's included) compile JSX through the automatic runtime
     // (jsx/jsxs from react/jsx-runtime) instead of React.createElement - patching only
-    // createElement misses every one of Discord's own render calls entirely, which is why
-    // hideGuildsBar's intercept never actually did anything even though it registered correctly.
-    // Found by shape (jsx/jsxs/Fragment together), not by name, for the same reason everything
-    // else in this file avoids name-based lookups.
+    // createElement misses every one of Discord's own render calls entirely. Found by shape
+    // (jsx/jsxs/Fragment together), not by name, for the same reason everything else in this file
+    // avoids name-based lookups.
     const jsxRuntime = rawFind((m: any) => typeof m?.jsx === "function" && typeof m?.jsxs === "function" && "Fragment" in m);
     const restoreJsx: (() => void)[] = [];
 
@@ -99,7 +147,7 @@ export function patchCreateElement(cleanups: (() => void)[]) {
             restoreJsx.push(() => { jsxRuntime[key] = orig; });
         }
     } else {
-        console.warn("[ServerDrawer] jsx-runtime module not found, only classic createElement calls will be intercepted");
+        console.warn("[createElementIntercept] jsx-runtime module not found, only classic createElement calls will be intercepted");
     }
 
     cleanups.push(() => {
@@ -110,5 +158,6 @@ export function patchCreateElement(cleanups: (() => void)[]) {
         restoreJsx.forEach((fn) => fn());
         intercepts.clear();
         propsIntercepts.length = 0;
+        typeDetectors = [];
     });
 }

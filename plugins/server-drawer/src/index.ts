@@ -7,7 +7,7 @@ import { patchMobileQuestDock } from "./patches/mobileQuestDock";
 import { patchGetQuestAsset } from "./patches/getQuestAsset";
 import { patchExpanded, patchEmpty } from "./patches/contentPatch";
 import { patchHideGuildsBar } from "./patches/hideGuildsBar";
-import { patchCreateElement } from "./patches/createElementIntercept";
+import { patchCreateElement } from "@shared/lib/createElementIntercept";
 import { patchAutoCollapseFolders } from "./patches/autoCollapseFolders";
 import Settings from "./ui/Settings";
 

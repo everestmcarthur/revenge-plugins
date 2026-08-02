@@ -1,7 +1,7 @@
 import { React } from "@vendetta/metro/common";
 import { rawFind } from "@shared/lib/rawFind";
 import ServerDrawerSheet from "../components/ServerDrawerSheet";
-import { registerIntercept } from "./createElementIntercept";
+import { registerIntercept } from "@shared/lib/createElementIntercept";
 
 const TAG = "[ServerDrawer]";
 

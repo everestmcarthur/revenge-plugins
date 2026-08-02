@@ -1,4 +1,4 @@
-import { registerPropsIntercept } from "./createElementIntercept";
+import { registerPropsIntercept } from "@shared/lib/createElementIntercept";
 
 const TAG = "[ServerDrawer]";
 
