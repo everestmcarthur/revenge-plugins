@@ -39,20 +39,10 @@ function safeStringify(value: any): string {
     }
 }
 
-/**
- * Runs arbitrary code typed into the Eval box, with this repo's own lookup helpers already in
- * scope - built so an on-device assumption behind a fix (does this property exist, does this call
- * behave the way decompiled source suggested) can be checked in seconds instead of a full
- * build/push/update/test cycle. The code runs as the body of an async function, so a bare
- * expression, a `return ...`, or `await`-ing something all work. Never runs anything on its own -
- * only what's typed in and manually run here.
- */
 // Android/iOS keyboards commonly have "smart punctuation" that silently swaps straight quotes for
-// curly ones as you type, even with autoCorrect disabled on some keyboards (GBoard's smart
-// punctuation is a separate setting) - that turns "foo" into “foo”, which is a different character
-// to the JS parser and throws "non-terminated string" with no indication why. Normalizing common
-// substitutions back to their plain-ASCII equivalents before compiling means typing/pasting code on
-// a phone keyboard doesn't silently produce invalid syntax.
+// curly ones as you type - that turns "foo" into “foo”, a different character to the JS parser.
+// Harmless to keep normalizing even though it turned out not to be the actual cause of the errors
+// seen while building this (see below) - cheap, and still a real footgun on its own.
 function normalizeSmartPunctuation(code: string): string {
     return code
         .replace(/[‘’]/g, "'")
@@ -60,6 +50,22 @@ function normalizeSmartPunctuation(code: string): string {
         .replace(/[–—]/g, "-");
 }
 
+/**
+ * Runs arbitrary code typed into the Eval box, with this repo's own lookup helpers already in
+ * scope - built so an on-device assumption behind a fix (does this property exist, does this call
+ * behave the way decompiled source suggested) can be checked in seconds instead of a full
+ * build/push/update/test cycle.
+ *
+ * The dynamically-compiled function body is deliberately NOT `async`. Hermes (RN's JS engine)
+ * precompiles the whole app bundle to bytecode ahead of time, and its runtime `eval`/`new Function`
+ * path only supports a reduced subset of the language - confirmed on-device that it rejects `async`
+ * functions outright ("async functions are unsupported"), even though normal precompiled code
+ * (including this very function) uses async/await freely. So the user's code runs as a plain
+ * synchronous function; if it needs to do something timed/async, it returns a Promise itself
+ * (`return new Promise(resolve => setTimeout(() => resolve(x), 1000))` works fine - only the
+ * `async`/`await` *keywords* are the problem, not Promises as a runtime object) and this function
+ * awaits that result out here, in precompiled code where await is fully supported.
+ */
 export async function runEval(rawCode: string): Promise<string> {
     const code = normalizeSmartPunctuation(rawCode);
     try {
@@ -84,10 +90,10 @@ export async function runEval(rawCode: string): Promise<string> {
             "ReactNative",
             "FluxDispatcher",
             "window",
-            `return (async () => {\n${code}\n})();`
+            `return (function() {\n${code}\n})();`
         );
 
-        const result = await fn(
+        const result = fn(
             findByProps,
             findByName,
             findByTypeName,
@@ -110,7 +116,8 @@ export async function runEval(rawCode: string): Promise<string> {
             window
         );
 
-        return safeStringify(result);
+        const resolved = result && typeof result.then === "function" ? await result : result;
+        return safeStringify(resolved);
     } catch (e) {
         return `Error: ${e instanceof Error ? `${e.message}\n${e.stack ?? ""}` : String(e)}`;
     }
