@@ -306,6 +306,11 @@ function FiberCaptureSection() {
             } else if (instance._internalInstanceHandle) {
                 fiber = instance._internalInstanceHandle;
                 method = "_internalInstanceHandle";
+            } else if (instance.__internalInstanceHandle) {
+                // Fabric (RN's new architecture) - confirmed present on-device via the diagnostic
+                // status text (single-underscore variants above don't exist on this build at all).
+                fiber = instance.__internalInstanceHandle;
+                method = "__internalInstanceHandle";
             } else {
                 const fiberKey = Object.keys(instance).find(
                     (k) => k.startsWith("__reactFiber$") || k.startsWith("__reactInternalInstance$")
@@ -319,6 +324,21 @@ function FiberCaptureSection() {
             if (!fiber) {
                 setStatus(`No fiber pointer found on the instance. Instance keys: ${Object.keys(instance).join(", ") || "(none)"}`);
                 return;
+            }
+
+            // Fabric's __internalInstanceHandle isn't always the bare fiber itself in every RN
+            // version - some ship it as a wrapper one level up. If it doesn't already look
+            // fiber-shaped (no .return/.child at all), try the couple of commonly-nested spots
+            // before giving up, so a shape difference doesn't just silently produce a useless tree.
+            if (fiber.return === undefined && fiber.child === undefined) {
+                const nested = fiber.stateNode ?? fiber.fiber ?? fiber._debugOwner;
+                if (nested && (nested.return !== undefined || nested.child !== undefined)) {
+                    fiber = nested;
+                    method += " (via nested property)";
+                } else {
+                    setStatus(`Found "${method}" but it doesn't look fiber-shaped (no .return/.child). Its keys: ${Object.keys(fiber).join(", ") || "(none)"}`);
+                    return;
+                }
             }
 
             let root = fiber;
