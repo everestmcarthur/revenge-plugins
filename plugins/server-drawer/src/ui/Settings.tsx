@@ -2,8 +2,8 @@ import { React } from "@vendetta/metro/common";
 import { storage } from "@vendetta/plugin";
 import { useProxy } from "@vendetta/storage";
 import { Forms } from "@vendetta/ui/components";
-import SettingsScaffold from "@shared/ui/SettingsScaffold";
-import NoteBox from "@shared/ui/NoteBox";
+import SettingsScaffold from "./SettingsScaffold";
+import NoteBox from "./NoteBox";
 import { restart } from "../index";
 
 const { FormSection, FormSwitchRow } = Forms;
