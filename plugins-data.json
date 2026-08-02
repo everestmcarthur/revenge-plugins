@@ -195,7 +195,7 @@
   {
     "id": "you-bar-plus",
     "name": "YouBar+",
-    "description": "Adds floating DM/Settings buttons near the bottom of the screen, rendered independently rather than inside the native YouBar row for reliability.",
+    "description": "Adds Settings and DM buttons to the YouBar. (May require a restart after enabling.)",
     "authors": [
       "everestmcarthur",
       "Purple_Ξye™"
