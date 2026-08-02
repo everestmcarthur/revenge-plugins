@@ -1,12 +1,13 @@
-import { findByName, findByStoreName } from "@vendetta/metro";
+import { findByStoreName } from "@vendetta/metro";
 import { ReactNative } from "@vendetta/metro/common";
 import { after, before } from "@vendetta/patcher";
 import { storage } from "@vendetta/plugin";
+import { waitFor } from "@shared/lib/waitFor";
+import { rawFindByName } from "@shared/lib/rawFind";
 import { defaultTextColor, interpolateColor } from "../lib/color";
 
 const GuildMemberStore = findByStoreName("GuildMemberStore");
 const ChannelStore = findByStoreName("ChannelStore");
-const RowManager = findByName("RowManager", false);
 
 function patchComponents(component: any, funcs: any[], args: any[], tree?: any[]): any {
     if (!component) return component;
@@ -118,11 +119,27 @@ export default function patchRows(): () => void {
         });
     }
 
-    if (RowManager?.prototype?.generate) {
-        return after("generate", RowManager.prototype, (_: any, row: any) => {
-            try { handleRow(row); } catch { /* skip this row */ }
-        });
-    }
+    // RowManager used to be looked up eagerly at module-import time with the cached findByName - a
+    // plugin's top-level code can run before Discord's own code has required RowManager itself, and
+    // Revenge's findByName permanently caches a negative result. Confirmed live via Key Inspector's
+    // Eval console: a raw, uncached scan found RowManager.prototype.generate present once the module
+    // had actually initialized - waitFor + a raw lookup retries until that happens instead of giving
+    // up on the first (possibly premature) miss.
+    const patches: (() => void)[] = [];
+    const handle = waitFor(
+        () => {
+            const RowManager = rawFindByName<any>("RowManager");
+            return RowManager?.prototype?.generate ? RowManager : undefined;
+        },
+        (RowManager) => {
+            patches.push(after("generate", RowManager.prototype, (_: any, row: any) => {
+                try { handleRow(row); } catch { /* skip this row */ }
+            }));
+        }
+    );
 
-    return () => {};
+    return () => {
+        handle.cancel();
+        patches.forEach((p) => p());
+    };
 }
