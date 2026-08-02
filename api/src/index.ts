@@ -263,9 +263,11 @@ async function handle(request: Request, env: Env): Promise<Response> {
 }
 
 function applyOverride(base: any, over: (OverlayEntry & { draft: boolean }) | undefined) {
-    if (!over) return { ...base, broken: null, tags: [] };
+    if (!over) return { ...base, broken: null, tags: [], hasOverride: false, isDraft: false };
     return {
         ...base,
+        hasOverride: true,
+        isDraft: false,
         name: over.name ?? base.name,
         description: over.description ?? base.description,
         category: over.category ?? base.category,
@@ -287,6 +289,8 @@ function synthesizeDraft(id: string, over: OverlayEntry & { draft: boolean }) {
     const base = "https://rp.jarviscli.dev";
     return {
         id,
+        isDraft: true,
+        hasOverride: true,
         name: over.name ?? id,
         description: over.description ?? "",
         authors: over.authors ?? [],
