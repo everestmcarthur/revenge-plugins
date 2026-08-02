@@ -67,6 +67,20 @@ function ModuleSettingRow({ module, settingKey }: { module: AnyModule; settingKe
         );
     }
 
+    if (setting.type === "text") {
+        return (
+            <FormInput
+                title={setting.label}
+                placeholder={setting.placeholder}
+                value={typeof value === "string" ? value : ""}
+                editable={!disabled}
+                onChange={(v: string) => {
+                    module.storage.options[settingKey] = v;
+                }}
+            />
+        );
+    }
+
     // "choose" - cycles through choices on tap instead of a full picker sheet.
     return (
         <FormRow

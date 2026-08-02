@@ -6,6 +6,7 @@ import DeveloperMode from "./DeveloperMode";
 import MessageDevTools from "./MessageDevTools";
 import SnowflakeTools from "./SnowflakeTools";
 import ServerInfoTools from "./ServerInfoTools";
+import MessageLogger from "./MessageLogger";
 
 // BetterComponents (Material-style Switch/Toast/Alert redesign) isn't ported - it needs
 // react-native-reanimated, which isn't part of this build, and it was already disabled by
@@ -20,4 +21,5 @@ export default [
     MessageDevTools,
     SnowflakeTools,
     ServerInfoTools,
+    MessageLogger,
 ];

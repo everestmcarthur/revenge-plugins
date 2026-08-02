@@ -46,7 +46,7 @@ To install: open Discord with Revenge installed, go to **Settings → Plugins**,
 | --- | --- | --- | --- |
 | ViewRaw | Revived | See a message's raw JSON via long-press - searchable, syntax-highlighted, and copyable. Fork of [bwlok's ViewRaw](https://github.com/bwlok/revenge-plugins/tree/master/plugins/ViewRaw), GPLv3. | `https://rp.jarviscli.dev/view-raw/install/` |
 | Key Inspector | New | One-tap scan of every internal key this repo's plugins depend on, plus a full dump of Revenge's plugin API tree - for diagnosing crashes entirely from a phone. | `https://rp.jarviscli.dev/key-inspector/install/` |
-| RoseUtils | Revived | Spotify listen-along, a Tenor GIF fix, colorful channels, enforced Developer Mode, and more - independently toggleable modules. Fork of [nexpid's NexxUtils](https://github.com/nexpid/RevengePlugins/tree/main/src/plugins/nexxutils), CC-BY 4.0 - fixed a build bug that crashed the settings screen and silently dropped every module's patches. | `https://rp.jarviscli.dev/rose-utils/install/` |
+| RoseUtils | Revived | Spotify listen-along, colorful channels, an expanded dev-tools/Developer Mode, a full Message Logger, and more - independently toggleable modules. Fork of [nexpid's NexxUtils](https://github.com/nexpid/RevengePlugins/tree/main/src/plugins/nexxutils), CC-BY 4.0 - fixed a build bug that crashed the settings screen and silently dropped every module's patches. | `https://rp.jarviscli.dev/rose-utils/install/` |
 
 "Revived" means the plugin previously existed elsewhere, stopped working after a Discord/API update, and has been rebuilt here.
 "Rebuilt" means it's a from-scratch reimplementation of a previously-broken plugin with expanded features. "New" means
