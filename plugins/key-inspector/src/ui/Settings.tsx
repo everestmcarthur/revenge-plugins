@@ -66,6 +66,9 @@ function EvalSection() {
                     value={code}
                     onChange={setCode}
                     multiline
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    spellCheck={false}
                 />
                 <PrimaryButton
                     label={running ? "Running..." : "Run & copy result"}
