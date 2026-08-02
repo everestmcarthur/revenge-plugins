@@ -1,5 +1,6 @@
 import { React } from "@vendetta/metro/common";
 import { rawFind } from "@shared/lib/rawFind";
+import { waitFor } from "@shared/lib/waitFor";
 
 interface Intercept {
     replacement: React.ComponentType<any>;
@@ -130,27 +131,37 @@ export function patchCreateElement(cleanups: (() => void)[]) {
     // createElement misses every one of Discord's own render calls entirely. Found by shape
     // (jsx/jsxs/Fragment together), not by name, for the same reason everything else in this file
     // avoids name-based lookups.
-    const jsxRuntime = rawFind((m: any) => typeof m?.jsx === "function" && typeof m?.jsxs === "function" && "Fragment" in m);
+    //
+    // This used to be a single one-shot rawFind() call - if the jsx-runtime module hadn't been
+    // required yet at the exact moment this ran (very early in boot, when a plugin's onLoad first
+    // calls this), jsx/jsxs would never get patched for the rest of the session at all, silently
+    // (only a console.warn, invisible in normal use). Since Discord renders almost everything
+    // through jsx/jsxs and not createElement, that made every registerTypeDetector/
+    // registerPropsIntercept consumer's patch a near-total no-op whenever that race was lost -
+    // plausibly the real reason a component-creation-interception approach could still miss a
+    // component that only ever renders once, early in boot. Retrying via waitFor (with the same
+    // passive rawFind, so it still never force-requires anything) closes that gap.
     const restoreJsx: (() => void)[] = [];
+    const jsxHandle = waitFor(
+        () => rawFind((m: any) => typeof m?.jsx === "function" && typeof m?.jsxs === "function" && "Fragment" in m),
+        (jsxRuntime: any) => {
+            for (const key of ["jsx", "jsxs"] as const) {
+                const orig = jsxRuntime[key];
+                if (typeof orig !== "function") continue;
 
-    if (jsxRuntime) {
-        for (const key of ["jsx", "jsxs"] as const) {
-            const orig = jsxRuntime[key];
-            if (typeof orig !== "function") continue;
-
-            jsxRuntime[key] = function (type: any, props: any, ...rest: any[]) {
-                const resolved = resolveReplacement(type, props);
-                if (resolved === null) return null;
-                if (resolved) return orig.call(this, resolved.type, resolved.props, ...rest);
-                return orig.call(this, type, props, ...rest);
-            };
-            restoreJsx.push(() => { jsxRuntime[key] = orig; });
+                jsxRuntime[key] = function (type: any, props: any, ...rest: any[]) {
+                    const resolved = resolveReplacement(type, props);
+                    if (resolved === null) return null;
+                    if (resolved) return orig.call(this, resolved.type, resolved.props, ...rest);
+                    return orig.call(this, type, props, ...rest);
+                };
+                restoreJsx.push(() => { jsxRuntime[key] = orig; });
+            }
         }
-    } else {
-        console.warn("[createElementIntercept] jsx-runtime module not found, only classic createElement calls will be intercepted");
-    }
+    );
 
     cleanups.push(() => {
+        jsxHandle.cancel();
         if (isPatched) {
             React.createElement = origCreateElement;
             isPatched = false;
