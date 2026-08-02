@@ -1,4 +1,4 @@
-import { rawFindByProps } from "@shared/lib/rawFind";
+import { rawFindByProps } from "../lib/rawFind";
 
 // rawFindByProps, not findByProps - see questDockRender.ts for why (retried lookup, and
 // Revenge's own findByProps permanently caches a "not found" result and never rescans).

@@ -1,4 +1,4 @@
-import { rawFindByProps } from "@shared/lib/rawFind";
+import { rawFindByProps } from "../lib/rawFind";
 
 // A third gate alongside useIsMobileQuestDockRendered/useIsMobileQuestDockRenderedBase, found by
 // reading the component that actually consumes all three together

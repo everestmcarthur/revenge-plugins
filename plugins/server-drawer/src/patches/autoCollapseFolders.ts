@@ -1,6 +1,6 @@
 import { FluxDispatcher } from "@vendetta/metro/common";
 import { storage } from "@vendetta/plugin";
-import { rawFindByStoreName } from "@shared/lib/rawFind";
+import { rawFindByStoreName } from "../lib/rawFind";
 
 // Adapted from fres621's BetterFolders (autoCollapse.ts) - ported as a ServerDrawer feature
 // instead of a standalone plugin because BetterFolders' other half (hideIcons) patches a

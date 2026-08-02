@@ -1,8 +1,8 @@
 import React from "react";
 import { View, Text, Pressable, Animated, Dimensions, StyleSheet, BackHandler } from "react-native";
 import { find, findByProps, findByStoreName } from "@vendetta/metro";
-import { lazy } from "@shared/lib/lazy";
-import { rawFind, rawFindByProps } from "@shared/lib/rawFind";
+import { lazy } from "../lib/lazy";
+import { rawFind, rawFindByProps } from "../lib/rawFind";
 import { GuildNode } from "../utils/theme";
 import GuildItem from "./GuildItem";
 import FolderItem from "./FolderItem";

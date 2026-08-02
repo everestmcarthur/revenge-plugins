@@ -3,8 +3,8 @@ import { Pressable, Image, StyleSheet } from "react-native";
 import { findByProps, findByStoreName } from "@vendetta/metro";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 import { showToast } from "@vendetta/ui/toasts";
-import { lazy } from "@shared/lib/lazy";
-import { rawFindByProps } from "@shared/lib/rawFind";
+import { lazy } from "../lib/lazy";
+import { rawFindByProps } from "../lib/rawFind";
 
 const ICON = 48;
 

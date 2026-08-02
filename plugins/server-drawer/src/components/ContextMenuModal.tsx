@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, Pressable, Image, Modal, StyleSheet, Dimensions, Animated } from "react-native";
 import { semanticColors } from "@vendetta/ui";
 import { findByProps } from "@vendetta/metro";
-import { resolveSemanticColor } from "@shared/lib/color";
+import { resolveSemanticColor } from "../lib/color";
 
 const TextStyleSheet = findByProps("TextStyleSheet")?.TextStyleSheet;
 const Haptic = findByProps("triggerHapticFeedback", "HapticFeedbackTypes");
