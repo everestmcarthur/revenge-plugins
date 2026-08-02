@@ -1,7 +1,3 @@
-import { findByProps } from "@vendetta/metro";
-
-declare const window: any;
-
 // The actual reason YouBar+'s buttons only ever showed up after a full reload: YouBar's own
 // button is wrapped in React.memo with the default shallow-prop comparator, and it only ever
 // receives one stable boolean prop. Once it mounts, React's own updateMemoComponent bailout means
@@ -11,23 +7,27 @@ declare const window: any;
 // to touch it, which on a live device can be "eventually" or "never in this session" - matching
 // exactly what looked like "needs 2 reloads."
 //
-// The first version of this file tried to force that update by walking React's DevTools fiber-root
-// registry (__REACT_DEVTOOLS_GLOBAL_HOOK__). Confirmed via Key Inspector on a real device that
-// hook simply doesn't exist on this Discord build at all - React never gets a chance to register
-// with it, so that whole approach was silently doing nothing. This version instead uses a real,
-// public react-navigation API that Key Inspector also confirmed works: getRootNavigationRef().
+// Two earlier versions of this file tried to actively force that render pass:
+//  - Walking React's DevTools fiber-root registry (__REACT_DEVTOOLS_GLOBAL_HOOK__). Confirmed via
+//    Key Inspector on a real device that hook doesn't exist on this Discord build at all - that
+//    whole approach was silently doing nothing.
+//  - Calling setParams() on the current route via getRootNavigationRef(), to force a genuine
+//    react-navigation state update. This ran unconditionally, synchronously, the moment the button
+//    module first initializes - which on a cold boot can be very early, before navigation has
+//    fully settled. After shipping it, buttons stopped appearing even after a full restart - a
+//    real regression, not just "still needs a reload." Poking live navigation state as an automatic
+//    side effect of applying a UI patch is a meaningfully bigger risk than anything else in this
+//    fix, and it's the prime suspect, so it's been pulled entirely rather than debugged further
+//    blind. (It also used the cached findByProps instead of this repo's raw* variants, so on a
+//    build where that lookup wasn't registered yet, it would have permanently poisoned
+//    getRootNavigationRef for the rest of the session - a second, independent reason to drop it.)
 //
-// This does two things, both best-effort and safe to call redundantly:
-//  1. If `target` is a memo wrapper, permanently override its `compare` so any future
-//     reconciliation pass that reaches it never bails out again.
-//  2. Force a pass to reach it *right now* by calling setParams() on the currently-focused route
-//     with its own unchanged params. That's a genuine react-navigation state update (a new state
-//     object, not a no-op) - and unlike a plain prop diff, navigation state is read through
-//     context, which React always propagates through memoized descendants that consume it, instead
-//     of letting them silently bail like a prop-only update would.
-// If either step's assumptions don't hold on a given build, it just silently no-ops - the existing
-// patch and poll are still in place, so the worst case is unchanged from before (shows up on the
-// next natural re-render or reload), never a crash.
+// What's left is the one part that's unconditionally safe: if `target` is a memo wrapper,
+// permanently override its `compare` so that whenever a future render pass *does* reach this fiber
+// for any reason, it can never bail out again. This doesn't make buttons appear instantly on a hot
+// toggle - that still needs a real trigger, which is worth another attempt, but only ever tested
+// manually first via Key Inspector's Eval tool where its effect can actually be observed before
+// it's wired back into anything that runs automatically.
 export function forceRerender(target: any): void {
     try {
         if (target && typeof target === "object" && "compare" in target) {
@@ -35,17 +35,5 @@ export function forceRerender(target: any): void {
         }
     } catch {
         // Best effort - a shape mismatch here just means no permanent bailout override.
-    }
-
-    try {
-        const navRef = findByProps("getRootNavigationRef")?.getRootNavigationRef?.();
-        if (!navRef?.isReady?.()) return;
-
-        const route = navRef.getCurrentRoute?.();
-        if (route && typeof navRef.setParams === "function") {
-            navRef.setParams(route.params ?? {});
-        }
-    } catch {
-        // Best effort - no navigation ref yet, or an internal shape change.
     }
 }
