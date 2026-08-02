@@ -195,7 +195,7 @@
   {
     "id": "you-bar-plus",
     "name": "YouBar+",
-    "description": "Adds Settings and DM buttons to the YouBar. Toggling while Discord's already running may need one reload to take effect.",
+    "description": "Adds floating DM/Settings buttons near the bottom of the screen, rendered independently rather than inside the native YouBar row for reliability.",
     "authors": [
       "everestmcarthur",
       "Purple_Ξye™"
