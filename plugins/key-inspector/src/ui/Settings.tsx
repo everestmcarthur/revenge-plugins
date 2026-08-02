@@ -8,6 +8,7 @@ import PrimaryButton from "@shared/ui/PrimaryButton";
 import { runAllChecks, formatReport } from "../lib/checks";
 import { dumpVendettaApiTree } from "../lib/apiTree";
 import { runYouBarDiagnostics } from "../lib/youBarDiagnostics";
+import { runEval } from "../lib/evalTool";
 
 const { View, Text } = ReactNative;
 const { FormSection, FormInput } = Forms;
@@ -53,6 +54,57 @@ function YouBarDiagnosticsSection() {
                     DevTools fiber-root registry forceRerender depends on is actually populated, and
                     whether a class-component ancestor or the navigation ref fallback exists at all -
                     run this right after toggling YouBar+ on/off to see exactly which step is failing.
+                </Text>
+            </View>
+        </FormSection>
+    );
+}
+
+function EvalSection() {
+    const [code, setCode] = React.useState("");
+    const [result, setResult] = React.useState<string | null>(null);
+    const [running, setRunning] = React.useState(false);
+
+    const run = async () => {
+        if (!code.trim() || running) return;
+        setRunning(true);
+        try {
+            const output = await runEval(code);
+            setResult(output);
+            clipboard.setString(output);
+            showToast("Result copied", undefined);
+        } finally {
+            setRunning(false);
+        }
+    };
+
+    return (
+        <FormSection title="Eval">
+            <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+                <FormInput
+                    title="Code"
+                    placeholder={'e.g. return findByProps("getRootNavigationRef")'}
+                    value={code}
+                    onChange={setCode}
+                    multiline
+                />
+                <PrimaryButton
+                    label={running ? "Running..." : "Run & copy result"}
+                    style={{ marginTop: 8 }}
+                    disabled={running}
+                    onPress={run}
+                />
+                {result != null && (
+                    <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.85 }} selectable>
+                        {result.length > 2000 ? `${result.slice(0, 2000)}\n... (truncated, full result copied)` : result}
+                    </Text>
+                )}
+                <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7 }}>
+                    Runs as the body of an async function - a bare expression, `return ...`, or
+                    `await ...` all work. findByProps/findByName/find, the raw* passive variants
+                    (rawFind/rawFindByTypeName/rawFindByProps/rawFindByName/rawFindByStoreName),
+                    React, ReactNative, FluxDispatcher, and window are already in scope. Nothing runs
+                    until you tap the button.
                 </Text>
             </View>
         </FormSection>
@@ -154,6 +206,7 @@ export default function Settings() {
         <SettingsScaffold>
             <FullScanSection />
             <YouBarDiagnosticsSection />
+            <EvalSection />
             <ApiTreeSection />
             <ManualSearchSection />
             <NoteBox>
