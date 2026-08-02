@@ -1,5 +1,7 @@
-import { findByProps, findByName, find } from "@vendetta/metro";
+import { findByProps, findByName, findByTypeName, findByStoreName, findByPropsAll, findByNameAll, find } from "@vendetta/metro";
 import { React, ReactNative, FluxDispatcher } from "@vendetta/metro/common";
+import { instead, before, after } from "@vendetta/patcher";
+import { getAssetIDByName } from "@vendetta/ui/assets";
 import { rawFind, rawFindByTypeName, rawFindByProps, rawFindByName, rawFindByStoreName } from "@shared/lib/rawFind";
 
 declare const window: any;
@@ -50,12 +52,20 @@ export async function runEval(code: string): Promise<string> {
         const fn = new Function(
             "findByProps",
             "findByName",
+            "findByTypeName",
+            "findByStoreName",
+            "findByPropsAll",
+            "findByNameAll",
             "find",
             "rawFind",
             "rawFindByTypeName",
             "rawFindByProps",
             "rawFindByName",
             "rawFindByStoreName",
+            "instead",
+            "before",
+            "after",
+            "getAssetIDByName",
             "React",
             "ReactNative",
             "FluxDispatcher",
@@ -66,12 +76,20 @@ export async function runEval(code: string): Promise<string> {
         const result = await fn(
             findByProps,
             findByName,
+            findByTypeName,
+            findByStoreName,
+            findByPropsAll,
+            findByNameAll,
             find,
             rawFind,
             rawFindByTypeName,
             rawFindByProps,
             rawFindByName,
             rawFindByStoreName,
+            instead,
+            before,
+            after,
+            getAssetIDByName,
             React,
             ReactNative,
             FluxDispatcher,

@@ -80,10 +80,12 @@ function EvalSection() {
                 )}
                 <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7 }}>
                     Runs as the body of an async function - a bare expression, `return ...`, or
-                    `await ...` all work. findByProps/findByName/find, the raw* passive variants
+                    `await ...` all work. In scope: findByProps/findByName/findByTypeName/
+                    findByStoreName/findByPropsAll/findByNameAll/find, the raw* passive variants
                     (rawFind/rawFindByTypeName/rawFindByProps/rawFindByName/rawFindByStoreName),
-                    React, ReactNative, FluxDispatcher, and window are already in scope. Nothing runs
-                    until you tap the button.
+                    instead/before/after, getAssetIDByName, React, ReactNative, FluxDispatcher, and
+                    window - enough to prototype a real patch here before it goes in a plugin.
+                    Nothing runs until you tap the button.
                 </Text>
             </View>
         </FormSection>
