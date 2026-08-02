@@ -22,6 +22,7 @@ export type ModuleSetting =
         | { type: "toggle"; default: boolean }
         | { type: "button"; action: (this: AnyModule) => void }
         | { type: "choose"; choices: string[]; default: string }
+        | { type: "text"; default: string; placeholder?: string }
     );
 
 export interface ModuleMeta {
