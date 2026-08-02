@@ -35,6 +35,18 @@ export default function Settings() {
                     value={storage.showUnreadBadges !== false}
                     onValueChange={(v: boolean) => { storage.showUnreadBadges = v; }}
                 />
+                <FormSwitchRow
+                    label="Show server names"
+                    subLabel="Word-wrapped name below each server's icon"
+                    value={storage.showGuildNames !== false}
+                    onValueChange={(v: boolean) => { storage.showGuildNames = v; }}
+                />
+                <FormSwitchRow
+                    label="Hide the DMs tile"
+                    subLabel="Remove the DMs tile from the drawer entirely"
+                    value={!!storage.hideDmTile}
+                    onValueChange={(v: boolean) => { storage.hideDmTile = v; }}
+                />
             </FormSection>
             <FormSection title="Folders">
                 <FormSwitchRow

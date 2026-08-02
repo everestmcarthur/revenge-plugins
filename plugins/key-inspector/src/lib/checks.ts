@@ -1,4 +1,4 @@
-import { find, findByName, findByProps, findByStoreName, findByTypeNameAll } from "@vendetta/metro";
+import { find, findByName, findByProps, findByPropsAll, findByStoreName, findByTypeNameAll } from "@vendetta/metro";
 import { semanticColors, rawColors } from "@vendetta/ui";
 
 export interface CheckResult {
@@ -38,11 +38,13 @@ const CHECKS: Check[] = [
     { label: 'find(resolveSemanticColor via meta)', run: () => find((m: any) => m?.meta?.resolveSemanticColor) },
 
     // PronounDB
+    { label: 'find(UserProfileContent)', run: () => find((m: any) => m?.type?.name === "UserProfileContent") },
     { label: 'find(UserProfile)', run: () => find((m: any) => m?.type?.name === "UserProfile") },
     { label: 'findByName("UserProfileSection", false)', run: () => findByName("UserProfileSection", false) },
 
     // Message Snippets / Reminders / Urban Dictionary
     { label: 'findByProps("sendMessage", "sendBotMessage")', run: () => findByProps("sendMessage", "sendBotMessage") },
+    { label: 'findByProps("sendBotMessage") (single prop, matches Revenge core)', run: () => findByProps("sendBotMessage") },
 
     // ViewRaw
     { label: 'findByProps("openLazy", "hideActionSheet")', run: () => findByProps("openLazy", "hideActionSheet") },
@@ -53,6 +55,7 @@ const CHECKS: Check[] = [
 
     // CopyRoleColor
     { label: 'findByName("ThemedRolePill", false)', run: () => findByName("ThemedRolePill", false) },
+    { label: 'findByName("RolePill", false)', run: () => findByName("RolePill", false) },
 
     // FakeProfileThemesAndEffects (in progress)
     { label: 'findByProps("saveProfileChanges")', run: () => findByProps("saveProfileChanges") },
@@ -60,6 +63,31 @@ const CHECKS: Check[] = [
     { label: 'findByProps("useThemeContext")', run: () => findByProps("useThemeContext") },
     { label: 'findByProps("getProfileTheme")', run: () => findByProps("getProfileTheme") },
     { label: 'findByProps("ThemeContextProvider")', run: () => findByProps("ThemeContextProvider") },
+    { label: 'findByName("ProfileEffectRecord", false)', run: () => findByName("ProfileEffectRecord", false) },
+    { label: 'findByStoreName("UserProfileStore")', run: () => findByStoreName("UserProfileStore") },
+    { label: 'findByStoreName("CollectiblesPurchaseStore")', run: () => findByStoreName("CollectiblesPurchaseStore") },
+    { label: 'findByStoreName("ProfileEffectStore")', run: () => findByStoreName("ProfileEffectStore") },
+    { label: 'findByName("GuildProfileEditForm", false) (currently dead/unused patch)', run: () => findByName("GuildProfileEditForm", false) },
+    { label: 'findByName("UserProfileEditForm", false)', run: () => findByName("UserProfileEditForm", false) },
+    { label: 'findByName("useProfileTheme", false)', run: () => findByName("useProfileTheme", false) },
+    { label: 'findByName("useProfileThemeColors", false)', run: () => findByName("useProfileThemeColors", false) },
+    { label: 'findByPropsAll("NONE_ITEM")', run: () => findByPropsAll("NONE_ITEM") },
+    { label: 'findByProps("Radius")', run: () => findByProps("Radius") },
+    { label: 'findByProps("Spacing")', run: () => findByProps("Spacing") },
+    { label: 'findByProps("SafeAreaContext")', run: () => findByProps("SafeAreaContext") },
+    { label: 'findByName("useWindowDimensions")', run: () => findByName("useWindowDimensions") },
+    { label: 'findByProps("IconSizes")', run: () => findByProps("IconSizes") },
+    { label: 'findByName("FlashList")', run: () => findByName("FlashList") },
+    { label: 'findByProps("Svg")', run: () => findByProps("Svg") },
+    { label: 'findByProps("PressableOpacity")', run: () => findByProps("PressableOpacity") },
+    { label: 'findByProps("TextStyleSheet")', run: () => findByProps("TextStyleSheet") },
+    { label: 'findByProps("BottomSheet")', run: () => findByProps("BottomSheet") },
+    { label: 'findByProps("ActionSheet")', run: () => findByProps("ActionSheet") },
+    { label: 'findByProps("BottomSheetScrollView")', run: () => findByProps("BottomSheetScrollView") },
+    { label: 'findByProps("showActionSheet")', run: () => findByProps("showActionSheet") },
+    { label: 'findByName("EditProfileEffectActionSheet")', run: () => findByName("EditProfileEffectActionSheet") },
+    { label: 'findByName("showCustomColorPickerActionSheet")', run: () => findByName("showCustomColorPickerActionSheet") },
+    { label: 'findByProps("triggerHapticFeedback")', run: () => findByProps("triggerHapticFeedback") },
 
     // Color tokens referenced by FPTE specifically
     { label: 'semanticColors.HEADER_SECONDARY', run: () => semanticColors?.HEADER_SECONDARY },
