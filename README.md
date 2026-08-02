@@ -21,6 +21,7 @@ To install: open Discord with Revenge installed, go to **Settings → Plugins**,
 | Plugin | Status | Description | Install link |
 | --- | --- | --- | --- |
 | Staff Tags | Rebuilt | OWNER/ADMIN/STAFF/MOD-style tags next to members, computed from real server permissions. Per-tag text, colors, gradients, and visibility. | `https://rp.jarviscli.dev/staff-tags/install/` |
+| Custom User Tags | New | Create your own tags (text + color) and assign them to specific users, independent of server permissions. Long-press a name to manage one, or add by user ID in settings. | `https://rp.jarviscli.dev/custom-user-tags/install/` |
 | RoleColorEverywhere | Revived | A member's top role color shown in mentions, the typing indicator, voice channel names, member list role headers, and optionally message text. | `https://rp.jarviscli.dev/role-color-everywhere/install/` |
 | PronounDB | Revived | Shows a user's pronouns in their profile, if they've set them at pronoundb.org (nothing to configure in the plugin itself). | `https://rp.jarviscli.dev/pronoun-db/install/` |
 | FakeProfileThemesAndEffects | Revived | Profile theming and profile effects without Nitro. Fork of [shipwr3ckd's FPTE](https://github.com/shipwr3ckd/FPTE) - fixed a crash on every profile-editor open, confirmed via on-device diagnostics. | `https://rp.jarviscli.dev/fake-profile-themes-and-effects/install/` |
