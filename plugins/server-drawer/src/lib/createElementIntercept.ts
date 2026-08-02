@@ -12,6 +12,11 @@ interface PropsIntercept {
     replacement: React.ComponentType<any> | null;
 }
 
+interface PropsTransform {
+    predicate: (props: any) => boolean;
+    transform: (props: any) => any;
+}
+
 interface TypeDetector {
     predicate: (type: any) => boolean;
     onDetected: (type: any) => void;
@@ -19,6 +24,7 @@ interface TypeDetector {
 
 const intercepts = new Map<React.ComponentType<any>, Intercept>();
 const propsIntercepts: PropsIntercept[] = [];
+const propsTransforms: PropsTransform[] = [];
 let typeDetectors: TypeDetector[] = [];
 let isPatched = false;
 
@@ -39,6 +45,23 @@ export function registerIntercept(
  */
 export function registerPropsIntercept(predicate: (props: any) => boolean, replacement: React.ComponentType<any> | null) {
     propsIntercepts.push({ predicate, replacement });
+}
+
+/**
+ * Rewrites an element's props in place while keeping the same type - unlike registerPropsIntercept,
+ * this doesn't swap in a different component, it lets the real one render with different input.
+ *
+ * Exists because monkey-patching a hook's exported property (`someModule.useSomeHook = wrapper`)
+ * only affects callers that go through that exact exports-object reference. Confirmed live (Key
+ * Inspector fiber capture) that Discord's Quest Dock hooks are called via an internal, same-chunk
+ * closure reference instead - the patched export sits there unused, and the real, unpatched hook
+ * result flows through untouched. A React.createElement/jsx call has no such ambiguity: it's always
+ * the one shared runtime function, called the same way regardless of which chunk the JSX originated
+ * in - so rewriting the `value` prop of a Context.Provider element here reaches every consumer
+ * exactly as if the underlying hooks had actually returned that value.
+ */
+export function registerPropsTransform(predicate: (props: any) => boolean, transform: (props: any) => any) {
+    propsTransforms.push({ predicate, transform });
 }
 
 /**
@@ -86,11 +109,24 @@ function runTypeDetectors(type: any) {
 function resolveReplacement(type: any, props: any): { type: any; props: any } | null | undefined {
     runTypeDetectors(type);
 
-    if (props) {
+    let effectiveProps = props;
+    if (effectiveProps) {
+        for (const { predicate, transform } of propsTransforms) {
+            try {
+                if (predicate(effectiveProps)) {
+                    effectiveProps = transform(effectiveProps);
+                }
+            } catch {
+                // A bad transform shouldn't block every other element from rendering.
+            }
+        }
+    }
+
+    if (effectiveProps) {
         for (const { predicate, replacement } of propsIntercepts) {
             try {
-                if (predicate(props)) {
-                    return replacement ? { type: replacement, props } : null;
+                if (predicate(effectiveProps)) {
+                    return replacement ? { type: replacement, props: effectiveProps } : null;
                 }
             } catch {
                 // A bad predicate shouldn't block every other element from rendering.
@@ -100,7 +136,11 @@ function resolveReplacement(type: any, props: any): { type: any; props: any } | 
 
     const entry = intercepts.get(type);
     if (entry) {
-        return { type: entry.replacement, props: entry.extraProps ? { ...props, ...entry.extraProps } : props };
+        return { type: entry.replacement, props: entry.extraProps ? { ...effectiveProps, ...entry.extraProps } : effectiveProps };
+    }
+
+    if (effectiveProps !== props) {
+        return { type, props: effectiveProps };
     }
 
     return undefined;
@@ -166,6 +206,7 @@ export function patchCreateElement(cleanups: (() => void)[]) {
         restoreJsx.forEach((fn) => fn());
         intercepts.clear();
         propsIntercepts.length = 0;
+        propsTransforms.length = 0;
         typeDetectors = [];
     });
 }

@@ -1,10 +1,6 @@
 import { logger } from "@vendetta";
 import { storage } from "@vendetta/plugin";
-import { patchQuestDockRender } from "./patches/questDockRender";
-import { patchQuestDockBase } from "./patches/questDockBase";
-import { patchQuestDockVisible } from "./patches/questDockVisible";
-import { patchMobileQuestDock } from "./patches/mobileQuestDock";
-import { patchGetQuestAsset } from "./patches/getQuestAsset";
+import { patchQuestDockContext } from "./patches/questDockContext";
 import { patchExpanded, patchEmpty } from "./patches/contentPatch";
 import { patchHideGuildsBar } from "./patches/hideGuildsBar";
 import { patchCreateElement } from "./lib/createElementIntercept";
@@ -36,11 +32,7 @@ function tryPatch(name: string, fn: () => boolean): boolean {
 // missing rather than just not loaded yet).
 function applyAll() {
     const patchers: Record<string, () => boolean> = {
-        questDockRender: () => patchQuestDockRender(cleanups),
-        questDockBase: () => patchQuestDockBase(cleanups),
-        questDockVisible: () => patchQuestDockVisible(cleanups),
-        mobileQuestDock: () => patchMobileQuestDock(cleanups),
-        getQuestAsset: () => patchGetQuestAsset(cleanups),
+        questDockContext: () => patchQuestDockContext(cleanups),
         expanded: () => patchExpanded(cleanups),
         collapsed: () => patchEmpty("QuestDockContentCollapsed", cleanups),
         enrolledHeader: () => patchEmpty("QuestDockEnrolledHeader", cleanups),
