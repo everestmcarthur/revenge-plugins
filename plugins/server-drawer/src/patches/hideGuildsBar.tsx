@@ -53,8 +53,15 @@ function captureFiberRef(instance: any) {
             guard++;
         }
 
-        (window as any).__keyInspectorFiberRoot = root;
-        (window as any).__keyInspectorFiberSelf = fiber;
+        // Dedicated globals, not window.__keyInspectorFiberRoot/__keyInspectorFiberSelf: Key
+        // Inspector's own Settings screen has its own capture View using those same names, and its
+        // ref re-fires every time that screen mounts - including just scrolling to the Eval console
+        // to paste the next script. Sharing the names meant navigating back to Settings silently
+        // overwrote this capture with one rooted in Settings' own (likely separate-modal) tree,
+        // which is exactly the failure this capture point exists to avoid. Confirmed live: a text
+        // dump meant to read GuildsBar's slot came back with Key Inspector's own UI strings instead.
+        (window as any).__serverDrawerFiberRoot = root;
+        (window as any).__serverDrawerFiberSelf = fiber;
     } catch {
         // Best-effort diagnostic capture - a failure here shouldn't affect GuildsBar staying hidden.
     }
