@@ -11,7 +11,10 @@ const getExpandedGuildFolderStore = lazy(() => rawFindByStoreName("ExpandedGuild
 export function useTheme() {
     const colors = getColorModule()?.colors;
     return {
-        text: colors?.TEXT_NORMAL ?? "#dbdee1",
+        // TEXT_NORMAL is confirmed dead via Key Inspector (Discord renamed its whole semanticColors
+        // scheme) - TEXT_DEFAULT is its current replacement, kept alongside the old name in case an
+        // older Discord build is still in use.
+        text: colors?.TEXT_NORMAL ?? colors?.TEXT_DEFAULT ?? "#dbdee1",
         folder: "#5865f2",
         hover: colors?.STATE_LAYER_PRESS ?? "rgba(255,255,255,0.06)",
     };
