@@ -47,7 +47,21 @@ function safeStringify(value: any): string {
  * expression, a `return ...`, or `await`-ing something all work. Never runs anything on its own -
  * only what's typed in and manually run here.
  */
-export async function runEval(code: string): Promise<string> {
+// Android/iOS keyboards commonly have "smart punctuation" that silently swaps straight quotes for
+// curly ones as you type, even with autoCorrect disabled on some keyboards (GBoard's smart
+// punctuation is a separate setting) - that turns "foo" into “foo”, which is a different character
+// to the JS parser and throws "non-terminated string" with no indication why. Normalizing common
+// substitutions back to their plain-ASCII equivalents before compiling means typing/pasting code on
+// a phone keyboard doesn't silently produce invalid syntax.
+function normalizeSmartPunctuation(code: string): string {
+    return code
+        .replace(/[‘’]/g, "'")
+        .replace(/[“”]/g, '"')
+        .replace(/[–—]/g, "-");
+}
+
+export async function runEval(rawCode: string): Promise<string> {
+    const code = normalizeSmartPunctuation(rawCode);
     try {
         const fn = new Function(
             "findByProps",
