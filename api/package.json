@@ -1,0 +1,12 @@
+{
+    "name": "revenge-plugins-api",
+    "private": true,
+    "scripts": {
+        "dev": "wrangler dev",
+        "deploy": "wrangler deploy",
+        "migrate": "wrangler d1 execute revenge-plugins-overlay --remote --file=./schema.sql"
+    },
+    "devDependencies": {
+        "wrangler": "^4.0.0"
+    }
+}

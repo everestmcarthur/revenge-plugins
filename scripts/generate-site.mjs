@@ -6,6 +6,18 @@ const REPO_BASE = "https://github.com/everestmcarthur/revenge-plugins";
 const meta = JSON.parse(await readFile("./site/meta.json", "utf8"));
 const plugins = [];
 
+// The overlay holds the fast-changing bits (status, "broken" flag/reason, tags) meant to be flipped
+// from the admin plugin without a git push - meta.json above stays the source of truth for real
+// content. A fetch failure here (API down, first-ever build before it exists) must never break the
+// public build, so this always falls back to an empty overlay.
+let overlay = {};
+try {
+    const res = await fetch(`${PAGES_BASE}/api/overlay`);
+    if (res.ok) overlay = await res.json();
+} catch {
+    console.warn("Couldn't reach the overlay API - building with meta.json alone.");
+}
+
 for (const id of await readdir("./dist")) {
     const dir = `./dist/${id}`;
     if (!(await stat(dir)).isDirectory()) continue;
@@ -18,6 +30,7 @@ for (const id of await readdir("./dist")) {
     }
 
     const info = meta[id] ?? {};
+    const over = overlay[id] ?? {};
 
     plugins.push({
         id,
@@ -25,7 +38,9 @@ for (const id of await readdir("./dist")) {
         description: manifest.description,
         authors: (manifest.authors ?? []).map((a) => a.name),
         category: info.category ?? "Other",
-        status: info.status ?? "new",
+        status: over.status ?? info.status ?? "new",
+        broken: over.broken ?? null,
+        tags: over.tags ?? [],
         accent: info.accent ?? "#5865f2",
         tagline: info.tagline ?? manifest.description,
         note: info.note ?? "",
