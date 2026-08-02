@@ -1,111 +1,129 @@
 import { findByProps } from "@vendetta/metro";
-import { React } from "@vendetta/metro/common";
-import { instead } from "@vendetta/patcher";
+import { React, ReactNative } from "@vendetta/metro/common";
+import { after } from "@vendetta/patcher";
 import { storage } from "@vendetta/plugin";
+import { useProxy } from "@vendetta/storage";
 import { getAssetIDByName } from "@vendetta/ui/assets";
-import { waitFor } from "@shared/lib/waitFor";
-import { rawFindByTypeName } from "@shared/lib/rawFind";
-import { patchCreateElement, registerTypeDetector } from "@shared/lib/createElementIntercept";
+import { showToast } from "@vendetta/ui/toasts";
+import { waitFor } from "../lib/waitFor";
+import { rawFindByFilePath } from "../lib/rawMetro";
 
-export let updateYouBar = () => {};
+const { View, TouchableOpacity, Image } = ReactNative;
 
-function isYouBarNotificationsButton(type: any): boolean {
-    return (
-        type?.name === "YouBarNotificationsButton" ||
-        type?.displayName === "YouBarNotificationsButton" ||
-        type?.type?.name === "YouBarNotificationsButton" ||
-        type?.type?.displayName === "YouBarNotificationsButton"
-    );
-}
+const TOAST_CONTAINER_FILE_PATH = "modules/toast/native/ToastContainer.tsx";
 
 /**
- * Confirmed on-device that a metro-search-based lookup (whether the original one-shot
- * findByTypeName, or this repo's own waitFor + passive rawFindByTypeName retry) is fundamentally
- * racing against something it can't always win: YouBarNotificationsButton is a React.memo'd leaf
- * that, once mounted, appears to never render again for the rest of the session (also confirmed
- * on-device - patching it and watching for 20+ real seconds on the main screen never saw another
- * render). If that first, only mount happens before our search finds and patches the component,
- * the patch is permanently too late no matter how many times the search retries afterward.
+ * Ground-up rewrite. Every previous approach patched YouBarNotificationsButton directly (or tried
+ * to catch it via element-creation interception) and all of them failed on-device, repeatedly,
+ * confirmed via Key Inspector's Eval console: the component is found and patchable, but never
+ * renders again after its first mount, and there is real evidence that first mount can happen
+ * before Revenge's own plugin system has even finished loading plugins - in which case no in-JS
+ * patch, however early, can ever be early enough, because our code fundamentally cannot run before
+ * Revenge itself runs.
  *
- * registerTypeDetector sidesteps the race by watching element *creation* instead of searching the
- * module registry after the fact: the moment ANY code calls createElement/jsx with this component
- * as `type` - which is necessarily the actual live reference already, there's no way to call it any
- * earlier - we grab it and patch immediately, before that render even happens. This still needs
- * patchCreateElement to have installed its React.createElement/jsx-runtime hooks before that first
- * call, but jsx-runtime is about as foundational and early-loaded a module as React itself, since
- * literally nothing can render via JSX without it - a much safer bet than waiting on a specific leaf
- * UI component to register.
+ * This sidesteps that entirely instead of trying to win an unwinnable race: it doesn't touch
+ * YouBarNotificationsButton at all. It renders its own independent floating button row, mounted by
+ * patching Discord's own ToastContainer (modules/toast/native/ToastContainer.tsx - confirmed
+ * React.memo'd, confirmed its content comes from a genuine Flux store subscription
+ * (useStateFromStoresArray on ToastStore), not a reanimated-only value like YouBar's badge count -
+ * meaning a real toast firing causes a real React re-render here, unlike YouBar's leaf, which
+ * never re-renders for any reason once mounted). Firing one toast ourselves right after patching
+ * guarantees that re-render happens under our patch, instead of waiting on luck.
  *
- * The waitFor + rawFindByTypeName search stays too, purely as a fallback for the case where the
- * component was already mounted (and thus already searchable) *before* this plugin's onLoad even
- * ran - e.g. toggled on well after a cold boot completed - since in that case there's no future
- * creation call left to intercept. Both paths funnel through the same `patchOnce`, deduped by
- * reference, so if both somehow fire for the same live component it only gets patched once.
+ * Found by file path (rawFindByFilePath), not by name: ToastContainer's inner render function has
+ * no recoverable name in the compiled bundle (confirmed against decompiled source), so name-based
+ * matching wouldn't work here even as a fallback. File path is registration-time metadata Metro
+ * attaches to every module regardless of minification, so it doesn't have that problem.
  */
 export default function patchYouBarButtons(): () => void {
-    const cleanups: (() => void)[] = [];
-    let buttonUnpatch: () => void = () => {};
-    let patchedTarget: any = null;
+    let unpatchToastContainer: () => void = () => {};
 
-    function patchOnce(target: any) {
-        if (!target || target === patchedTarget) return;
-        patchedTarget = target;
-        buttonUnpatch = applyButtonPatch(target);
-    }
+    const handle = waitFor(
+        () => rawFindByFilePath<any>(TOAST_CONTAINER_FILE_PATH, true),
+        (ToastContainer) => {
+            unpatchToastContainer = after("type", ToastContainer, (_args: any[], res: any) => (
+                <React.Fragment>
+                    {res}
+                    <FloatingButtons />
+                </React.Fragment>
+            ));
 
-    patchCreateElement(cleanups);
-    registerTypeDetector(isYouBarNotificationsButton, patchOnce);
-
-    const handle = waitFor(() => rawFindByTypeName("YouBarNotificationsButton"), patchOnce);
-    cleanups.push(() => handle.cancel());
+            // Guarantees ToastContainer actually re-renders at least once under our patch - its
+            // content is driven by a real Flux store subscription (ToastStore), so a genuine toast
+            // firing is a genuine React re-render, not a hope. Without this, our injected buttons
+            // would only ever appear whenever Discord's own code happens to show a toast next,
+            // which could be immediate or could be a long wait depending on what the user's doing.
+            showToast("YouBar+ ready", getAssetIDByName("CheckmarkIcon"));
+        }
+    );
 
     return () => {
-        buttonUnpatch();
-        cleanups.forEach((fn) => fn());
+        handle.cancel();
+        unpatchToastContainer();
     };
 }
 
-function applyButtonPatch(YouBarNotificationsButton: any): () => void {
+function FloatingButtons() {
+    useProxy(storage);
+
+    if (!storage.showDMButton && !storage.showSettingsButton) return null;
+
     const userSettingsAction = findByProps("openUserSettings");
     const transitionModule = findByProps("transitionToGuild");
     const ChatIcon = getAssetIDByName("ChatIcon");
     const SettingsIcon = getAssetIDByName("SettingsIcon");
 
-    return instead("type", YouBarNotificationsButton, (args: any[], OriginalRender: (...a: any[]) => any) => {
-        try {
-            const [, forceUpdate] = React.useReducer((x: number) => ~x, 0);
-            updateYouBar = () => forceUpdate();
-
-            const res = OriginalRender(...args);
-            if (!res?.props?.children) return res;
-
-            const IconButton = res.props.children.type;
-            const originalProps = res.props.children.props;
-
-            return (
-                <React.Fragment>
-                    {storage.showDMButton && (
-                        <IconButton
-                            variant={originalProps?.variant || "tertiary"}
-                            size={originalProps?.size || "sm"}
-                            icon={ChatIcon}
-                            onPress={() => transitionModule?.transitionToGuild?.("@me")}
-                        />
-                    )}
-                    {storage.showSettingsButton && (
-                        <IconButton
-                            variant={originalProps?.variant || "tertiary"}
-                            size={originalProps?.size || "sm"}
-                            icon={SettingsIcon}
-                            onPress={() => userSettingsAction?.openUserSettings?.()}
-                        />
-                    )}
-                    {res}
-                </React.Fragment>
-            );
-        } catch {
-            // A shape mismatch here should mean "stock YouBar, no extra buttons" - not a crash.
-            return OriginalRender(...args);
-        }
-    });
+    return (
+        <View pointerEvents="box-none" style={styles.container}>
+            {storage.showDMButton && (
+                <TouchableOpacity
+                    accessibilityLabel="Direct Messages"
+                    onPress={() => transitionModule?.transitionToGuild?.("@me")}
+                    style={styles.button}
+                >
+                    <Image source={ChatIcon} style={styles.icon} />
+                </TouchableOpacity>
+            )}
+            {storage.showSettingsButton && (
+                <TouchableOpacity
+                    accessibilityLabel="Settings"
+                    onPress={() => userSettingsAction?.openUserSettings?.()}
+                    style={styles.button}
+                >
+                    <Image source={SettingsIcon} style={styles.icon} />
+                </TouchableOpacity>
+            )}
+        </View>
+    );
 }
+
+const BUTTON_SIZE = 40;
+
+// Approximate positioning, anchored bottom-right - not pixel-matched to the native YouBar row,
+// since this renders independently of it rather than inside it. Expect this to need visual
+// tuning once the buttons are confirmed to actually appear reliably.
+const styles = {
+    container: {
+        position: "absolute" as const,
+        right: 12,
+        bottom: 90,
+        flexDirection: "row" as const,
+        alignItems: "center" as const,
+        gap: 10,
+        zIndex: 999,
+        elevation: 999
+    },
+    button: {
+        width: BUTTON_SIZE,
+        height: BUTTON_SIZE,
+        borderRadius: BUTTON_SIZE / 2,
+        backgroundColor: "rgba(30,30,35,0.85)",
+        alignItems: "center" as const,
+        justifyContent: "center" as const
+    },
+    icon: {
+        width: 20,
+        height: 20,
+        tintColor: "white"
+    }
+};
