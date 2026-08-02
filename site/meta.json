@@ -1,4 +1,21 @@
 {
+  "custom-user-tags": {
+    "category": "Moderation & Appearance",
+    "status": "new",
+    "accent": "#F0637E",
+    "tagline": "Create your own tags and assign them to specific users - not tied to server permissions.",
+    "note": "Didn't exist in the Revenge/Vendetta plugin ecosystem before. Modeled directly on Staff Tags' proven 4-surface architecture (the chat message tag, the name row in chat/member list/profile, and the native Tag component itself), keyed by user ID instead of permission tier - the same code, resolving a completely different kind of tag.",
+    "howItWorks": "Long-press a name in the member list or a profile popout to open a small editor: type whatever text you want and pick a color, and that becomes their tag - showing next to their name in chat, the member list, and the profile popout, exactly like a Staff Tags tag would. There's no confirmed way in this repo yet to hook Discord's own native long-press menu for a user, so this attaches its own long-press handler directly to the row instead (chaining whatever Discord's own row already does, never replacing it). Tags can also be added from the plugin's own settings screen by pasting a user ID directly, for tagging someone who isn't visible on screen right now.",
+    "features": [
+      "Long-press a member list row or profile popout to tag someone",
+      "Custom tag text and a full color picker, not limited to preset tiers",
+      "Also shows in chat messages next to the author's name",
+      "Add/remove tags by user ID from the settings screen",
+      "Per-user, not per-permission - works for anyone regardless of their server roles"
+    ],
+    "commands": [],
+    "limitations": "Chat message tags are built from plain data passed to Discord's native row renderer, not a patchable React element, so they always render as a solid color there - same platform limitation Staff Tags documents. Long-press to open the editor is a plugin-attached handler, not a native Discord menu item, since no confirmed way to add one exists yet."
+  },
   "staff-tags": {
     "category": "Moderation & Appearance",
     "status": "rebuilt",

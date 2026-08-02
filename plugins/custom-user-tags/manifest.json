@@ -1,0 +1,8 @@
+{
+    "name": "Custom User Tags",
+    "description": "Create your own tags (text + color) and assign them to specific users - long-press a name in the member list or profile popout to manage one, or add one by user ID in settings.",
+    "authors": [
+        { "name": "everestmcarthur" }
+    ],
+    "main": "src/index.ts"
+}
