@@ -7,6 +7,7 @@ import NoteBox from "@shared/ui/NoteBox";
 import PrimaryButton from "@shared/ui/PrimaryButton";
 import { runAllChecks, formatReport } from "../lib/checks";
 import { dumpVendettaApiTree } from "../lib/apiTree";
+import { runYouBarDiagnostics } from "../lib/youBarDiagnostics";
 
 const { View, Text } = ReactNative;
 const { FormSection, FormInput } = Forms;
@@ -30,6 +31,29 @@ function FullScanSection() {
                 {summary && (
                     <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7 }}>{summary}</Text>
                 )}
+            </View>
+        </FormSection>
+    );
+}
+
+function YouBarDiagnosticsSection() {
+    return (
+        <FormSection title="YouBar+ diagnostics">
+            <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+                <PrimaryButton
+                    label="Run YouBar+ diagnostics & copy report"
+                    onPress={() => {
+                        const report = runYouBarDiagnostics();
+                        clipboard.setString(report);
+                        showToast("Diagnostics copied - paste into chat", undefined);
+                    }}
+                />
+                <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7 }}>
+                    Checks whether YouBarNotificationsButton can be found live, whether the React
+                    DevTools fiber-root registry forceRerender depends on is actually populated, and
+                    whether a class-component ancestor or the navigation ref fallback exists at all -
+                    run this right after toggling YouBar+ on/off to see exactly which step is failing.
+                </Text>
             </View>
         </FormSection>
     );
@@ -129,6 +153,7 @@ export default function Settings() {
     return (
         <SettingsScaffold>
             <FullScanSection />
+            <YouBarDiagnosticsSection />
             <ApiTreeSection />
             <ManualSearchSection />
             <NoteBox>
