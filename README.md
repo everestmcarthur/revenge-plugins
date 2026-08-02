@@ -22,6 +22,7 @@ To install: open Discord with Revenge installed, go to **Settings → Plugins**,
 | --- | --- | --- | --- |
 | Staff Tags | Rebuilt | OWNER/ADMIN/STAFF/MOD-style tags next to members, computed from real server permissions. Per-tag text, colors, gradients, and visibility. | `https://rp.jarviscli.dev/staff-tags/install/` |
 | Custom User Tags | New | Create your own tags (text + color) and assign them to specific users, independent of server permissions. Long-press a name to manage one, or add by user ID in settings. | `https://rp.jarviscli.dev/custom-user-tags/install/` |
+| Radial Status | Revived | Replaces the small presence dot on an avatar with a colored ring instead - one color per status, adjustable size and thickness. Fork of [AngelW0lf's Radial Status](https://github.com/Angelix1/MP/tree/master/angel/radialstatus), BSD-3-Clause - dropped a phone-home mechanism that could silently uninstall the plugin for specific user IDs, and replaced non-functional size/thickness controls with real ones. | `https://rp.jarviscli.dev/radial-status/install/` |
 | RoleColorEverywhere | Revived | A member's top role color shown in mentions, the typing indicator, voice channel names, member list role headers, and optionally message text. | `https://rp.jarviscli.dev/role-color-everywhere/install/` |
 | PronounDB | Revived | Shows a user's pronouns in their profile, if they've set them at pronoundb.org (nothing to configure in the plugin itself). | `https://rp.jarviscli.dev/pronoun-db/install/` |
 | FakeProfileThemesAndEffects | Revived | Profile theming and profile effects without Nitro. Fork of [shipwr3ckd's FPTE](https://github.com/shipwr3ckd/FPTE) - fixed a crash on every profile-editor open, confirmed via on-device diagnostics. | `https://rp.jarviscli.dev/fake-profile-themes-and-effects/install/` |
@@ -52,8 +53,8 @@ To install: open Discord with Revenge installed, go to **Settings → Plugins**,
 it didn't exist anywhere in the Revenge/Vendetta plugin ecosystem before.
 
 **Licensing note:** everything in this repo is original work except `plugins/view-raw` (GPLv3, forked from
-bwlok's ViewRaw) and `plugins/rose-utils` (CC-BY 4.0, forked from nexpid's NexxUtils) - the rest of the repo
-isn't under either of those licenses.
+bwlok's ViewRaw), `plugins/rose-utils` (CC-BY 4.0, forked from nexpid's NexxUtils), and `plugins/radial-status`
+(BSD-3-Clause, forked from AngelW0lf's Radial Status) - the rest of the repo isn't under any of those licenses.
 
 ## Why some of these broke before, and what's different now
 
