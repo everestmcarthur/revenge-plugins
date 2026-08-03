@@ -1,7 +1,7 @@
 import { React, ReactNative, clipboard } from "@vendetta/metro/common";
 import { findByProps, findByName, findByPropsAll, findByNameAll } from "@vendetta/metro";
 import { showToast } from "@vendetta/ui/toasts";
-import { Forms } from "@vendetta/ui/components";
+import { TableRowGroup, TextInput } from "@shared/ui/table";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import NoteBox from "@shared/ui/NoteBox";
 import PrimaryButton from "@shared/ui/PrimaryButton";
@@ -14,7 +14,6 @@ import { captureFluxEvents } from "../lib/fluxLogger";
 import { captureComponentRenders } from "../lib/renderLogger";
 
 const { View, Text } = ReactNative;
-const { FormSection, FormInput } = Forms;
 
 // Every raw Text below used to have no explicit color at all - illegible black-on-black on
 // Discord's dark theme, since RN's Text defaults to black with no theming of its own.
@@ -24,7 +23,7 @@ function FullScanSection() {
     const [summary, setSummary] = React.useState<string | null>(null);
 
     return (
-        <FormSection title="Full diagnostic scan">
+        <TableRowGroup title="Full diagnostic scan">
             <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
                 <PrimaryButton
                     label="Run scan & copy full report"
@@ -40,7 +39,7 @@ function FullScanSection() {
                     <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7, color: textColor() }}>{summary}</Text>
                 )}
             </View>
-        </FormSection>
+        </TableRowGroup>
     );
 }
 
@@ -63,10 +62,10 @@ function EvalSection() {
     };
 
     return (
-        <FormSection title="Eval">
+        <TableRowGroup title="Eval">
             <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-                <FormInput
-                    title="Code"
+                <TextInput
+                    label="Code"
                     placeholder={'e.g. return findByProps("getRootNavigationRef")'}
                     value={code}
                     onChange={setCode}
@@ -98,7 +97,7 @@ function EvalSection() {
                     FluxDispatcher, and window. Nothing runs until you tap the button.
                 </Text>
             </View>
-        </FormSection>
+        </TableRowGroup>
     );
 }
 
@@ -125,16 +124,16 @@ function FluxLoggerSection() {
     };
 
     return (
-        <FormSection title="Flux event logger">
+        <TableRowGroup title="Flux event logger">
             <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-                <FormInput
-                    title="Filter (optional substring, e.g. GUILD)"
+                <TextInput
+                    label="Filter (optional substring, e.g. GUILD)"
                     placeholder="Leave blank to capture everything"
                     value={filter}
                     onChange={setFilter}
                 />
-                <FormInput
-                    title="Capture duration (seconds)"
+                <TextInput
+                    label="Capture duration (seconds)"
                     placeholder="10"
                     value={seconds}
                     onChange={setSeconds}
@@ -158,7 +157,7 @@ function FluxLoggerSection() {
                     instead of guessing from decompiled source.
                 </Text>
             </View>
-        </FormSection>
+        </TableRowGroup>
     );
 }
 
@@ -186,16 +185,16 @@ function RenderLoggerSection() {
     };
 
     return (
-        <FormSection title="Component render/props logger">
+        <TableRowGroup title="Component render/props logger">
             <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-                <FormInput
-                    title="Component name (findByTypeName / findByName)"
+                <TextInput
+                    label="Component name (findByTypeName / findByName)"
                     placeholder="e.g. YouBarNotificationsButton"
                     value={componentName}
                     onChange={setComponentName}
                 />
-                <FormInput title="Max renders to capture" placeholder="3" value={maxCalls} onChange={setMaxCalls} keyboardType="numeric" />
-                <FormInput title="Give up after (seconds)" placeholder="15" value={seconds} onChange={setSeconds} keyboardType="numeric" />
+                <TextInput label="Max renders to capture" placeholder="3" value={maxCalls} onChange={setMaxCalls} keyboardType="numeric" />
+                <TextInput label="Give up after (seconds)" placeholder="15" value={seconds} onChange={setSeconds} keyboardType="numeric" />
                 <PrimaryButton
                     label={capturing ? "Waiting for renders..." : "Start capture"}
                     style={{ marginTop: 8 }}
@@ -214,7 +213,7 @@ function RenderLoggerSection() {
                     property to intercept its own calls through.
                 </Text>
             </View>
-        </FormSection>
+        </TableRowGroup>
     );
 }
 
@@ -242,10 +241,10 @@ function RawSearchSection() {
     };
 
     return (
-        <FormSection title="Raw search (bypasses the negative-result cache)">
+        <TableRowGroup title="Raw search (bypasses the negative-result cache)">
             <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-                <FormInput
-                    title="rawFindByProps - comma-separated prop names"
+                <TextInput
+                    label="rawFindByProps - comma-separated prop names"
                     placeholder="e.g. getRootNavigationRef"
                     value={propQuery}
                     onChange={setPropQuery}
@@ -259,21 +258,21 @@ function RawSearchSection() {
                     }}
                 />
 
-                <FormInput title="rawFindByName" placeholder="e.g. YouBarNotificationsButton" value={nameQuery} onChange={setNameQuery} />
+                <TextInput label="rawFindByName" placeholder="e.g. YouBarNotificationsButton" value={nameQuery} onChange={setNameQuery} />
                 <PrimaryButton
                     label="Search & copy result"
                     style={{ marginTop: 8, marginBottom: 16 }}
                     onPress={() => nameQuery.trim() && run(`rawFindByName("${nameQuery.trim()}")`, () => rawFindByName(nameQuery.trim()))}
                 />
 
-                <FormInput title="rawFindByTypeName" placeholder="e.g. YouBarNotificationsButton" value={typeQuery} onChange={setTypeQuery} />
+                <TextInput label="rawFindByTypeName" placeholder="e.g. YouBarNotificationsButton" value={typeQuery} onChange={setTypeQuery} />
                 <PrimaryButton
                     label="Search & copy result"
                     style={{ marginTop: 8, marginBottom: 16 }}
                     onPress={() => typeQuery.trim() && run(`rawFindByTypeName("${typeQuery.trim()}")`, () => rawFindByTypeName(typeQuery.trim()))}
                 />
 
-                <FormInput title="rawFindByStoreName" placeholder="e.g. GuildStore" value={storeQuery} onChange={setStoreQuery} />
+                <TextInput label="rawFindByStoreName" placeholder="e.g. GuildStore" value={storeQuery} onChange={setStoreQuery} />
                 <PrimaryButton
                     label="Search & copy result"
                     style={{ marginTop: 8 }}
@@ -290,7 +289,7 @@ function RawSearchSection() {
                     that loads your target module will actually find it.
                 </Text>
             </View>
-        </FormSection>
+        </TableRowGroup>
     );
 }
 
@@ -362,7 +361,7 @@ function FiberCaptureSection() {
     };
 
     return (
-        <FormSection title="Fiber capture (for Eval)">
+        <TableRowGroup title="Fiber capture (for Eval)">
             <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
                 <View ref={captureRef} style={{ width: 1, height: 1 }} />
                 <Text style={{ fontSize: 12.5, opacity: 0.85, color: textColor() }} selectable>{status}</Text>
@@ -375,13 +374,13 @@ function FiberCaptureSection() {
                     module-registry guessing) from window.__keyInspectorFiberRoot afterward.
                 </Text>
             </View>
-        </FormSection>
+        </TableRowGroup>
     );
 }
 
 function ApiTreeSection() {
     return (
-        <FormSection title="Full Vendetta API tree">
+        <TableRowGroup title="Full Vendetta API tree">
             <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
                 <PrimaryButton
                     label="Copy the entire plugin API tree"
@@ -398,7 +397,7 @@ function ApiTreeSection() {
                     are searchable individually below, since dumping all of them would be enormous).
                 </Text>
             </View>
-        </FormSection>
+        </TableRowGroup>
     );
 }
 
@@ -477,10 +476,10 @@ function ManualSearchSection() {
     };
 
     return (
-        <FormSection title="One-off search">
+        <TableRowGroup title="One-off search">
             <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-                <FormInput
-                    title="findByProps - comma-separated prop names"
+                <TextInput
+                    label="findByProps - comma-separated prop names"
                     placeholder="e.g. sendMessage, sendBotMessage"
                     value={propQuery}
                     onChange={setPropQuery}
@@ -488,8 +487,8 @@ function ManualSearchSection() {
                 <PrimaryButton label="Search first match & copy" style={{ marginTop: 8 }} onPress={searchProps} />
                 <PrimaryButton label="Search ALL matches & copy" style={{ marginTop: 8, marginBottom: 16 }} onPress={searchPropsAll} />
 
-                <FormInput
-                    title="findByName - component name"
+                <TextInput
+                    label="findByName - component name"
                     placeholder="e.g. ThemedRolePill"
                     value={nameQuery}
                     onChange={setNameQuery}
@@ -504,7 +503,7 @@ function ManualSearchSection() {
                     component actually on screen).
                 </Text>
             </View>
-        </FormSection>
+        </TableRowGroup>
     );
 }
 

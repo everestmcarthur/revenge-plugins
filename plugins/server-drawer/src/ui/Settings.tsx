@@ -1,12 +1,11 @@
 import { React } from "@vendetta/metro/common";
 import { storage } from "@vendetta/plugin";
 import { useProxy } from "@vendetta/storage";
-import { Forms } from "@vendetta/ui/components";
+import { TableRowGroup, TableSwitchRow } from "@shared/ui/table";
 import SettingsScaffold from "./SettingsScaffold";
 import NoteBox from "./NoteBox";
 import { restart } from "../index";
 
-const { FormSection, FormSwitchRow } = Forms;
 
 export default function Settings() {
     useProxy(storage);
@@ -19,8 +18,8 @@ export default function Settings() {
                 menu, the chat bubble jumps to DMs, the + button creates or joins a server through
                 Discord's own modal, and the check button marks every channel in every server as read.
             </NoteBox>
-            <FormSection title="Layout">
-                <FormSwitchRow
+            <TableRowGroup title="Layout">
+                <TableSwitchRow
                     label="Hide the left server rail"
                     subLabel="Your servers and DMs already live in the drawer, so the rail is redundant"
                     value={storage.hideGuildsBar !== false}
@@ -29,39 +28,39 @@ export default function Settings() {
                         restart();
                     }}
                 />
-                <FormSwitchRow
+                <TableSwitchRow
                     label="Unread badges"
                     subLabel="Show mention counts and unread dots on server icons in the drawer"
                     value={storage.showUnreadBadges !== false}
                     onValueChange={(v: boolean) => { storage.showUnreadBadges = v; }}
                 />
-                <FormSwitchRow
+                <TableSwitchRow
                     label="Show server names"
                     subLabel="Word-wrapped name below each server's icon"
                     value={storage.showGuildNames !== false}
                     onValueChange={(v: boolean) => { storage.showGuildNames = v; }}
                 />
-                <FormSwitchRow
+                <TableSwitchRow
                     label="Hide the DMs tile"
                     subLabel="Remove the DMs tile from the drawer entirely"
                     value={!!storage.hideDmTile}
                     onValueChange={(v: boolean) => { storage.hideDmTile = v; }}
                 />
-            </FormSection>
-            <FormSection title="Folders">
-                <FormSwitchRow
+            </TableRowGroup>
+            <TableRowGroup title="Folders">
+                <TableSwitchRow
                     label="Auto-collapse other folders"
                     subLabel="Opening a folder collapses any other folder that was already open"
                     value={!!storage.autoCollapseFolders}
                     onValueChange={(v: boolean) => { storage.autoCollapseFolders = v; }}
                 />
-                <FormSwitchRow
+                <TableSwitchRow
                     label="Hide icons in collapsed folders"
                     subLabel="Show a plain folder icon instead of a 4-server preview"
                     value={!!storage.hideFolderIcons}
                     onValueChange={(v: boolean) => { storage.hideFolderIcons = v; }}
                 />
-            </FormSection>
+            </TableRowGroup>
             <NoteBox>
                 The folder options above are ported from fres621's BetterFolders - its other half
                 (hiding icons in the native left server rail) patched a component that no longer

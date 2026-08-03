@@ -1,6 +1,6 @@
 import { findByName, findByProps } from "@vendetta/metro";
 import { React, ReactNative, clipboard } from "@vendetta/metro/common";
-import { Forms } from "@vendetta/ui/components";
+import { TextInput } from "@shared/ui/table";
 import { showToast } from "@vendetta/ui/toasts";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 import { resolveSemanticColorSafe } from "@shared/lib/color";
@@ -17,7 +17,6 @@ const modalCloseButton =
 const Navigator = findByName("Navigator") ?? findByProps("Navigator")?.Navigator;
 
 const { View, Text, ScrollView, TouchableOpacity } = ReactNative;
-const { FormInput } = Forms;
 
 const PAGE_SIZE = 100;
 
@@ -172,8 +171,8 @@ function LogList() {
     return (
         <View style={{ flex: 1 }}>
             <View style={{ padding: 16 }}>
-                <FormInput
-                    title="Search"
+                <TextInput
+                    label="Search"
                     placeholder="Search content, author, channel/server/user ID..."
                     value={query}
                     onChange={setQuery}

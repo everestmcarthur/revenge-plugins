@@ -1,4 +1,4 @@
-import { Forms } from "@vendetta/ui/components";
+import { TableRow, TableRowGroup, TableSwitchRow } from "@shared/ui/table";
 import type { ComponentType, ReactNode } from "react";
 import type { ColorValue, PressableProps, ViewProps } from "react-native";
 
@@ -69,15 +69,6 @@ export interface FormRowProps extends Pick<ViewProps, "style">,
     hasError?: boolean | undefined;
 }
 
-export interface FormRadioProps {
-    selected?: boolean | undefined;
-}
-
-export interface FormRadioRowProps extends FormRadioProps, FormRowProps {
-    align?: "left" | "right";
-    value?: boolean | undefined;
-}
-
 export interface FormSwitchProps extends Pick<PressableProps, "accessible" | "accessibilityHint" | "accessibilityLabel" | "disabled" | "style"> {
     value?: boolean | undefined;
     onValueChange?: ((value: boolean) => void) | undefined;
@@ -90,19 +81,8 @@ export interface FormSwitchRowProps extends Pick<FormLabelProps, "numberOfLines"
     switchProps?: FormSwitchProps | undefined;
 }
 
-export interface FormCardSectionProps extends Pick<ViewProps, "accessibilityLabel" | "accessibilityRole" | "children" | "style"> {
-    title?: ReactNode;
-    headerComponent?: ReactNode;
-    titleStyle?: TextProps["style"];
-    cardStyle?: ViewProps["style"];
-}
+export const FormSection: ComponentType<FormSection> = TableRowGroup;
 
-export const FormSection: ComponentType<FormSection> = Forms.FormSection;
+export const FormRow: ComponentType<FormRowProps> = TableRow;
 
-export const FormRow: ComponentType<FormRowProps> = Forms.FormRow;
-
-export const FormRadioRow: ComponentType<FormRadioRowProps> = Forms.FormRadioRow;
-
-export const FormSwitchRow: ComponentType<FormSwitchRowProps> = Forms.FormSwitchRow;
-
-export const FormCardSection: ComponentType<FormCardSectionProps> = Forms.FormCardSection;
+export const FormSwitchRow: ComponentType<FormSwitchRowProps> = TableSwitchRow;

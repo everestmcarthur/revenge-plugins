@@ -1,7 +1,7 @@
 import { React, ReactNative } from "@vendetta/metro/common";
 import { useProxy } from "@vendetta/storage";
 import { storage } from "@vendetta/plugin";
-import { Forms } from "@vendetta/ui/components";
+import { TableRowGroup, TextInput } from "@shared/ui/table";
 import { showToast } from "@vendetta/ui/toasts";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import ListSection from "@shared/ui/ListSection";
@@ -9,7 +9,6 @@ import PrimaryButton from "@shared/ui/PrimaryButton";
 import { getSnippets, saveSnippet, deleteSnippet } from "../lib/snippets";
 
 const { View } = ReactNative;
-const { FormSection, FormInput } = Forms;
 
 function NewSnippetForm() {
     const [name, setName] = React.useState("");
@@ -18,8 +17,8 @@ function NewSnippetForm() {
 
     return (
         <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
-            <FormInput title="Name" placeholder="e.g. rules" value={name} onChange={setName} />
-            <FormInput title="Text" placeholder="What /snippet should send" value={text} onChange={setText} multiline />
+            <TextInput label="Name" placeholder="e.g. rules" value={name} onChange={setName} />
+            <TextInput label="Text" placeholder="What /snippet should send" value={text} onChange={setText} multiline />
             <PrimaryButton
                 label="Save snippet"
                 disabled={!canSave}
@@ -43,9 +42,9 @@ export default function Settings() {
 
     return (
         <SettingsScaffold>
-            <FormSection title="Add a snippet">
+            <TableRowGroup title="Add a snippet">
                 <NewSnippetForm />
-            </FormSection>
+            </TableRowGroup>
             <ListSection
                 title="Saved snippets"
                 emptyText="None yet. Add one above, then send it anywhere with /snippet name."

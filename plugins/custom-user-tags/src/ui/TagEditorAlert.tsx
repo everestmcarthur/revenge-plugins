@@ -1,12 +1,11 @@
 import { React, ReactNative } from "@vendetta/metro/common";
 import { findByProps } from "@vendetta/metro";
-import { Forms } from "@vendetta/ui/components";
+import { TextInput } from "@shared/ui/table";
 import { showToast } from "@vendetta/ui/toasts";
 import ColorInput from "@shared/ui/ColorInput";
 import { getUserTag, setUserTag, removeUserTag } from "../lib/tags";
 
 const { View } = ReactNative;
-const { FormInput } = Forms;
 
 const ALERT_KEY = "custom-user-tags-editor";
 
@@ -54,7 +53,7 @@ function TagEditor({ userId, username }: { userId: string; username: string }) {
             title={`Tag ${username}`}
             content={
                 <View>
-                    <FormInput title="Tag text" placeholder="e.g. FRIEND" value={text} onChange={setText} />
+                    <TextInput label="Tag text" placeholder="e.g. FRIEND" value={text} onChange={setText} />
                     <ColorInput title="Color" value={color} onChange={setColor} />
                 </View>
             }

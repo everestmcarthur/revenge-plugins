@@ -1,6 +1,6 @@
 import { React, ReactNative, clipboard } from "@vendetta/metro/common";
 import { useProxy } from "@vendetta/storage";
-import { Forms } from "@vendetta/ui/components";
+import { TableRowGroup, TableSwitchRow, TableRow, TextInput } from "@shared/ui/table";
 import { showToast } from "@vendetta/ui/toasts";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import NoteBox from "@shared/ui/NoteBox";
@@ -9,7 +9,6 @@ import modules from "../modules";
 import { ModuleCategory, vstorage, type AnyModule, type ModuleSetting } from "../lib/Module";
 
 const { View, Text, TouchableOpacity } = ReactNative;
-const { FormSection, FormSwitchRow, FormRow, FormInput } = Forms;
 
 // Raw Text below this point (the category header and bulk-action links) had no explicit color at
 // all - illegible black-on-black on Discord's dark theme, since RN's Text defaults to black with no
@@ -50,7 +49,7 @@ function ModuleSettingRow({ module, settingKey }: { module: AnyModule; settingKe
 
     if (setting.type === "toggle") {
         return (
-            <FormSwitchRow
+            <TableSwitchRow
                 label={setting.label}
                 subLabel={subLabel}
                 value={!!value}
@@ -65,7 +64,7 @@ function ModuleSettingRow({ module, settingKey }: { module: AnyModule; settingKe
 
     if (setting.type === "button") {
         return (
-            <FormRow
+            <TableRow
                 label={setting.label}
                 subLabel={subLabel}
                 disabled={disabled}
@@ -76,8 +75,8 @@ function ModuleSettingRow({ module, settingKey }: { module: AnyModule; settingKe
 
     if (setting.type === "text") {
         return (
-            <FormInput
-                title={setting.label}
+            <TextInput
+                label={setting.label}
                 placeholder={setting.placeholder}
                 value={typeof value === "string" ? value : ""}
                 editable={!disabled}
@@ -90,7 +89,7 @@ function ModuleSettingRow({ module, settingKey }: { module: AnyModule; settingKe
 
     // "choose" - cycles through choices on tap instead of a full picker sheet.
     return (
-        <FormRow
+        <TableRow
             label={setting.label}
             subLabel={[subLabel, value].filter(Boolean).join(" - ")}
             disabled={disabled}
@@ -116,8 +115,8 @@ function ModuleSection({ module }: { module: AnyModule }) {
     const errorEntries = Object.entries(module.errors);
 
     return (
-        <FormSection title={module.label}>
-            <FormSwitchRow
+        <TableRowGroup title={module.label}>
+            <TableSwitchRow
                 label="Enabled"
                 subLabel={module.meta.sublabel}
                 value={!!module.storage.enabled}
@@ -127,7 +126,7 @@ function ModuleSection({ module }: { module: AnyModule }) {
                 <ModuleSettingRow key={key} module={module} settingKey={key} />
             ))}
             {errorEntries.length > 0 && (
-                <FormRow
+                <TableRow
                     label={`${errorEntries.length} error${errorEntries.length === 1 ? "" : "s"} - tap to copy`}
                     onPress={() => {
                         const report = errorEntries.map(([label, stack]) => `[${module.label}] ${label}\n${stack}`).join("\n\n");
@@ -136,7 +135,7 @@ function ModuleSection({ module }: { module: AnyModule }) {
                     }}
                 />
             )}
-        </FormSection>
+        </TableRowGroup>
     );
 }
 
@@ -212,8 +211,8 @@ export default function Settings() {
             </NoteBox>
 
             <View style={{ paddingHorizontal: 16 }}>
-                <FormInput
-                    title="Search"
+                <TextInput
+                    label="Search"
                     placeholder="Search modules and settings..."
                     value={query}
                     onChange={setQuery}

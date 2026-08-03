@@ -3,25 +3,23 @@ import { useProxy } from "@vendetta/storage";
 import React from "react";
 import { ScrollView } from "react-native";
 
-import { FormRadioRow, FormRow, FormSection, FormSwitchRow } from "@fpte/ui/components/forms";
+import { FormSwitchRow } from "@fpte/ui/components/forms";
+import { TableRadioGroup, TableRadioRow, TableRowGroup } from "@shared/ui/table";
 
 export function Settings() {
     useProxy(storage);
 
     return (
         <ScrollView>
-            <FormSection title="Settings">
-                <FormRow label="Source to prioritize" />
-                <FormRadioRow
-                    label="Nitro"
-                    selected={!!storage.prioritizeNitro}
-                    onPress={() => { storage.prioritizeNitro = true; }}
-                />
-                <FormRadioRow
-                    label="About Me"
-                    selected={!storage.prioritizeNitro}
-                    onPress={() => { storage.prioritizeNitro = false; }}
-                />
+            <TableRowGroup title="Settings">
+                <TableRadioGroup
+                    title="Source to prioritize"
+                    value={storage.prioritizeNitro ? "nitro" : "about_me"}
+                    onChange={(value: string) => { storage.prioritizeNitro = value === "nitro"; }}
+                >
+                    <TableRadioRow label="Nitro" value="nitro" />
+                    <TableRadioRow label="About Me" value="about_me" />
+                </TableRadioGroup>
                 <FormSwitchRow
                     label="Hide Builder"
                     subLabel="Hide the FPTE Builder in the User Profile and Server Profiles settings pages"
@@ -33,7 +31,7 @@ export function Settings() {
                     value={!!storage.forceFallbackEffectPicker}
                     onValueChange={value => { storage.forceFallbackEffectPicker = value; }}
                 />
-            </FormSection>
+            </TableRowGroup>
         </ScrollView>
     );
 }
