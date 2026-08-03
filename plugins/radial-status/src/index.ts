@@ -8,9 +8,16 @@ let unpatchAll: () => void = () => {};
 
 export default {
     onLoad: () => {
-        // Enabled by default - see patches/ringPatch.ts for the confirmed-sizes whitelist this
-        // matches against (covers YouBar, profile, member list, and DM list contexts).
-        storage.enabled ??= true;
+        // Force-disabled this release (not just `??=`, since storage.enabled is already persisted as
+        // true on devices that had the previous version) - the size+childCount whitelist added for
+        // YouBar/profile/DM-list coverage turned out to also false-positive on guild icons in the
+        // server list sidebar (confirmed on-device: every guild icon got painted with a ring). Will
+        // stop force-disabling once a live capture pins down what actually distinguishes a real
+        // user-presence wrapper from a guild-icon wrapper that happens to share the same shape.
+        if (storage.forceDisabledV2 !== true) {
+            storage.enabled = false;
+            storage.forceDisabledV2 = true;
+        }
         storage.colors ??= {
             online: "#23A55A",
             idle: "#F0B232",
