@@ -6,6 +6,7 @@ import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import NoteBox from "@shared/ui/NoteBox";
 import PrimaryButton from "@shared/ui/PrimaryButton";
 import { rawFindByProps, rawFindByName, rawFindByTypeName, rawFindByStoreName } from "@shared/lib/rawFind";
+import { resolveSemanticColorSafe } from "@shared/lib/color";
 import { runAllChecks, formatReport } from "../lib/checks";
 import { dumpVendettaApiTree } from "../lib/apiTree";
 import { runEval } from "../lib/evalTool";
@@ -14,6 +15,10 @@ import { captureComponentRenders } from "../lib/renderLogger";
 
 const { View, Text } = ReactNative;
 const { FormSection, FormInput } = Forms;
+
+// Every raw Text below used to have no explicit color at all - illegible black-on-black on
+// Discord's dark theme, since RN's Text defaults to black with no theming of its own.
+const textColor = () => resolveSemanticColorSafe(["TEXT_NORMAL", "TEXT_DEFAULT"], "#dbdee1");
 
 function FullScanSection() {
     const [summary, setSummary] = React.useState<string | null>(null);
@@ -32,7 +37,7 @@ function FullScanSection() {
                     }}
                 />
                 {summary && (
-                    <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7 }}>{summary}</Text>
+                    <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7, color: textColor() }}>{summary}</Text>
                 )}
             </View>
         </FormSection>
@@ -77,11 +82,11 @@ function EvalSection() {
                     onPress={run}
                 />
                 {result != null && (
-                    <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.85 }} selectable>
+                    <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.85, color: textColor() }} selectable>
                         {result.length > 2000 ? `${result.slice(0, 2000)}\n... (truncated, full result copied)` : result}
                     </Text>
                 )}
-                <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7 }}>
+                <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7, color: textColor() }}>
                     Runs as a plain (non-async) function body - a bare expression or `return ...`
                     works, but not the async/await keywords (Hermes doesn't support those in
                     dynamically-eval'd code). For timed/async checks, return a Promise built with a
@@ -142,11 +147,11 @@ function FluxLoggerSection() {
                     onPress={capture}
                 />
                 {result != null && (
-                    <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.85 }} selectable>
+                    <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.85, color: textColor() }} selectable>
                         {result.length > 2000 ? `${result.slice(0, 2000)}\n... (truncated, full report copied)` : result}
                     </Text>
                 )}
-                <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7 }}>
+                <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7, color: textColor() }}>
                     Tap start, then go do the thing you're trying to understand (open a screen, send a
                     message, tap a button) before the window closes. Reports every action type that
                     dispatched, sorted by count - the fastest way to find which event to hook into
@@ -198,11 +203,11 @@ function RenderLoggerSection() {
                     onPress={capture}
                 />
                 {result != null && (
-                    <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.85 }} selectable>
+                    <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.85, color: textColor() }} selectable>
                         {result.length > 2000 ? `${result.slice(0, 2000)}\n... (truncated, full result copied)` : result}
                     </Text>
                 )}
-                <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7 }}>
+                <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7, color: textColor() }}>
                     Patches the component to log its actual props on every render, up to the call cap
                     or the time limit. Only works for React.memo/forwardRef-wrapped components (most
                     of what findByTypeName/findByName return) - a bare function component has no
@@ -275,7 +280,7 @@ function RawSearchSection() {
                     onPress={() => storeQuery.trim() && run(`rawFindByStoreName("${storeQuery.trim()}")`, () => rawFindByStoreName(storeQuery.trim()))}
                 />
 
-                <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7 }}>
+                <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7, color: textColor() }}>
                     Revenge's own findByProps/findByName/findByTypeName/findByStoreName cache a
                     negative result forever the first time a search comes up empty, and never rescan
                     - so if a module hasn't been required yet when you search, it can look "missing"
@@ -360,8 +365,8 @@ function FiberCaptureSection() {
         <FormSection title="Fiber capture (for Eval)">
             <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
                 <View ref={captureRef} style={{ width: 1, height: 1 }} />
-                <Text style={{ fontSize: 12.5, opacity: 0.85 }} selectable>{status}</Text>
-                <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7 }}>
+                <Text style={{ fontSize: 12.5, opacity: 0.85, color: textColor() }} selectable>{status}</Text>
+                <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7, color: textColor() }}>
                     Reads React's own internal fiber pointer directly off a native view instance -
                     works without React DevTools (confirmed absent on this build), since it's the
                     same internal linkage React itself relies on to route touch events, not an
@@ -387,7 +392,7 @@ function ApiTreeSection() {
                         showToast(`Copied ${lineCount} lines - every key path under window.vendetta`, undefined);
                     }}
                 />
-                <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7 }}>
+                <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7, color: textColor() }}>
                     Every key path under the stable plugin API (window.vendetta), 3 levels deep - this
                     is everything Revenge itself exposes to plugins, not Discord's raw internals (those
                     are searchable individually below, since dumping all of them would be enormous).
@@ -492,7 +497,7 @@ function ManualSearchSection() {
                 <PrimaryButton label="Search first match & copy" style={{ marginTop: 8 }} onPress={searchName} />
                 <PrimaryButton label="Search ALL matches & copy" style={{ marginTop: 8 }} onPress={searchNameAll} />
 
-                <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7 }}>
+                <Text style={{ marginTop: 8, fontSize: 12.5, opacity: 0.7, color: textColor() }}>
                     "ALL matches" is worth checking even when the first-match search succeeds - more
                     than one module matching the same name/props is a common source of "found the
                     wrong one" bugs (patching a re-export or an unrelated duplicate instead of the

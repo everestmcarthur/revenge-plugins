@@ -3,6 +3,7 @@ import { storage } from "@vendetta/plugin";
 import { useProxy } from "@vendetta/storage";
 import { Forms } from "@vendetta/ui/components";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
+import { resolveSemanticColorSafe } from "@shared/lib/color";
 import renderTimestamp, { TimestampMode } from "../lib/renderTimestamp";
 
 const { Text } = ReactNative;
@@ -31,7 +32,7 @@ export default function Settings() {
                             <FormRow
                                 label={mode.label}
                                 subLabel={preview}
-                                trailing={selected ? <Text style={{ fontSize: 16 }}>✓</Text> : undefined}
+                                trailing={selected ? <Text style={{ fontSize: 16, color: resolveSemanticColorSafe(["TEXT_NORMAL", "TEXT_DEFAULT"], "#dbdee1") }}>✓</Text> : undefined}
                                 onPress={() => { storage.selected = mode.key; }}
                             />
                             {mode.key === "custom" && selected && (
