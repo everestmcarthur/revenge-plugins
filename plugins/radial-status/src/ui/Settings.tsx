@@ -19,7 +19,7 @@ const STATUSES: { key: string; label: string; defaultColor?: string }[] = [
     { key: "offline", label: "Offline", defaultColor: "#80848E" }
 ];
 
-function numberInput(title: string, key: "ringMult" | "ringThickness", placeholder: string) {
+function numberInput(title: string, key: "ringThickness", placeholder: string) {
     return (
         <FormInput
             title={title}
@@ -68,8 +68,7 @@ export default function Settings() {
                 ))}
             </FormSection>
             <FormSection title="Ring size">
-                {numberInput("Size multiplier", "ringMult", "1.3")}
-                {numberInput("Ring thickness", "ringThickness", "2.5")}
+                {numberInput("Ring thickness", "ringThickness", "2")}
             </FormSection>
         </SettingsScaffold>
     );
