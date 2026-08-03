@@ -47,8 +47,14 @@ export default function patchRing(): () => void {
             if (!color) return; // no color configured for this status - leave the native dot alone
 
             const baseSize = wrapper.style[circleIdx].width;
-            const mult = storage.ringMult ?? 1.3;
-            const thickness = storage.ringThickness ?? 2.5;
+            // Growth is additive (a fixed number of px on each side), not a percentage multiplier -
+            // a flat multiplier applied the same 30% growth everywhere, which meant a much bigger
+            // ABSOLUTE size increase on large avatars (e.g. +24px at YouBar's 80px size) than on small
+            // ones (+9.6px at a 32px member-list row) even though the relative growth was identical.
+            // That's confirmed on-device as "slightly too big" on member list/profile and "way too big"
+            // on YouBar - additive growth keeps the ring the same absolute thickness everywhere instead.
+            const thickness = storage.ringThickness ?? 2;
+            const newSize = baseSize + thickness * 2;
 
             presenceProps.size = 0;
             presenceProps.isMobileOnline = false;
@@ -56,13 +62,13 @@ export default function patchRing(): () => void {
             if (userProps.cutout?.nativeCutouts?.[0]) userProps.cutout.nativeCutouts[0].size = 0;
 
             wrapper.style[circleIdx] = {
-                width: baseSize * mult,
-                height: baseSize * mult,
-                borderRadius: (baseSize / 2) * mult,
+                width: newSize,
+                height: newSize,
+                borderRadius: newSize / 2,
                 overflow: "hidden"
             };
             wrapper.style.push({
-                borderWidth: thickness * mult,
+                borderWidth: thickness,
                 borderColor: color,
                 borderStyle: "solid"
             });
