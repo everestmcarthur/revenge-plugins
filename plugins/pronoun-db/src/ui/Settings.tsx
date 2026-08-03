@@ -1,18 +1,17 @@
 import { React, ReactNative } from "@vendetta/metro/common";
-import { Forms } from "@vendetta/ui/components";
+import { TableRowGroup } from "@shared/ui/table";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import NoteBox from "@shared/ui/NoteBox";
 import PrimaryButton from "@shared/ui/PrimaryButton";
 
 const { View, Linking } = ReactNative;
-const { FormSection } = Forms;
 
 const PRONOUNDB_URL = "https://pronoundb.org/";
 
 export default function Settings() {
     return (
         <SettingsScaffold>
-            <FormSection title="How this works">
+            <TableRowGroup title="How this works">
                 <NoteBox>
                     This plugin doesn't have anything to configure here - there's no API key or toggle,
                     because pronouns aren't Discord data. They come from PronounDB, a separate service
@@ -27,7 +26,7 @@ export default function Settings() {
                 <View style={{ paddingHorizontal: 16, paddingTop: 4 }}>
                     <PrimaryButton label="Open pronoundb.org" onPress={() => Linking.openURL(PRONOUNDB_URL)} />
                 </View>
-            </FormSection>
+            </TableRowGroup>
         </SettingsScaffold>
     );
 }

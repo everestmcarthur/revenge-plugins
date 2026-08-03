@@ -1,13 +1,11 @@
 import { React } from "@vendetta/metro/common";
-import { Forms } from "@vendetta/ui/components";
+import { TableRowGroup, TableRow } from "@shared/ui/table";
 import { showToast } from "@vendetta/ui/toasts";
 import { clipboard } from "@vendetta/metro/common";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import NoteBox from "@shared/ui/NoteBox";
 import PrimaryButton from "@shared/ui/PrimaryButton";
 import { getLastDetection } from "../lib/diagnostics";
-
-const { FormSection, FormRow } = Forms;
 
 const STRATEGY_LABEL: Record<string, string> = {
     buttons: "Strategy 1 (button list) - working normally",
@@ -21,9 +19,9 @@ export default function Settings() {
 
     return (
         <SettingsScaffold>
-            <FormSection title="Diagnostics">
+            <TableRowGroup title="Diagnostics">
                 {detection ? (
-                    <FormRow
+                    <TableRow
                         label={STRATEGY_LABEL[detection.strategy] ?? detection.strategy}
                         subLabel={`Last checked ${new Date(detection.timestamp).toLocaleString()}${detection.detail ? ` - ${detection.detail}` : ""}`}
                     />
@@ -41,7 +39,7 @@ export default function Settings() {
                         showToast("Copied - paste this if you're reporting an issue", undefined);
                     }}
                 />
-            </FormSection>
+            </TableRowGroup>
             <NoteBox>
                 "View Raw" is added to the message long-press menu by detecting Discord's internal
                 action-sheet layout, which isn't an official API and can change between app versions.

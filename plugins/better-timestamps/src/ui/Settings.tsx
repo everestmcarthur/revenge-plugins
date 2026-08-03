@@ -1,13 +1,12 @@
 import { React, ReactNative, moment } from "@vendetta/metro/common";
 import { storage } from "@vendetta/plugin";
 import { useProxy } from "@vendetta/storage";
-import { Forms } from "@vendetta/ui/components";
+import { TableRow, TableRowGroup, TableSwitchRow, TextInput } from "@shared/ui/table";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import { resolveSemanticColorSafe } from "@shared/lib/color";
 import renderTimestamp, { TimestampMode } from "../lib/renderTimestamp";
 
 const { Text } = ReactNative;
-const { FormSection, FormRow, FormDivider, FormSwitchRow, FormInput } = Forms;
 
 const MODES: { label: string; key: TimestampMode }[] = [
     { label: "Calendar", key: "calendar" },
@@ -21,41 +20,40 @@ export default function Settings() {
 
     return (
         <SettingsScaffold>
-            <FormSection title="Format">
-                {MODES.map((mode, i) => {
+            <TableRowGroup title="Format">
+                {MODES.map((mode) => {
                     const selected = storage.selected === mode.key;
                     let preview = "";
                     try { preview = renderTimestamp(moment(), mode.key); } catch { preview = ""; }
 
                     return (
                         <React.Fragment key={mode.key}>
-                            <FormRow
+                            <TableRow
                                 label={mode.label}
                                 subLabel={preview}
                                 trailing={selected ? <Text style={{ fontSize: 16, color: resolveSemanticColorSafe(["TEXT_NORMAL", "TEXT_DEFAULT"], "#dbdee1") }}>✓</Text> : undefined}
                                 onPress={() => { storage.selected = mode.key; }}
                             />
                             {mode.key === "custom" && selected && (
-                                <FormInput
-                                    title="Custom format (moment.js tokens)"
+                                <TextInput
+                                    label="Custom format (moment.js tokens)"
                                     placeholder="dddd, MMMM Do YYYY, h:mm:ss a"
                                     value={storage.customFormat}
                                     onChange={(v: string) => { storage.customFormat = v; }}
                                 />
                             )}
-                            {i !== MODES.length - 1 && <FormDivider />}
                         </React.Fragment>
                     );
                 })}
-            </FormSection>
-            <FormSection title="Layout">
-                <FormSwitchRow
+            </TableRowGroup>
+            <TableRowGroup title="Layout">
+                <TableSwitchRow
                     label="Always show name & avatar"
                     subLabel="Shows the username, avatar, and timestamp on every message instead of grouping consecutive messages"
                     value={!!storage.separateMessages}
                     onValueChange={(v: boolean) => { storage.separateMessages = v; }}
                 />
-            </FormSection>
+            </TableRowGroup>
         </SettingsScaffold>
     );
 }

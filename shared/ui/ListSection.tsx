@@ -1,9 +1,8 @@
 import { React, ReactNative } from "@vendetta/metro/common";
-import { Forms } from "@vendetta/ui/components";
+import { TableRow, TableRowGroup } from "./table";
 import NoteBox from "./NoteBox";
 
 const { Text } = ReactNative;
-const { FormSection, FormRow } = Forms;
 
 export interface ListItem {
     key: string;
@@ -19,12 +18,12 @@ export interface ListItem {
  */
 export default function ListSection({ title, items, emptyText }: { title: string; items: ListItem[]; emptyText: string }) {
     return (
-        <FormSection title={title}>
+        <TableRowGroup title={title}>
             {items.length === 0 ? (
                 <NoteBox>{emptyText}</NoteBox>
             ) : (
                 items.map((item) => (
-                    <FormRow
+                    <TableRow
                         key={item.key}
                         label={item.label}
                         subLabel={item.subLabel}
@@ -33,6 +32,6 @@ export default function ListSection({ title, items, emptyText }: { title: string
                     />
                 ))
             )}
-        </FormSection>
+        </TableRowGroup>
     );
 }

@@ -1,14 +1,15 @@
 import { showToast } from "@vendetta/ui/toasts";
 import { findByProps } from "@vendetta/metro";
 import React, { useMemo, useState, useEffect } from "react";
-import { View, Text } from "react-native";
+import { View } from "react-native";
 import { buildFPTE, hasFPTE, stripFPTE } from "@fpte/lib/fpte";
 import { type ProfileEffectConfig, UserStore, UserProfileStore } from "@fpte/lib/stores";
 import { useAccentColor, usePrimaryColor, useShowPreview } from "@fpte/patches/patchUseProfileTheme";
 import { showColorPicker, showEffectPicker } from "@fpte/ui/actionSheets";
 import { resolveSemanticColorSafe, useAvatarColors, useThemeContext } from "@fpte/ui/color";
 import { BuilderButton, Button, StaticEffect } from "@fpte/ui/components";
-import { FormCardSection, FormSwitchRow } from "@fpte/ui/components/forms";
+import { FormSwitchRow } from "@fpte/ui/components/forms";
+import { TableRowGroup } from "@shared/ui/table";
 
 const UserProfileActionCreators = findByProps("saveProfileChanges");
 
@@ -103,23 +104,7 @@ export function Builder({ guildId }: BuilderProps) {
     const applyButtonVisible = hasSelection || fpteActive;
 
     return (
-        <FormCardSection
-            title={
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Text style={{ fontSize: 16, color: "#FFFFFF" }}>FPTE Builder</Text>
-                    <Text
-                        style={{
-                            color: fpteActive ? "#4CAF50" : "#F44336",
-                            fontSize: 17,
-                            marginLeft: 8,
-                        }}
-                    >
-                        {fpteActive ? "Active" : "Inactive"}
-                    </Text>
-                </View>
-            }
-            cardStyle={{ backgroundColor: "transparent" }}
-        >
+        <TableRowGroup title={`FPTE Builder — ${fpteActive ? "Active" : "Inactive"}`}>
             <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                 <BuilderButton
                     fgColor={fgColor}
@@ -183,6 +168,6 @@ export function Builder({ guildId }: BuilderProps) {
                 value={buildLegacy}
                 onValueChange={setBuildLegacy}
             /> */}
-        </FormCardSection>
+        </TableRowGroup>
     );
 }

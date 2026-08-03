@@ -1,7 +1,7 @@
 import { React, ReactNative } from "@vendetta/metro/common";
 import { useProxy } from "@vendetta/storage";
 import { storage } from "@vendetta/plugin";
-import { Forms } from "@vendetta/ui/components";
+import { TableRowGroup, TextInput } from "@shared/ui/table";
 import { showToast } from "@vendetta/ui/toasts";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import ListSection from "@shared/ui/ListSection";
@@ -11,7 +11,6 @@ import NoteBox from "@shared/ui/NoteBox";
 import { allTags, setUserTag, removeUserTag } from "../lib/tags";
 
 const { View } = ReactNative;
-const { FormSection, FormInput } = Forms;
 
 function AddTagForm() {
     const [userId, setUserId] = React.useState("");
@@ -21,13 +20,13 @@ function AddTagForm() {
 
     return (
         <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
-            <FormInput
-                title="User ID"
+            <TextInput
+                label="User ID"
                 placeholder="long-press a user in Discord's own menu and Copy ID"
                 value={userId}
                 onChange={setUserId}
             />
-            <FormInput title="Tag text" placeholder="e.g. FRIEND" value={text} onChange={setText} />
+            <TextInput label="Tag text" placeholder="e.g. FRIEND" value={text} onChange={setText} />
             <ColorInput title="Color" value={color} onChange={setColor} />
             <PrimaryButton
                 label="Save tag"
@@ -57,9 +56,9 @@ export default function Settings() {
                 one here by user ID - turn on Developer Mode (Discord Settings → Advanced) to get a
                 "Copy ID" option when you long-press a user elsewhere.
             </NoteBox>
-            <FormSection title="Add a tag">
+            <TableRowGroup title="Add a tag">
                 <AddTagForm />
-            </FormSection>
+            </TableRowGroup>
             <ListSection
                 title="Tagged users"
                 emptyText="No one's tagged yet."

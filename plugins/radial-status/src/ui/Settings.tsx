@@ -1,12 +1,10 @@
 import { React } from "@vendetta/metro/common";
 import { useProxy } from "@vendetta/storage";
 import { storage } from "@vendetta/plugin";
-import { Forms } from "@vendetta/ui/components";
+import { TableRowGroup, TextInput, TableSwitchRow } from "@shared/ui/table";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import ColorInput from "@shared/ui/ColorInput";
 import NoteBox from "@shared/ui/NoteBox";
-
-const { FormSection, FormInput, FormSwitchRow } = Forms;
 
 // The ring patch itself does a generic colors[status] lookup, not one hardcoded to three statuses -
 // offline just needed its own configurable entry here to work the same way the other three already
@@ -21,8 +19,8 @@ const STATUSES: { key: string; label: string; defaultColor?: string }[] = [
 
 function numberInput(title: string, key: "ringThickness", placeholder: string) {
     return (
-        <FormInput
-            title={title}
+        <TextInput
+            label={title}
             placeholder={placeholder}
             value={String(storage[key] ?? placeholder)}
             onChange={(v: string) => {
@@ -33,6 +31,7 @@ function numberInput(title: string, key: "ringThickness", placeholder: string) {
         />
     );
 }
+
 
 export default function Settings() {
     useProxy(storage);
@@ -47,14 +46,14 @@ export default function Settings() {
                 avatar sizes seen in each of those contexts, so other unrelated circular UI elements are
                 left alone.
             </NoteBox>
-            <FormSection title="Enable">
-                <FormSwitchRow
+            <TableRowGroup title="Enable">
+                <TableSwitchRow
                     label="Draw ring around avatars"
                     value={!!storage.enabled}
                     onValueChange={(v: boolean) => { storage.enabled = v; }}
                 />
-            </FormSection>
-            <FormSection title="Ring colors">
+            </TableRowGroup>
+            <TableRowGroup title="Ring colors">
                 {STATUSES.map(({ key, label, defaultColor }) => (
                     <ColorInput
                         key={key}
@@ -66,10 +65,10 @@ export default function Settings() {
                         }}
                     />
                 ))}
-            </FormSection>
-            <FormSection title="Ring size">
+            </TableRowGroup>
+            <TableRowGroup title="Ring size">
                 {numberInput("Ring thickness", "ringThickness", "2")}
-            </FormSection>
+            </TableRowGroup>
         </SettingsScaffold>
     );
 }
