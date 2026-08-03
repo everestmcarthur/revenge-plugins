@@ -8,10 +8,10 @@ let unpatchAll: () => void = () => {};
 
 export default {
     onLoad: () => {
-        // Off by default - see the note in patches/ringPatch.ts. Confirmed on-device to corrupt
-        // member list rows and the profile status indicator, and to never match YouBar's own
-        // indicator at all - being re-diagnosed properly before this defaults back on.
-        storage.enabled ??= false;
+        // Re-enabled by default - see the note in patches/ringPatch.ts. The earlier corruption came
+        // from this repo's own broadened wrapper-size match, not upstream's original narrow one,
+        // which is confirmed working live on Revenge as-is.
+        storage.enabled ??= true;
         storage.colors ??= {
             online: "#23A55A",
             idle: "#F0B232",

@@ -3,35 +3,25 @@ import { before } from "@vendetta/patcher";
 import { storage } from "@vendetta/plugin";
 
 /**
- * Forked from AngelW0lf's Radial Status (BSD-3-Clause, see LICENSE). The upstream original matched
- * one hardcoded wrapper size (exactly 32x32, borderRadius 16) - generalized here to any square,
- * fully-circular wrapper (borderRadius === width / 2) instead, since avatar sizes differ across
- * member lists, DM lists, and profile popouts, and the two structural checks right below (a `user`
- * prop with a string id, a `status` prop) already confirm this is the right element regardless of
- * its exact pixel size.
- *
- * Not independently re-verified against a live decompiled build the way the rest of this repo's
- * fixes are - this is a straight-line adaptation of upstream's own (previously working, per its
- * changelog) logic. Every assumption below is guarded, so a shape mismatch just means the ring
- * doesn't draw for that avatar, not a crash.
+ * Forked from AngelW0lf's Radial Status (BSD-3-Clause, see LICENSE). This repo's own first attempt
+ * "generalized" upstream's exact wrapper-size check (32x32, borderRadius 16) to any square,
+ * fully-circular wrapper, on the theory that avatar sizes differ across contexts - that broadened
+ * match turned out to false-positive on unrelated Views (confirmed on-device: it visibly corrupted
+ * member list rows and the profile status indicator, and never matched YouBar's own indicator at
+ * all). The user was separately running upstream's own unmodified build live on Revenge with none
+ * of those problems, which means the narrow exact-size check was never the issue - reverted to it
+ * here instead of the broadened guess.
  */
 export default function patchRing(): () => void {
     if (!General?.View) return () => {};
 
     return before("render", General.View, (args: any[]) => {
         try {
-            // Off by default - the broadened circle match below turned out to false-positive on
-            // unrelated Views in the member list (confirmed by on-device testing: it visibly
-            // corrupted member list rows and the profile status indicator, and never matched
-            // YouBar's own indicator at all), so this no longer runs unless explicitly turned on
-            // while it's being properly re-diagnosed with live capture data.
-            if (!storage.enabled) return;
-
             const [wrapper] = args;
             if (!wrapper || !Array.isArray(wrapper.style)) return;
 
             const circleIdx = wrapper.style.findIndex(
-                (s: any) => s && typeof s.width === "number" && s.width === s.height && s.borderRadius === s.width / 2
+                (s: any) => s && s.width === 32 && s.height === 32 && s.borderRadius === 16
             );
             if (circleIdx === -1) return;
 

@@ -36,14 +36,12 @@ export default function Settings() {
     return (
         <SettingsScaffold>
             <NoteBox>
-                Off by default right now - the current matching logic was confirmed to corrupt member
-                list rows and the profile status indicator, and to miss YouBar's own indicator
-                entirely. Being properly re-diagnosed; only turn this on if you're helping test it.
+                Replaces the small presence dot on an avatar with a colored ring instead, per status
+                below. Leave a status blank to keep showing the normal dot for it.
             </NoteBox>
             <FormSection title="Enable">
                 <FormSwitchRow
                     label="Draw ring around avatars"
-                    subLabel="Known broken right now - see the note above"
                     value={!!storage.enabled}
                     onValueChange={(v: boolean) => { storage.enabled = v; }}
                 />
