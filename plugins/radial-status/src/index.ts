@@ -8,9 +8,8 @@ let unpatchAll: () => void = () => {};
 
 export default {
     onLoad: () => {
-        // Re-enabled by default - see the note in patches/ringPatch.ts. The earlier corruption came
-        // from this repo's own broadened wrapper-size match, not upstream's original narrow one,
-        // which is confirmed working live on Revenge as-is.
+        // Enabled by default - see patches/ringPatch.ts for the confirmed-sizes whitelist this
+        // matches against (covers YouBar, profile, member list, and DM list contexts).
         storage.enabled ??= true;
         storage.colors ??= {
             online: "#23A55A",

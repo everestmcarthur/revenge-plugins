@@ -4,14 +4,20 @@ import { storage } from "@vendetta/plugin";
 
 /**
  * Forked from AngelW0lf's Radial Status (BSD-3-Clause, see LICENSE). This repo's own first attempt
- * "generalized" upstream's exact wrapper-size check (32x32, borderRadius 16) to any square,
+ * "generalized" upstream's exact wrapper-size check (32x32, borderRadius 16 only) to any square,
  * fully-circular wrapper, on the theory that avatar sizes differ across contexts - that broadened
- * match turned out to false-positive on unrelated Views (confirmed on-device: it visibly corrupted
- * member list rows and the profile status indicator, and never matched YouBar's own indicator at
- * all). The user was separately running upstream's own unmodified build live on Revenge with none
- * of those problems, which means the narrow exact-size check was never the issue - reverted to it
- * here instead of the broadened guess.
+ * match visibly corrupted member list rows and the profile status indicator on-device, and still
+ * never matched YouBar's own indicator at all.
+ *
+ * Confirmed live via Key Inspector's Eval console (a capture across YouBar, the profile screen,
+ * member lists, and DM lists) exactly which sizes are real presence-carrying wrappers: 24, 32, 40,
+ * 50, 60, and 80 (all square, all borderRadius === width/2, all with a `user.id` string + a
+ * `status` string on children[1]/[3], and every single one with exactly 5 children) - so this now
+ * matches that confirmed set specifically, plus the same child-count check every real one shared,
+ * rather than either the overly narrow single-size check or the overly broad any-circle one.
  */
+const CONFIRMED_SIZES = new Set([24, 32, 40, 50, 60, 80]);
+
 export default function patchRing(): () => void {
     if (!General?.View) return () => {};
 
@@ -19,9 +25,15 @@ export default function patchRing(): () => void {
         try {
             const [wrapper] = args;
             if (!wrapper || !Array.isArray(wrapper.style)) return;
+            if (!Array.isArray(wrapper.children) || wrapper.children.length !== 5) return;
 
             const circleIdx = wrapper.style.findIndex(
-                (s: any) => s && s.width === 32 && s.height === 32 && s.borderRadius === 16
+                (s: any) =>
+                    s &&
+                    typeof s.width === "number" &&
+                    s.width === s.height &&
+                    s.borderRadius === s.width / 2 &&
+                    CONFIRMED_SIZES.has(s.width)
             );
             if (circleIdx === -1) return;
 
