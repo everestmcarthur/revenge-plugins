@@ -1,5 +1,5 @@
 import { React, ReactNative } from "@vendetta/metro/common";
-import { isValidHex } from "../lib/color";
+import { isValidHex, resolveSemanticColorSafe } from "../lib/color";
 
 const { View, Text, TextInput, TouchableOpacity } = ReactNative;
 
@@ -24,6 +24,9 @@ interface ColorInputProps {
 export default function ColorInput({ title, value, placeholder, onChange }: ColorInputProps) {
     const valid = !value || isValidHex(value);
     const swatchColor = isValidHex(value) ? value : (isValidHex(placeholder) ? placeholder : "#5865F2");
+    // Same missing-color bug as NoteBox - Text with no explicit color defaults to black, illegible
+    // on Discord's dark theme.
+    const textColor = resolveSemanticColorSafe(["TEXT_NORMAL", "TEXT_DEFAULT"], "#dbdee1");
 
     return (
         <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
@@ -39,7 +42,7 @@ export default function ColorInput({ title, value, placeholder, onChange }: Colo
                         borderColor: "rgba(128,128,128,0.35)"
                     }}
                 />
-                <Text style={{ fontSize: 15, fontWeight: "600" }}>{title}</Text>
+                <Text style={{ fontSize: 15, fontWeight: "600", color: textColor }}>{title}</Text>
             </View>
             <TextInput
                 value={value ?? ""}
@@ -47,6 +50,7 @@ export default function ColorInput({ title, value, placeholder, onChange }: Colo
                 onChangeText={onChange}
                 autoCapitalize="none"
                 autoCorrect={false}
+                placeholderTextColor="rgba(128,128,128,0.6)"
                 style={{
                     borderWidth: 1,
                     borderColor: valid ? "rgba(128,128,128,0.35)" : "#F23F42",
@@ -54,7 +58,8 @@ export default function ColorInput({ title, value, placeholder, onChange }: Colo
                     paddingHorizontal: 10,
                     paddingVertical: 8,
                     fontSize: 14,
-                    marginBottom: 8
+                    marginBottom: 8,
+                    color: textColor
                 }}
             />
             <View style={{ flexDirection: "row", flexWrap: "wrap" }}>

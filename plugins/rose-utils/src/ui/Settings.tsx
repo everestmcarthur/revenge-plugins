@@ -1,13 +1,20 @@
 import { React, ReactNative, clipboard } from "@vendetta/metro/common";
+import { useProxy } from "@vendetta/storage";
 import { Forms } from "@vendetta/ui/components";
 import { showToast } from "@vendetta/ui/toasts";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import NoteBox from "@shared/ui/NoteBox";
+import { resolveSemanticColorSafe } from "@shared/lib/color";
 import modules from "../modules";
-import { ModuleCategory, type AnyModule, type ModuleSetting } from "../lib/Module";
+import { ModuleCategory, vstorage, type AnyModule, type ModuleSetting } from "../lib/Module";
 
 const { View, Text, TouchableOpacity } = ReactNative;
 const { FormSection, FormSwitchRow, FormRow, FormInput } = Forms;
+
+// Raw Text below this point (the category header and bulk-action links) had no explicit color at
+// all - illegible black-on-black on Discord's dark theme, since RN's Text defaults to black with no
+// theming of its own. Same resolveSemanticColorSafe fallback-chain pattern used everywhere else.
+const textColor = () => resolveSemanticColorSafe(["TEXT_NORMAL", "TEXT_DEFAULT"], "#dbdee1");
 
 function resolveSubLabel(setting: ModuleSetting, value: any): string | undefined {
     return typeof setting.subLabel === "function" ? setting.subLabel(value) : setting.subLabel;
@@ -98,6 +105,13 @@ function ModuleSettingRow({ module, settingKey }: { module: AnyModule; settingKe
 
 function ModuleSection({ module }: { module: AnyModule }) {
     module.useRefresh();
+    // Belt and suspenders alongside the custom refresh() pub-sub above: module.storage.enabled is
+    // read for the switch's `value` prop right below, and useProxy is the same storage-reactivity
+    // mechanism every other plugin's settings screen in this repo already relies on for a toggle to
+    // visually update immediately - this repo's own custom listeners system covers module.errors
+    // too (plain in-memory state, not part of storage, so useProxy alone can't see it), which is
+    // why that mechanism exists at all rather than being replaceable by useProxy outright.
+    useProxy(module.storage);
 
     const errorEntries = Object.entries(module.errors);
 
@@ -151,16 +165,16 @@ function CategoryHeader({
             }}
         >
             <TouchableOpacity onPress={onToggleCollapse} style={{ flexDirection: "row", alignItems: "center", flexShrink: 1 }}>
-                <Text style={{ fontSize: 12, fontWeight: "700", opacity: 0.6 }}>
+                <Text style={{ fontSize: 12, fontWeight: "700", opacity: 0.6, color: textColor() }}>
                     {collapsed ? "▸" : "▾"} {category.toUpperCase()} · {enabledCount}/{mods.length}
                 </Text>
             </TouchableOpacity>
             <View style={{ flexDirection: "row" }}>
                 <TouchableOpacity onPress={() => setModulesEnabled(mods, true)}>
-                    <Text style={{ fontSize: 12, fontWeight: "600", opacity: 0.6 }}>All</Text>
+                    <Text style={{ fontSize: 12, fontWeight: "600", opacity: 0.6, color: textColor() }}>All</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setModulesEnabled(mods, false)} style={{ marginLeft: 16 }}>
-                    <Text style={{ fontSize: 12, fontWeight: "600", opacity: 0.6 }}>None</Text>
+                    <Text style={{ fontSize: 12, fontWeight: "600", opacity: 0.6, color: textColor() }}>None</Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -210,12 +224,12 @@ export default function Settings() {
 
             <View style={{ flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: 16, paddingTop: 8 }}>
                 <TouchableOpacity onPress={() => setModulesEnabled(allVisible, true)}>
-                    <Text style={{ fontSize: 13, fontWeight: "600", opacity: 0.75 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "600", opacity: 0.75, color: textColor() }}>
                         Enable {searching ? "matching" : "all"}
                     </Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setModulesEnabled(allVisible, false)} style={{ marginLeft: 16 }}>
-                    <Text style={{ fontSize: 13, fontWeight: "600", opacity: 0.75 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "600", opacity: 0.75, color: textColor() }}>
                         Disable {searching ? "matching" : "all"}
                     </Text>
                 </TouchableOpacity>

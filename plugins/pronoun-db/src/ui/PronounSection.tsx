@@ -1,5 +1,6 @@
 import { React, ReactNative } from "@vendetta/metro/common";
 import { findByName } from "@vendetta/metro";
+import { resolveSemanticColorSafe } from "@shared/lib/color";
 import { fetchPronouns, getCachedPronouns } from "../lib/pronounStore";
 
 const { Text } = ReactNative;
@@ -12,9 +13,13 @@ export default function PronounSection({ userId }: { userId: string }) {
 
     if (!pronouns || !UserProfileSection) return null;
 
+    // Had no explicit color at all - illegible black-on-black on Discord's dark theme, since RN's
+    // Text defaults to black with no theming of its own.
+    const textColor = resolveSemanticColorSafe(["TEXT_NORMAL", "TEXT_DEFAULT"], "#dbdee1");
+
     return (
         <UserProfileSection title="Pronouns">
-            <Text style={{ fontSize: 16 }}>{pronouns}</Text>
+            <Text style={{ fontSize: 16, color: textColor }}>{pronouns}</Text>
         </UserProfileSection>
     );
 }
