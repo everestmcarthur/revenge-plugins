@@ -10,9 +10,25 @@ const TAG = "[ServerDrawer]";
 // capture point inside ServerDrawerSheet.tsx itself, which is guaranteed to mount whenever the
 // drawer is visibly showing). Kept here too as a second chance, harmless either way.
 function Nothing() {
+    // Use the same aggressive collapse style as createElementIntercept's COLLAPSE_STYLE so that
+    // the replaced element itself takes up zero space while still mounting a ref for fiber capture.
+    // Keeping a mounted element with zero size lets us capture the fiber without leaving a visible
+    // 1px gap on the left rail.
     return React.createElement(View, {
         ref: captureFiberRef,
-        style: { width: 1, height: 1 },
+        style: {
+            display: "none",
+            width: 0,
+            minWidth: 0,
+            maxWidth: 0,
+            flexGrow: 0,
+            flexShrink: 0,
+            flexBasis: 0,
+            margin: 0,
+            padding: 0,
+            borderWidth: 0,
+            overflow: "hidden",
+        },
     });
 }
 
@@ -49,8 +65,11 @@ function isGuildsBar(type: any): boolean {
  * whenever the rail would normally repaint - renders nothing instead.
  */
 export function patchHideGuildsBar(cleanups: (() => void)[]): boolean {
-    registerTypeDetector(isGuildsBar, (realGuildsBar) => {
-        registerIntercept(realGuildsBar, Nothing);
+    // Use a stable string key so duplicate registrations from retry loops are deduped correctly.
+    registerTypeDetector("ServerDrawer.HideGuildsBar", isGuildsBar, (realGuildsBar) => {
+        // Ask createElementIntercept to collapse a few ancestor levels as well so wrapper
+        // containers around the rail don't leave a leftover gap.
+        registerIntercept(realGuildsBar, Nothing, undefined, { collapseAncestors: 3 });
         console.log(TAG, "PATCH: found a real GuildsBar reference, now rendering nothing");
     }, { persistent: true });
     cleanups.push(() => {
