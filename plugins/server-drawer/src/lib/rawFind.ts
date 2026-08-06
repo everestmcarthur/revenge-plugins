@@ -17,37 +17,6 @@
 // code to naturally reach the module we want.
 declare const window: any;
 
-/**
- * Every match, not just the first. Needed because "the first module that looks like the JSX
- * runtime" is not necessarily the only one - a Metro bundle can carry several
- * copies/re-exports of * react/jsx-runtime (plus a separate jsx-dev-runtime), and Discord's own
- * chunks are not guaranteed to all import the same one. Patching only the first match silently
- * leaves every element created through any other copy un-interceptable, which looks exactly like
- * "the patch works sometimes."
- */
-export function rawFindAll<T = any>(predicate: (exports: any) => boolean): T[] {
-    const modules = window?.modules;
-    if (!modules) return [];
-
-    const out: T[] = [];
-    for (const id in modules) {
-        const def = modules[id];
-        if (!def?.isInitialized) continue;
-
-        const exports = def.publicModule?.exports;
-        if (!exports) continue;
-
-        try {
-            if (predicate(exports)) out.push(exports);
-            else if (exports.default != null && predicate(exports.default)) out.push(exports.default);
-        } catch {
-            // A predicate throwing on one module's shape shouldn't stop the scan.
-        }
-    }
-
-    return out;
-}
-
 export function rawFind<T = any>(predicate: (exports: any) => boolean): T | undefined {
     const modules = window?.modules;
     if (!modules) return undefined;
