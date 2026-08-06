@@ -71,6 +71,59 @@ export function rawFindAll<T = any>(predicate: (exports: any) => boolean): T[] {
     return results;
 }
 
+/**
+ * Async batched scan: does the same as rawFindAll but yields between batches so the UI thread
+ * isn't blocked for long. Returns a Promise of the matching exports array.
+ */
+export async function rawFindAllAsync<T = any>(
+    predicate: (exports: any) => boolean,
+    opts?: { batchSize?: number; pauseMs?: number; maxProcessed?: number },
+): Promise<T[]> {
+    const modules = window?.modules;
+    if (!modules) return [];
+
+    const keys = Object.keys(modules);
+    const batchSize = opts?.batchSize ?? 200;
+    const pauseMs = opts?.pauseMs ?? 0; // 0 uses setTimeout(...,0) to yield
+    const maxProcessed = opts?.maxProcessed ?? Infinity;
+
+    const results: T[] = [];
+    const seen = new Set<any>();
+    let processed = 0;
+
+    for (let i = 0; i < keys.length; i += batchSize) {
+        const end = Math.min(i + batchSize, keys.length);
+        for (let j = i; j < end; j++) {
+            if (processed++ >= maxProcessed) return results;
+            const def = modules[keys[j]];
+            if (!def?.isInitialized) continue;
+            const exports = def.publicModule?.exports;
+            if (!exports) continue;
+            try {
+                if (predicate(exports) && !seen.has(exports)) {
+                    results.push(exports as any);
+                    seen.add(exports);
+                }
+                const dflt = exports.default;
+                if (dflt != null && predicate(dflt) && !seen.has(dflt)) {
+                    results.push(dflt as any);
+                    seen.add(dflt);
+                }
+            } catch {
+                // ignore
+            }
+        }
+        // yield to event loop so UI can update
+        if (pauseMs === 0) {
+            await new Promise((r) => setTimeout(r, 0));
+        } else if (pauseMs > 0) {
+            await new Promise((r) => setTimeout(r, pauseMs));
+        }
+    }
+
+    return results;
+}
+
 export function rawFindByTypeName<T = any>(name: string): T | undefined {
     return rawFind<T>((m) => m?.name === name || m?.displayName === name || m?.type?.name === name || m?.type?.displayName === name);
 }
