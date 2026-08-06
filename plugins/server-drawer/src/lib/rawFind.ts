@@ -39,6 +39,38 @@ export function rawFind<T = any>(predicate: (exports: any) => boolean): T | unde
     return undefined;
 }
 
+export function rawFindAll<T = any>(predicate: (exports: any) => boolean): T[] {
+    const modules = window?.modules;
+    if (!modules) return [];
+
+    const results: T[] = [];
+    const seen = new Set<any>();
+
+    for (const id in modules) {
+        const def = modules[id];
+        if (!def?.isInitialized) continue;
+
+        const exports = def.publicModule?.exports;
+        if (!exports) continue;
+
+        try {
+            if (predicate(exports) && !seen.has(exports)) {
+                results.push(exports);
+                seen.add(exports);
+            }
+            const dflt = exports.default;
+            if (dflt != null && predicate(dflt) && !seen.has(dflt)) {
+                results.push(dflt);
+                seen.add(dflt);
+            }
+        } catch {
+            // Ignore predicate errors and continue scanning.
+        }
+    }
+
+    return results;
+}
+
 export function rawFindByTypeName<T = any>(name: string): T | undefined {
     return rawFind<T>((m) => m?.name === name || m?.displayName === name || m?.type?.name === name || m?.type?.displayName === name);
 }
