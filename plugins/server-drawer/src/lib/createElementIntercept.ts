@@ -1,10 +1,15 @@
 import { React } from "@vendetta/metro/common";
-import { rawFind } from "./rawFind";
-import { waitFor } from "./waitFor";
+import { rawFindAll } from "./rawFind";
 
 interface Intercept {
     replacement: React.ComponentType<any>;
     extraProps?: Record<string, any>;
+    /**
+     * How many ancestor levels above this element are allowed to be collapsed to zero size along
+     * with it (0 = none). See `COLLAPSE_STYLE` below for why replacing a component with one that
+     * renders nothing is, on its own, not enough to reclaim its space.
+     */
+    collapseAncestors?: number;
 }
 
 interface PropsIntercept {
@@ -18,6 +23,7 @@ interface PropsTransform {
 }
 
 interface TypeDetector {
+    key: string;
     predicate: (type: any) => boolean;
     onDetected: (type: any) => void;
     persistent: boolean;
@@ -27,14 +33,45 @@ const intercepts = new Map<React.ComponentType<any>, Intercept>();
 const propsIntercepts: PropsIntercept[] = [];
 const propsTransforms: PropsTransform[] = [];
 let typeDetectors: TypeDetector[] = [];
+const detectorKeys = new Set<string>();
 let isPatched = false;
+
+/**
+ * A React element created for something we're hiding, mapped to how many more ancestor levels may
+ * still be collapsed with it. Elements are plain objects and are created child-first (a parent's
+ * jsx() call can only run once its children exist), so a mark placed on a child is always already
+ * present by the time the parent's own call is intercepted - which is what makes walking the
+ * collapse *upward* possible at element-creation time at all.
+ */
+const collapseMarks = new WeakMap<object, number>();
+
+/**
+ * Zeroes an element out in every direction a parent could have sized it. `display: "none"` alone
+ * is enough on Yoga, but the explicit width/flex zeroes also cover a container that sets its
+ * child's size through a style array further up, and `overflow: hidden` stops anything absolutely
+ * positioned inside from still painting.
+ */
+const COLLAPSE_STYLE = {
+    display: "none" as const,
+    width: 0,
+    minWidth: 0,
+    maxWidth: 0,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 0,
+    margin: 0,
+    padding: 0,
+    borderWidth: 0,
+    overflow: "hidden" as const,
+};
 
 export function registerIntercept(
     original: React.ComponentType<any>,
     replacement: React.ComponentType<any>,
     extraProps?: Record<string, any>,
+    options?: { collapseAncestors?: number },
 ) {
-    intercepts.set(original, { replacement, extraProps });
+    intercepts.set(original, { replacement, extraProps, collapseAncestors: options?.collapseAncestors });
 }
 
 /**
@@ -79,6 +116,12 @@ export function registerPropsTransform(predicate: (props: any) => boolean, trans
  * this component as `type`, that reference already exists and is already the real one about to be
  * used - there's no way to observe the call any earlier than this.
  *
+ * `key` deduplicates registrations. index.ts retries any patch that hasn't landed yet every 200ms
+ * for ~10s, and each of those retries used to append another copy of the same detector - up to ~50
+ * duplicates per patch, every one of them re-tested against the `type` of every element created
+ * anywhere in the app, during the exact window (cold boot) where the drawer is trying to appear
+ * quickly. Registering under a key makes a retry a no-op instead.
+ *
  * `persistent` (default false, one-shot): keeps watching and firing `onDetected` again for every
  * later match too, instead of stopping after the first. Needed when the component's own type
  * reference isn't a stable session-long singleton - confirmed live for GuildsBar, whose reference
@@ -87,16 +130,24 @@ export function registerPropsTransform(predicate: (props: any) => boolean, trans
  * registered for the old, now-abandoned reference while the new one renders unmodified.
  */
 export function registerTypeDetector(
+    key: string,
     predicate: (type: any) => boolean,
     onDetected: (type: any) => void,
     options?: { persistent?: boolean },
 ) {
-    typeDetectors.push({ predicate, onDetected, persistent: options?.persistent ?? false });
+    if (detectorKeys.has(key)) return;
+    detectorKeys.add(key);
+    typeDetectors.push({ key, predicate, onDetected, persistent: options?.persistent ?? false });
+}
+
+export function hasTypeDetector(key: string): boolean {
+    return detectorKeys.has(key);
 }
 
 function runTypeDetectors(type: any) {
     if (typeDetectors.length === 0) return;
-    const remaining: TypeDetector[] = [];
+
+    let consumed = false;
     for (const detector of typeDetectors) {
         let matched = false;
         try {
@@ -104,22 +155,60 @@ function runTypeDetectors(type: any) {
         } catch {
             // A bad predicate shouldn't block every other detector or every element from rendering.
         }
-        if (matched) {
-            try {
-                detector.onDetected(type);
-            } catch {
-                // Same - a detector's own handler throwing shouldn't take anything else down.
-            }
-            if (detector.persistent) remaining.push(detector);
-        } else {
-            remaining.push(detector);
+        if (!matched) continue;
+
+        try {
+            detector.onDetected(type);
+        } catch {
+            // Same - a detector's own handler throwing shouldn't take anything else down.
         }
+        if (!detector.persistent) consumed = true;
     }
-    typeDetectors = remaining;
+
+    // Only rebuild the list when a one-shot detector actually fired. The previous version rebuilt
+    // it on every single element creation app-wide, forever, because the GuildsBar detector is
+    // persistent and so the list is never empty - an allocation per element on the hottest path in
+    // the entire app.
+    if (consumed) {
+        typeDetectors = typeDetectors.filter((d) => d.persistent || !d.justFired);
+    }
+}
+
+// Marking is done out-of-band so the filter above stays a pure predicate.
+declare module "./createElementIntercept" {}
+interface TypeDetector { justFired?: boolean }
+
+/**
+ * Returns the collapse depth a parent element should inherit from its children, or 0 for "leave
+ * this element alone."
+ *
+ * Only collapses a parent that has this element as its *only* child. That guard is the whole
+ * safety story here: a wrapper whose sole content is the server rail is, by definition, only there
+ * to size and position the rail, so zeroing it is correct. A container that also holds the channel
+ * list or the rest of the guilds screen has other children, propagation stops there, and the rest
+ * of the UI is untouched.
+ */
+function inheritedCollapseDepth(props: any): number {
+    const children = props?.children;
+    if (children == null) return 0;
+
+    if (Array.isArray(children)) {
+        let only: any = null;
+        for (const child of children) {
+            if (child == null || child === false) continue;
+            if (only) return 0; // more than one real child - not a rail-only wrapper
+            only = child;
+        }
+        if (!only) return 0;
+        return (typeof only === "object" ? collapseMarks.get(only) : 0) ?? 0;
+    }
+
+    if (typeof children !== "object") return 0;
+    return collapseMarks.get(children) ?? 0;
 }
 
 /** Returns a replacement type if this element should be intercepted, `null` to render nothing, or `undefined` to pass through unchanged. */
-function resolveReplacement(type: any, props: any): { type: any; props: any } | null | undefined {
+function resolveReplacement(type: any, props: any): { type: any; props: any; collapse?: number } | null | undefined {
     runTypeDetectors(type);
 
     let effectiveProps = props;
@@ -149,7 +238,23 @@ function resolveReplacement(type: any, props: any): { type: any; props: any } | 
 
     const entry = intercepts.get(type);
     if (entry) {
-        return { type: entry.replacement, props: entry.extraProps ? { ...effectiveProps, ...entry.extraProps } : effectiveProps };
+        return {
+            type: entry.replacement,
+            props: entry.extraProps ? { ...effectiveProps, ...entry.extraProps } : effectiveProps,
+            collapse: entry.collapseAncestors,
+        };
+    }
+
+    // Nothing to swap here, but if this element's only child is one we've already collapsed, this
+    // element is a wrapper that exists purely to hold it - zero it out too and pass the remaining
+    // budget further up.
+    const inherited = inheritedCollapseDepth(effectiveProps);
+    if (inherited > 0) {
+        return {
+            type,
+            props: { ...effectiveProps, style: [effectiveProps?.style, COLLAPSE_STYLE] },
+            collapse: inherited - 1,
+        };
     }
 
     if (effectiveProps !== props) {
@@ -157,6 +262,23 @@ function resolveReplacement(type: any, props: any): { type: any; props: any } | 
     }
 
     return undefined;
+}
+
+function makeWrapper(orig: Function, thisArg: any) {
+    return function (this: any, type: any, props: any, ...rest: any[]) {
+        const resolved = resolveReplacement(type, props);
+        if (resolved === null) return null;
+
+        if (resolved) {
+            const el = orig.call(thisArg ?? this, resolved.type, resolved.props, ...rest);
+            if (resolved.collapse && resolved.collapse > 0 && el && typeof el === "object") {
+                collapseMarks.set(el, resolved.collapse);
+            }
+            return el;
+        }
+
+        return orig.call(thisArg ?? this, type, props, ...rest);
+    };
 }
 
 export function patchCreateElement(cleanups: (() => void)[]) {
@@ -168,58 +290,82 @@ export function patchCreateElement(cleanups: (() => void)[]) {
         return;
     }
 
-    const patchedCreateElement = function (type: any, props: any, ...rest: any[]) {
-        const resolved = resolveReplacement(type, props);
-        if (resolved === null) return null;
-        if (resolved) return origCreateElement.call(React, resolved.type, resolved.props, ...rest);
-        return origCreateElement.call(React, type, props, ...rest);
-    };
-
+    const patchedCreateElement = makeWrapper(origCreateElement, React);
     Object.assign(patchedCreateElement, origCreateElement);
     React.createElement = patchedCreateElement as typeof React.createElement;
     isPatched = true;
 
     // Modern React/RN builds (Discord's included) compile JSX through the automatic runtime
-    // (jsx/jsxs from react/jsx-runtime) instead of React.createElement - patching only
-    // createElement misses every one of Discord's own render calls entirely. Found by shape
+    // (jsx/jsxs/jsxDEV from react/jsx-runtime) instead of React.createElement - patching only
+    // createElement misses effectively every one of Discord's own render calls. Found by shape
     // (jsx/jsxs/Fragment together), not by name, for the same reason everything else in this file
     // avoids name-based lookups.
     //
-    // The jsx-runtime lookup is retried (not a single one-shot rawFind) because if that module
-    // hasn't been required yet at the exact moment this runs - very early in boot, when a plugin's
-    // onLoad first calls this - jsx/jsxs would never get patched for the rest of the session at
-    // all, silently. Since Discord renders almost everything through jsx/jsxs and not
-    // createElement, that would make every registerTypeDetector/registerPropsIntercept consumer's
-    // patch a near-total no-op whenever that race was lost.
+    // Two changes over the previous version, both of which were causing the drawer to show up only
+    // sometimes:
+    //
+    // 1. ALL matching runtime modules get patched, not just the first one rawFind returned. A
+    //    bundle can hold more than one copy of the runtime, and any chunk importing a copy we
+    //    didn't patch renders completely uninterceptable elements.
+    // 2. The scan keeps running instead of stopping at the first success. Metro registers modules
+    //    lazily, so a runtime copy belonging to a chunk that hasn't been required yet at boot
+    //    simply does not exist to be found at that moment - the old one-shot waitFor resolved off
+    //    the first copy and never looked again, permanently missing every copy registered later.
     const restoreJsx: (() => void)[] = [];
-    const jsxHandle = waitFor(
-        () => rawFind((m: any) => typeof m?.jsx === "function" && typeof m?.jsxs === "function" && "Fragment" in m),
-        (jsxRuntime: any) => {
-            for (const key of ["jsx", "jsxs"] as const) {
-                const orig = jsxRuntime[key];
+    const patchedRuntimes = new WeakSet<object>();
+
+    const scan = () => {
+        const runtimes = rawFindAll<any>(
+            (m: any) => typeof m?.jsx === "function" && typeof m?.jsxs === "function" && "Fragment" in m,
+        );
+
+        for (const runtime of runtimes) {
+            if (patchedRuntimes.has(runtime)) continue;
+            patchedRuntimes.add(runtime);
+
+            for (const key of ["jsx", "jsxs", "jsxDEV"] as const) {
+                const orig = runtime[key];
                 if (typeof orig !== "function") continue;
 
-                jsxRuntime[key] = function (type: any, props: any, ...rest: any[]) {
-                    const resolved = resolveReplacement(type, props);
-                    if (resolved === null) return null;
-                    if (resolved) return orig.call(this, resolved.type, resolved.props, ...rest);
-                    return orig.call(this, type, props, ...rest);
-                };
-                restoreJsx.push(() => { jsxRuntime[key] = orig; });
+                runtime[key] = makeWrapper(orig, undefined);
+                restoreJsx.push(() => { runtime[key] = orig; });
             }
         }
-    );
+    };
+
+    scan();
+
+    // Fast while the app is still booting and chunks are being pulled in, then slow, then stop -
+    // a full window.modules walk is not free and there's nothing left to catch once the UI has
+    // settled.
+    let ticks = 0;
+    let timer: ReturnType<typeof setInterval> | undefined = setInterval(function tick() {
+        scan();
+        if (++ticks === 50 && timer) { // ~5s at 100ms
+            clearInterval(timer);
+            timer = setInterval(() => {
+                scan();
+                if (++ticks >= 75 && timer) { // + ~25s at 1s
+                    clearInterval(timer);
+                    timer = undefined;
+                }
+            }, 1000);
+        }
+    }, 100);
 
     cleanups.push(() => {
-        jsxHandle.cancel();
+        if (timer) clearInterval(timer);
+        timer = undefined;
         if (isPatched) {
             React.createElement = origCreateElement;
             isPatched = false;
         }
         restoreJsx.forEach((fn) => fn());
+        restoreJsx.length = 0;
         intercepts.clear();
         propsIntercepts.length = 0;
         propsTransforms.length = 0;
         typeDetectors = [];
+        detectorKeys.clear();
     });
 }
