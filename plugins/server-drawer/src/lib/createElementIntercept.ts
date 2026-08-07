@@ -216,7 +216,7 @@ function resolveReplacement(type: any, props: any, rest: any[]): { type: any; pr
     if (effectiveProps) {
         for (const { predicate, transform } of propsTransforms) {
             try {
-                if (predicate(effectiveProps, type)) {
+                if (predicate(effectiveProps, type, rest)) {
                     effectiveProps = transform(effectiveProps);
                 }
             } catch {
@@ -228,7 +228,7 @@ function resolveReplacement(type: any, props: any, rest: any[]): { type: any; pr
     if (effectiveProps) {
         for (const { predicate, replacement } of propsIntercepts) {
             try {
-                if (predicate(effectiveProps, type)) {
+                if (predicate(effectiveProps, type, rest)) {
                     return replacement ? { type: replacement, props: effectiveProps } : null;
                 }
             } catch {
@@ -333,7 +333,7 @@ export function patchCreateElement(cleanups: (() => void)[]) {
     // This is synchronous because the race we're fixing is specifically the first QuestDock render:
     // an async scan completes too late and the element is created through an unpatched runtime.
     const initialRuntimes = rawFindAll<any>(
-        (m: any) => typeof m?.jsx === "function" && typeof m?.jsxs === "function",
+        (m: any) => typeof m?.jsx === "function" || typeof m?.jsxs === "function" || typeof m?.jsxDEV === "function",
     );
     for (const runtime of initialRuntimes) {
         patchRuntime(runtime);
@@ -344,7 +344,7 @@ export function patchCreateElement(cleanups: (() => void)[]) {
         scanning = true;
 
         rawFindAllAsync<any>(
-            (m: any) => typeof m?.jsx === "function" && typeof m?.jsxs === "function",
+            (m: any) => typeof m?.jsx === "function" || typeof m?.jsxs === "function" || typeof m?.jsxDEV === "function",
         ).then((runtimes) => {
             for (const runtime of runtimes) {
                 patchRuntime(runtime);

@@ -37,6 +37,18 @@ function isQuestDock(type: any): boolean {
     return QUEST_DOCK_NAMES.some((name) => isNamed(name)(type));
 }
 
+const SD_DRAWER_TEST_ID = "ServerDrawer";
+
+function hasChildWithTestID(children: any, rest: any[], testID: string): boolean {
+    const inspect = (child: any) => child != null && typeof child === "object" && child.props?.testID === testID;
+    if (children != null) {
+        if (Array.isArray(children)) { if (children.some(inspect)) return true; }
+        else if (inspect(children)) return true;
+    }
+    for (const child of rest) if (inspect(child)) return true;
+    return false;
+}
+
 function ServerDrawerSheetWrapper() {
     return <ServerDrawerSheet gestureContext={getGestureContext()} />;
 }
@@ -63,7 +75,9 @@ export function patchExpanded(cleanups: (() => void)[]): boolean {
     // Make the quest dock's wrapper(s) transparent - the ServerDrawerSheet content still renders on
     // top, but the panel/drawer background that used to be behind the quest menu is removed.
     registerPropsTransform(
-        (_props: any, type: any) => questDockTypes.has(type),
+        (props: any, type: any, rest: any[]) =>
+            questDockTypes.has(type) ||
+            hasChildWithTestID(props?.children, rest, SD_DRAWER_TEST_ID),
         (props: any) => ({ ...props, style: [props?.style, { backgroundColor: "transparent" }] }),
     );
 
@@ -73,7 +87,7 @@ export function patchExpanded(cleanups: (() => void)[]): boolean {
     }, { persistent: true });
 
     registerTypeDetector("ServerDrawer.Expanded", isNamed("QuestDockContentExpanded"), (real) => {
-        registerIntercept(real, ServerDrawerSheetWrapper);
+        registerIntercept(real, ServerDrawerSheetWrapper, { testID: SD_DRAWER_TEST_ID });
         console.log(TAG, "PATCH: QuestDockContentExpanded replaced (type detector)");
     }, { persistent: true });
 
@@ -84,7 +98,7 @@ export function patchExpanded(cleanups: (() => void)[]): boolean {
     }
 
     const orig = mod.type;
-    registerIntercept(orig, ServerDrawerSheetWrapper);
+    registerIntercept(orig, ServerDrawerSheetWrapper, { testID: SD_DRAWER_TEST_ID });
     mod.type = ServerDrawerSheetWrapper;
     cleanups.push(() => { mod.type = orig; });
     console.log(TAG, "PATCH: QuestDockContentExpanded replaced (module mutation)");

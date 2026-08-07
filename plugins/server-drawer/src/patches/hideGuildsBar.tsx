@@ -1,9 +1,10 @@
 import React from "react";
 import { View } from "react-native";
-import { registerTypeDetector, registerIntercept } from "../lib/createElementIntercept";
+import { registerPropsTransform, registerTypeDetector, registerIntercept } from "../lib/createElementIntercept";
 import { captureFiberRef } from "../lib/fiberCapture";
 
 const TAG = "[ServerDrawer]";
+const SD_NOTHING_TEST_ID = "ServerDrawerNothing";
 
 // Whether this capture point actually mounts depends entirely on whether the intercept below
 // fires (unverified independently of it - see lib/fiberCapture.ts for the primary, confirmed
@@ -64,12 +65,30 @@ function isGuildsBar(type: any): boolean {
  * so every future creation of it - which happens on every re-render of GuildsBar's parent, i.e.
  * whenever the rail would normally repaint - renders nothing instead.
  */
+function hasChildWithTestID(children: any, rest: any[], testID: string): boolean {
+    const inspect = (child: any) => child != null && typeof child === "object" && child.props?.testID === testID;
+    if (children != null) {
+        if (Array.isArray(children)) { if (children.some(inspect)) return true; }
+        else if (inspect(children)) return true;
+    }
+    for (const child of rest) if (inspect(child)) return true;
+    return false;
+}
+
 export function patchHideGuildsBar(cleanups: (() => void)[]): boolean {
+    // Hard-enforce the GuildsBar parent's visibility by detecting the hidden Nothing child and
+    // applying display: none to the rail wrapper itself.
+    registerPropsTransform(
+        (props: any, _type: any, rest: any[]) =>
+            hasChildWithTestID(props?.children, rest, SD_NOTHING_TEST_ID),
+        (props: any) => ({ ...props, style: [props?.style, { display: "none" }] }),
+    );
+
     // Use a stable string key so duplicate registrations from retry loops are deduped correctly.
     registerTypeDetector("ServerDrawer.HideGuildsBar", isGuildsBar, (realGuildsBar) => {
         // Ask createElementIntercept to collapse a few ancestor levels as well so wrapper
         // containers around the rail don't leave a leftover gap.
-        registerIntercept(realGuildsBar, Nothing, undefined, { collapseAncestors: 6 });
+        registerIntercept(realGuildsBar, Nothing, { testID: SD_NOTHING_TEST_ID }, { collapseAncestors: 6 });
         console.log(TAG, "PATCH: found a real GuildsBar reference, now rendering nothing");
     }, { persistent: true });
     cleanups.push(() => {
