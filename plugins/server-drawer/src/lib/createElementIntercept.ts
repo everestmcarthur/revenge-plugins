@@ -1,5 +1,4 @@
 import { React } from "@vendetta/metro/common";
-import { rawFindAll, rawFindAllAsync } from "./rawFind";
 
 interface Intercept {
     replacement: React.ComponentType<any>;
@@ -313,48 +312,80 @@ export function patchCreateElement(cleanups: (() => void)[]) {
     //    simply does not exist to be found at that moment - the old one-shot waitFor resolved off
     //    the first copy and never looked again, permanently missing every copy registered later.
     const restoreJsx: (() => void)[] = [];
-    const patchedRuntimes = new WeakSet<object>();
-    let scanning = false;
+    const patchedJsxRuntimes = new WeakSet<any>();
 
-    function patchRuntime(runtime: any) {
-        if (patchedRuntimes.has(runtime)) return;
-        patchedRuntimes.add(runtime);
+    function isJsxRuntime(m: any): boolean {
+        return typeof m?.jsx === "function" || typeof m?.jsxs === "function" || typeof m?.jsxDEV === "function";
+    }
 
+    function patchJsxObject(runtime: any) {
+        if (patchedJsxRuntimes.has(runtime)) return;
+        patchedJsxRuntimes.add(runtime);
         for (const key of ["jsx", "jsxs", "jsxDEV"] as const) {
             const orig = runtime[key];
             if (typeof orig !== "function") continue;
-
-            runtime[key] = makeWrapper(orig, undefined);
+            runtime[key] = makeWrapper(orig, runtime);
             restoreJsx.push(() => { runtime[key] = orig; });
+        }
+    }
+
+    function wrapJsxFunction(runtime: any): any {
+        const wrappedJsx = makeWrapper(runtime, runtime);
+        for (const key of ["jsxs", "jsxDEV"] as const) {
+            const orig = runtime[key];
+            if (typeof orig === "function") {
+                wrappedJsx[key] = makeWrapper(orig, runtime);
+            }
+        }
+        if ("Fragment" in runtime) {
+            wrappedJsx.Fragment = runtime.Fragment;
+        }
+        return wrappedJsx;
+    }
+
+    function patchJsxModule(def: any) {
+        if (!def?.publicModule?.exports) return;
+        const exports = def.publicModule.exports;
+
+        try {
+            if (typeof exports === "function" && isJsxRuntime(exports) && !patchedJsxRuntimes.has(exports)) {
+                patchedJsxRuntimes.add(exports);
+                const wrapped = wrapJsxFunction(exports);
+                def.publicModule.exports = wrapped;
+                restoreJsx.push(() => { def.publicModule.exports = exports; });
+            } else if (isJsxRuntime(exports) && !patchedJsxRuntimes.has(exports)) {
+                patchedJsxRuntimes.add(exports);
+                patchJsxObject(exports);
+            }
+
+            const dflt = exports.default;
+            if (dflt != null && typeof dflt === "function" && isJsxRuntime(dflt) && !patchedJsxRuntimes.has(dflt)) {
+                patchedJsxRuntimes.add(dflt);
+                const wrapped = wrapJsxFunction(dflt);
+                exports.default = wrapped;
+                restoreJsx.push(() => { exports.default = dflt; });
+            }
+        } catch {
+            // Ignore one module's bad shape and continue scanning.
+        }
+    }
+
+    function scanAndPatchJsxRuntimes() {
+        const modules = (window as any)?.modules;
+        if (!modules) return;
+        for (const id in modules) {
+            const def = modules[id];
+            if (!def?.isInitialized) continue;
+            patchJsxModule(def);
         }
     }
 
     // Patch any jsx runtimes already loaded before Discord's first render pass starts.
     // This is synchronous because the race we're fixing is specifically the first QuestDock render:
     // an async scan completes too late and the element is created through an unpatched runtime.
-    const initialRuntimes = rawFindAll<any>(
-        (m: any) => typeof m?.jsx === "function" || typeof m?.jsxs === "function" || typeof m?.jsxDEV === "function",
-    );
-    for (const runtime of initialRuntimes) {
-        patchRuntime(runtime);
-    }
+    scanAndPatchJsxRuntimes();
 
-    const scan = () => {
-        if (scanning) return;
-        scanning = true;
-
-        rawFindAllAsync<any>(
-            (m: any) => typeof m?.jsx === "function" || typeof m?.jsxs === "function" || typeof m?.jsxDEV === "function",
-        ).then((runtimes) => {
-            for (const runtime of runtimes) {
-                patchRuntime(runtime);
-            }
-        }).catch((e: any) => {
-            console.error("[ServerDrawer] rawFindAllAsync error", e);
-        }).finally(() => {
-            scanning = false;
-        });
-    };
+    const scan = () => { scanAndPatchJsxRuntimes(); };
 
     scan();
 
