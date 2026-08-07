@@ -45,7 +45,7 @@ function ServerDrawerSheetWrapper() {
  * when the race is won, and still shows correctly even when it's lost.
  */
 export function patchExpanded(cleanups: (() => void)[]): boolean {
-    registerTypeDetector(isNamed("QuestDockContentExpanded"), (real) => {
+    registerTypeDetector("ServerDrawer.Expanded", isNamed("QuestDockContentExpanded"), (real) => {
         registerIntercept(real, ServerDrawerSheetWrapper);
         console.log(TAG, "PATCH: QuestDockContentExpanded replaced (type detector)");
     });
@@ -65,7 +65,7 @@ export function patchExpanded(cleanups: (() => void)[]): boolean {
 }
 
 export function patchEmpty(name: string, cleanups: (() => void)[]): boolean {
-    registerTypeDetector(isNamed(name), (real) => {
+    registerTypeDetector(`ServerDrawer.Empty.${name}`, isNamed(name), (real) => {
         registerIntercept(real, function EmptyPatch() { return null; });
         console.log(TAG, `PATCH: ${name} replaced (type detector)`);
     });
