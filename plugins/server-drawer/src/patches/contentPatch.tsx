@@ -1,7 +1,7 @@
 import { React } from "@vendetta/metro/common";
 import { rawFind } from "../lib/rawFind";
 import ServerDrawerSheet from "../components/ServerDrawerSheet";
-import { registerIntercept, registerTypeDetector } from "../lib/createElementIntercept";
+import { registerIntercept, registerPropsTransform, registerTypeDetector } from "../lib/createElementIntercept";
 
 const TAG = "[ServerDrawer]";
 
@@ -22,6 +22,19 @@ function getGestureContext(): any {
 function isNamed(name: string) {
     return (type: any) => type?.name === name || type?.displayName === name ||
         type?.type?.name === name || type?.type?.displayName === name;
+}
+
+const QUEST_DOCK_NAMES = [
+    "QuestDock",
+    "QuestDockBase",
+    "QuestDockWithQuestContext",
+    "QuestDockMain",
+    "QuestDockContent",
+    "QuestDockExpanded",
+];
+
+function isQuestDock(type: any): boolean {
+    return QUEST_DOCK_NAMES.some((name) => isNamed(name)(type));
 }
 
 function ServerDrawerSheetWrapper() {
@@ -45,6 +58,20 @@ function ServerDrawerSheetWrapper() {
  * when the race is won, and still shows correctly even when it's lost.
  */
 export function patchExpanded(cleanups: (() => void)[]): boolean {
+    const questDockTypes = new Set<any>();
+
+    // Make the quest dock's wrapper(s) transparent - the ServerDrawerSheet content still renders on
+    // top, but the panel/drawer background that used to be behind the quest menu is removed.
+    registerPropsTransform(
+        (_props: any, type: any) => questDockTypes.has(type),
+        (props: any) => ({ ...props, style: [props?.style, { backgroundColor: "transparent" }] }),
+    );
+
+    registerTypeDetector("ServerDrawer.QuestDockBg", isQuestDock, (real) => {
+        questDockTypes.add(real);
+        console.log(TAG, "PATCH: QuestDock wrapper set transparent", real?.name ?? real?.displayName);
+    }, { persistent: true });
+
     registerTypeDetector("ServerDrawer.Expanded", isNamed("QuestDockContentExpanded"), (real) => {
         registerIntercept(real, ServerDrawerSheetWrapper);
         console.log(TAG, "PATCH: QuestDockContentExpanded replaced (type detector)");
