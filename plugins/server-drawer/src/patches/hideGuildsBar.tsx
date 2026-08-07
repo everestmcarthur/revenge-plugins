@@ -69,7 +69,7 @@ export function patchHideGuildsBar(cleanups: (() => void)[]): boolean {
     registerTypeDetector("ServerDrawer.HideGuildsBar", isGuildsBar, (realGuildsBar) => {
         // Ask createElementIntercept to collapse a few ancestor levels as well so wrapper
         // containers around the rail don't leave a leftover gap.
-        registerIntercept(realGuildsBar, Nothing, undefined, { collapseAncestors: 3 });
+        registerIntercept(realGuildsBar, Nothing, undefined, { collapseAncestors: 6 });
         console.log(TAG, "PATCH: found a real GuildsBar reference, now rendering nothing");
     }, { persistent: true });
     cleanups.push(() => {

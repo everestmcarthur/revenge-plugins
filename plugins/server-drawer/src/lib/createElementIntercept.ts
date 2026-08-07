@@ -182,25 +182,22 @@ interface TypeDetector { justFired?: boolean }
  * Returns the collapse depth a parent element should inherit from its children, or 0 for "leave
  * this element alone."
  *
- * Only collapses a parent that has this element as its *only* child. That guard is the whole
- * safety story here: a wrapper whose sole content is the server rail is, by definition, only there
- * to size and position the rail, so zeroing it is correct. A container that also holds the channel
- * list or the rest of the guilds screen has other children, propagation stops there, and the rest
- * of the UI is untouched.
+ * Returns the *maximum* collapse budget among real children. Previously this guarded against parents
+ * with multiple children, but the live GuildsBar rail has sibling wrappers (avatar/dm tile) inside
+ * the same outer container - the rail itself needs to be zeroed out too, and the replaced GuildsBar
+ * child is the only collapsed one.
  */
 function inheritedCollapseDepth(props: any): number {
     const children = props?.children;
     if (children == null) return 0;
 
     if (Array.isArray(children)) {
-        let only: any = null;
+        let deepest = 0;
         for (const child of children) {
-            if (child == null || child === false) continue;
-            if (only) return 0; // more than one real child - not a rail-only wrapper
-            only = child;
+            if (child == null || child === false || typeof child !== "object") continue;
+            deepest = Math.max(deepest, collapseMarks.get(child) ?? 0);
         }
-        if (!only) return 0;
-        return (typeof only === "object" ? collapseMarks.get(only) : 0) ?? 0;
+        return deepest;
     }
 
     if (typeof children !== "object") return 0;
@@ -215,7 +212,7 @@ function resolveReplacement(type: any, props: any): { type: any; props: any; col
     if (effectiveProps) {
         for (const { predicate, transform } of propsTransforms) {
             try {
-                if (predicate(effectiveProps)) {
+                if (predicate(effectiveProps, type)) {
                     effectiveProps = transform(effectiveProps);
                 }
             } catch {
@@ -227,7 +224,7 @@ function resolveReplacement(type: any, props: any): { type: any; props: any; col
     if (effectiveProps) {
         for (const { predicate, replacement } of propsIntercepts) {
             try {
-                if (predicate(effectiveProps)) {
+                if (predicate(effectiveProps, type)) {
                     return replacement ? { type: replacement, props: effectiveProps } : null;
                 }
             } catch {
