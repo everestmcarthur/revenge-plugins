@@ -295,28 +295,6 @@ export function patchCreateElement(cleanups: (() => void)[]) {
     React.createElement = patchedCreateElement as typeof React.createElement;
     isPatched = true;
 
-    // Wrap Metro's require so any jsx runtime module is patched the moment it is required, before
-    // the chunk that imports it can make a single jsx() call. This is the only way to guarantee we
-    // catch chunk runtimes that load after the initial boot scan.
-    const origR = (window as any).__r;
-    if (typeof origR === "function") {
-        (window as any).__r = function (this: any, id: any) {
-            const result = origR.apply(this, arguments);
-            const def = (window as any).modules?.[id];
-            if (def) {
-                try {
-                    patchJsxModule(def);
-                    const patchedExports = def.publicModule?.exports;
-                    if (patchedExports !== undefined) return patchedExports;
-                } catch {
-                    // Don't break Metro's require if our patching throws.
-                }
-            }
-            return result;
-        };
-        restoreJsx.push(() => { (window as any).__r = origR; });
-    }
-
     // Modern React/RN builds (Discord's included) compile JSX through the automatic runtime
     // (jsx/jsxs/jsxDEV from react/jsx-runtime) instead of React.createElement - patching only
     // createElement misses effectively every one of Discord's own render calls. Found by shape
