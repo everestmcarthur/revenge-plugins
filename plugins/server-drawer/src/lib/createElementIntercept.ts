@@ -1,5 +1,5 @@
 import { React } from "@vendetta/metro/common";
-import { rawFindAllAsync } from "./rawFind";
+import { rawFindAll, rawFindAllAsync } from "./rawFind";
 
 interface Intercept {
     replacement: React.ComponentType<any>;
@@ -315,6 +315,29 @@ export function patchCreateElement(cleanups: (() => void)[]) {
     const patchedRuntimes = new WeakSet<object>();
     let scanning = false;
 
+    function patchRuntime(runtime: any) {
+        if (patchedRuntimes.has(runtime)) return;
+        patchedRuntimes.add(runtime);
+
+        for (const key of ["jsx", "jsxs", "jsxDEV"] as const) {
+            const orig = runtime[key];
+            if (typeof orig !== "function") continue;
+
+            runtime[key] = makeWrapper(orig, undefined);
+            restoreJsx.push(() => { runtime[key] = orig; });
+        }
+    }
+
+    // Patch any jsx runtimes already loaded before Discord's first render pass starts.
+    // This is synchronous because the race we're fixing is specifically the first QuestDock render:
+    // an async scan completes too late and the element is created through an unpatched runtime.
+    const initialRuntimes = rawFindAll<any>(
+        (m: any) => typeof m?.jsx === "function" && typeof m?.jsxs === "function" && "Fragment" in m,
+    );
+    for (const runtime of initialRuntimes) {
+        patchRuntime(runtime);
+    }
+
     const scan = () => {
         if (scanning) return;
         scanning = true;
@@ -323,16 +346,7 @@ export function patchCreateElement(cleanups: (() => void)[]) {
             (m: any) => typeof m?.jsx === "function" && typeof m?.jsxs === "function" && "Fragment" in m,
         ).then((runtimes) => {
             for (const runtime of runtimes) {
-                if (patchedRuntimes.has(runtime)) continue;
-                patchedRuntimes.add(runtime);
-
-                for (const key of ["jsx", "jsxs", "jsxDEV"] as const) {
-                    const orig = runtime[key];
-                    if (typeof orig !== "function") continue;
-
-                    runtime[key] = makeWrapper(orig, undefined);
-                    restoreJsx.push(() => { runtime[key] = orig; });
-                }
+                patchRuntime(runtime);
             }
         }).catch((e: any) => {
             console.error("[ServerDrawer] rawFindAllAsync error", e);
