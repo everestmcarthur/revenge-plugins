@@ -187,25 +187,29 @@ interface TypeDetector { justFired?: boolean }
  * the same outer container - the rail itself needs to be zeroed out too, and the replaced GuildsBar
  * child is the only collapsed one.
  */
-function inheritedCollapseDepth(props: any): number {
-    const children = props?.children;
-    if (children == null) return 0;
+function inspectCollapseChild(child: any): number {
+    if (child == null || child === false || typeof child !== "object") return 0;
+    return collapseMarks.get(child) ?? 0;
+}
 
-    if (Array.isArray(children)) {
-        let deepest = 0;
-        for (const child of children) {
-            if (child == null || child === false || typeof child !== "object") continue;
-            deepest = Math.max(deepest, collapseMarks.get(child) ?? 0);
+function inheritedCollapseDepth(props: any, rest: any[] = []): number {
+    let deepest = 0;
+
+    const children = props?.children;
+    if (children != null) {
+        if (Array.isArray(children)) {
+            for (const child of children) deepest = Math.max(deepest, inspectCollapseChild(child));
+        } else {
+            deepest = Math.max(deepest, inspectCollapseChild(children));
         }
-        return deepest;
     }
 
-    if (typeof children !== "object") return 0;
-    return collapseMarks.get(children) ?? 0;
+    for (const child of rest) deepest = Math.max(deepest, inspectCollapseChild(child));
+    return deepest;
 }
 
 /** Returns a replacement type if this element should be intercepted, `null` to render nothing, or `undefined` to pass through unchanged. */
-function resolveReplacement(type: any, props: any): { type: any; props: any; collapse?: number } | null | undefined {
+function resolveReplacement(type: any, props: any, rest: any[]): { type: any; props: any; collapse?: number } | null | undefined {
     runTypeDetectors(type);
 
     let effectiveProps = props;
@@ -245,7 +249,7 @@ function resolveReplacement(type: any, props: any): { type: any; props: any; col
     // Nothing to swap here, but if this element's only child is one we've already collapsed, this
     // element is a wrapper that exists purely to hold it - zero it out too and pass the remaining
     // budget further up.
-    const inherited = inheritedCollapseDepth(effectiveProps);
+    const inherited = inheritedCollapseDepth(effectiveProps, rest);
     if (inherited > 0) {
         return {
             type,
@@ -263,7 +267,7 @@ function resolveReplacement(type: any, props: any): { type: any; props: any; col
 
 function makeWrapper(orig: Function, thisArg: any) {
     return function (this: any, type: any, props: any, ...rest: any[]) {
-        const resolved = resolveReplacement(type, props);
+        const resolved = resolveReplacement(type, props, rest);
         if (resolved === null) return null;
 
         if (resolved) {
@@ -329,7 +333,7 @@ export function patchCreateElement(cleanups: (() => void)[]) {
     // This is synchronous because the race we're fixing is specifically the first QuestDock render:
     // an async scan completes too late and the element is created through an unpatched runtime.
     const initialRuntimes = rawFindAll<any>(
-        (m: any) => typeof m?.jsx === "function" && typeof m?.jsxs === "function" && "Fragment" in m,
+        (m: any) => typeof m?.jsx === "function" && typeof m?.jsxs === "function",
     );
     for (const runtime of initialRuntimes) {
         patchRuntime(runtime);
@@ -340,7 +344,7 @@ export function patchCreateElement(cleanups: (() => void)[]) {
         scanning = true;
 
         rawFindAllAsync<any>(
-            (m: any) => typeof m?.jsx === "function" && typeof m?.jsxs === "function" && "Fragment" in m,
+            (m: any) => typeof m?.jsx === "function" && typeof m?.jsxs === "function",
         ).then((runtimes) => {
             for (const runtime of runtimes) {
                 patchRuntime(runtime);

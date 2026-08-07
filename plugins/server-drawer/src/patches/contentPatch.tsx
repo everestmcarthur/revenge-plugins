@@ -75,7 +75,7 @@ export function patchExpanded(cleanups: (() => void)[]): boolean {
     registerTypeDetector("ServerDrawer.Expanded", isNamed("QuestDockContentExpanded"), (real) => {
         registerIntercept(real, ServerDrawerSheetWrapper);
         console.log(TAG, "PATCH: QuestDockContentExpanded replaced (type detector)");
-    });
+    }, { persistent: true });
 
     const mod = rawFind((m) => isNamed("QuestDockContentExpanded")(m?.type));
     if (!mod?.type) {
