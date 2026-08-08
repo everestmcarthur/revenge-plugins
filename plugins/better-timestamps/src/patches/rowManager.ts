@@ -10,7 +10,7 @@ function wrapTimestamp(original: any): any {
     if (typeof Proxy === "undefined") return getFormatted();
     return new Proxy(original, {
         get(target, prop) {
-            if (prop === "format" || prop === "calendar" || prop === "fromNow" || prop === "toISOString" || prop === "toString") {
+            if (prop === "format" || prop === "calendar" || prop === "fromNow" || prop === "toISOString" || prop === "toString" || prop === "toJSON") {
                 return getFormatted;
             }
             const value = target[prop];
