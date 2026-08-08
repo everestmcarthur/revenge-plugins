@@ -46,6 +46,8 @@ export default () => {
                         text: tag.text,
                         textColor: tag.textColor,
                         backgroundColor: tag.backgroundColor,
+                        icon: tag.icon,
+                        iconColor: tag.iconColor,
                         verified: tag.verified
                     };
                     return;
@@ -62,6 +64,8 @@ export default () => {
                             textColor={tag.textColor}
                             backgroundColor={tag.backgroundColor}
                             gradientColor={tag.gradientColor}
+                            icon={tag.icon}
+                            iconColor={tag.iconColor}
                         />
                     );
                 } else if (TagModule) {
@@ -72,6 +76,8 @@ export default () => {
                             text={tag.text}
                             textColor={tag.textColor}
                             backgroundColor={tag.backgroundColor}
+                            icon={tag.icon}
+                            iconColor={tag.iconColor}
                             verified={tag.verified}
                         />
                     );

@@ -34,6 +34,8 @@ const rowPatch = ([{ guildId, user }]: any[], res: any) => {
                 text: tag.text,
                 textColor: tag.textColor,
                 backgroundColor: tag.backgroundColor,
+                icon: tag.icon,
+                iconColor: tag.iconColor,
                 verified: tag.verified
             });
             return;
@@ -50,6 +52,8 @@ const rowPatch = ([{ guildId, user }]: any[], res: any) => {
                     textColor={tag.textColor}
                     backgroundColor={tag.backgroundColor}
                     gradientColor={tag.gradientColor}
+                    icon={tag.icon}
+                    iconColor={tag.iconColor}
                 />
             );
         } else if (TagModule) {
@@ -59,6 +63,8 @@ const rowPatch = ([{ guildId, user }]: any[], res: any) => {
                     text={tag.text}
                     textColor={tag.textColor}
                     backgroundColor={tag.backgroundColor}
+                    icon={tag.icon}
+                    iconColor={tag.iconColor}
                     verified={tag.verified}
                 />
             );

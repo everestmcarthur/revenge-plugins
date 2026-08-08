@@ -3,6 +3,7 @@ import { chroma, constants } from "@vendetta/metro/common";
 import { storage } from "@vendetta/plugin";
 import { rawColors } from "@vendetta/ui";
 import { isValidHex } from "@shared/lib/color";
+import { getIcon, IconDef } from "./icons";
 
 const { Permissions } = constants;
 const permissionsModule = findByProps("computePermissions", "canEveryoneRole");
@@ -29,6 +30,7 @@ export const TAG_DEFINITIONS: TagDefinition[] = [
 export interface TagOverride {
     enabled?: boolean;
     text?: string;
+    icon?: string;
     useCustomColor?: boolean;
     color?: string;
     useGradient?: boolean;
@@ -41,6 +43,8 @@ export interface ResolvedTag {
     textColor: any;
     backgroundColor: string;
     gradientColor?: string;
+    icon?: IconDef;
+    iconColor: any;
     verified: boolean;
 }
 
@@ -96,6 +100,7 @@ export default function getTag(guild: any, channel: any, user: any): ResolvedTag
 
         const backgroundColor = resolveBackgroundColor(def, settings, guild, user);
         const textColor = chroma(backgroundColor).get("lab.l") < 70 ? rawColors.WHITE_500 : rawColors.BLACK_500;
+        const icon = getIcon(settings.icon);
 
         let gradientColor: string | undefined;
         if (settings.useGradient) {
@@ -110,6 +115,8 @@ export default function getTag(guild: any, channel: any, user: any): ResolvedTag
             textColor,
             backgroundColor,
             gradientColor,
+            icon,
+            iconColor: textColor,
             verified: false
         };
     }
