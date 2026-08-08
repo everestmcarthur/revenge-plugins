@@ -1,0 +1,11 @@
+{
+    "name": "Quest Orbs",
+    "description": "Automatically enrolls in and completes mobile-video Discord Quests (real-time paced, no accelerated/faked timestamps) and claims the Orb rewards. If a claim gets blocked by a captcha challenge, it stops and tells you to claim that one manually in Discord's normal UI - it never tries to solve or bypass a captcha.",
+    "authors": [
+        { "name": "everestmcarthur" }
+    ],
+    "main": "src/index.ts",
+    "vendetta": {
+        "icon": "ic_reward_redeemed"
+    }
+}
