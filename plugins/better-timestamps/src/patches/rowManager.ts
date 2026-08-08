@@ -19,6 +19,11 @@ function wrapTimestamp(original: any): any {
     });
 }
 
+function parseTimestamp(value: any): any {
+    if (value && typeof value.format === "function") return value;
+    return moment(value);
+}
+
 // RowManager used to be looked up eagerly at module-import time with the cached findByName - a
 // plugin's top-level code runs as soon as Discord requires its bundle, which can be before Discord's
 // own code has required RowManager itself, and Revenge's findByName permanently caches a negative
@@ -38,7 +43,8 @@ export default function patchRowManager(): () => void {
                 try {
                     if (row.rowType === 1) {
                         if (storage.separateMessages) row.isFirst = true;
-                        row.message.__customTimestamp = wrapTimestamp(row.message.timestamp);
+                        const parsed = parseTimestamp(row.message.timestamp);
+                        row.message.__customTimestamp = wrapTimestamp(parsed);
                     } else if (row.rowType === "day") {
                         row.text = renderTimestamp(moment(row.text, "LL"));
                     }
@@ -50,7 +56,7 @@ export default function patchRowManager(): () => void {
             patches.push(after("generate", RowManager.prototype, ([row]: any[], result: any) => {
                 try {
                     if (row.rowType !== 1) return;
-                    if (row.message?.__customTimestamp && result?.message?.state === "SENT" && result.message.timestamp) {
+                    if (row.message?.__customTimestamp && result?.message?.timestamp) {
                         result.message.timestamp = row.message.__customTimestamp;
                     }
                 } catch {
