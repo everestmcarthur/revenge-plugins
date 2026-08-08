@@ -10,6 +10,48 @@ import { completeAllVideoQuests, QuestRunResult } from "../lib/questCompleter";
 const { View, Text } = ReactNative;
 
 const textColor = () => resolveSemanticColorSafe(["TEXT_NORMAL", "TEXT_DEFAULT"], "#dbdee1");
+const warningColor = () => resolveSemanticColorSafe(["TEXT_DANGER", "TEXT_NORMAL"], "#f0b232");
+
+/**
+ * Deliberately the first thing on this screen, not folded into the smaller NoteBox below it -
+ * automating quest completion is a form of client modification, and Discord's Terms of Service
+ * prohibit exactly that. This isn't a theoretical/fine-print risk: it can get the account
+ * suspended or banned, same as any other unofficial client automation. Nothing about running this
+ * plugin is guaranteed safe just because the requests themselves mirror real client traffic.
+ */
+function BanWarning() {
+    return (
+        <View
+            style={{
+                marginHorizontal: 16,
+                marginTop: 12,
+                marginBottom: 4,
+                padding: 12,
+                borderRadius: 8,
+                borderWidth: 2,
+                borderColor: warningColor(),
+                backgroundColor: "rgba(240,178,50,0.08)"
+            }}
+        >
+            <Text style={{ fontSize: 13, fontWeight: "700", color: warningColor(), marginBottom: 4 }}>
+                WARNING: THIS CAN GET YOUR ACCOUNT BANNED
+            </Text>
+            <Text style={{ fontSize: 12.5, lineHeight: 18, color: textColor() }}>
+                Automating Quest completion is a form of client modification, which Discord's Terms
+                of Service prohibit. Discord can and does detect and act on this kind of automation -
+                using this plugin risks suspension or a permanent ban on the account it runs on.
+                Nothing here disguises the traffic as anything other than what it is; it just skips
+                the tedium of manually sitting through each video.{"\n\n"}
+                This plugin never solves or bypasses a captcha. When claiming a reward triggers
+                Discord's own captcha challenge, this plugin stops immediately and leaves that quest
+                for you - you open it in Discord's normal Quests screen and complete the captcha
+                yourself, exactly as if this plugin weren't involved at all.{"\n\n"}
+                Use only on an account you're willing to risk, and understand this is unsupported,
+                unofficial automation with no guarantee Discord won't act on it.
+            </Text>
+        </View>
+    );
+}
 
 function summarize(result: QuestRunResult): string {
     const parts: string[] = [];
@@ -40,6 +82,7 @@ export default function Settings() {
 
     return (
         <SettingsScaffold>
+            <BanWarning />
             <TableRowGroup title="Quest Orbs">
                 <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
                     <PrimaryButton
@@ -56,9 +99,8 @@ export default function Settings() {
             </TableRowGroup>
             <NoteBox>
                 Also runs automatically once when Discord loads. Only handles mobile video-watch
-                quests, paced in real time (no sped-up/faked progress). If claiming a reward hits a
-                captcha challenge, that quest is left for you to claim manually in Discord's normal
-                Quests screen - this never tries to solve or bypass a captcha.
+                quests, paced in real time (no sped-up/faked progress) - see the warning above for
+                what "automatically" does and doesn't cover.
             </NoteBox>
         </SettingsScaffold>
     );
