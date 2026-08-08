@@ -2,7 +2,8 @@ import { React, ReactNative } from "@vendetta/metro/common";
 import { findByProps } from "@vendetta/metro";
 import { TextInput } from "@shared/ui/table";
 import { showToast } from "@vendetta/ui/toasts";
-import ColorInput from "@shared/ui/ColorInput";
+import ColorInput from "./ColorInput";
+import IconPicker from "./IconPicker";
 import { getUserTag, setUserTag, removeUserTag } from "../lib/tags";
 
 const { View } = ReactNative;
@@ -28,16 +29,17 @@ function TagEditor({ userId, username }: { userId: string; username: string }) {
     const existing = getUserTag(userId);
     const [text, setText] = React.useState(existing?.text ?? "");
     const [color, setColor] = React.useState(existing?.color ?? "#5865F2");
+    const [icon, setIcon] = React.useState(existing?.icon ?? "none");
     const { dismissAlert, AlertModal, AlertActions, AlertActionButton } = alertParts();
 
     if (!AlertModal || !AlertActions || !AlertActionButton) return null;
 
     const save = () => {
-        if (!text.trim()) {
-            showToast("Enter some tag text first", undefined);
+        if (!text.trim() && icon === "none") {
+            showToast("Enter some tag text or choose an icon first", undefined);
             return;
         }
-        setUserTag(userId, { text: text.trim(), color });
+        setUserTag(userId, { text: text.trim(), color, icon: icon === "none" ? undefined : icon });
         showToast(`Tagged ${username}`, undefined);
         dismissAlert?.(ALERT_KEY);
     };
@@ -54,6 +56,7 @@ function TagEditor({ userId, username }: { userId: string; username: string }) {
             content={
                 <View>
                     <TextInput label="Tag text" placeholder="e.g. FRIEND" value={text} onChange={setText} />
+                    <IconPicker title="Icon" value={icon} onChange={setIcon} color={color} />
                     <ColorInput title="Color" value={color} onChange={setColor} />
                 </View>
             }

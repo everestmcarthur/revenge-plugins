@@ -17,9 +17,15 @@ export default () => {
         const tag = resolveTag(message?.author?.id);
         if (!tag) return;
 
+        const tagText = tag.icon
+            ? tag.text
+                ? `${tag.icon.fallback} ${tag.text}`
+                : tag.icon.fallback
+            : tag.text;
+
         return {
             ...ret,
-            tagText: tag.text,
+            tagText,
             tagTextColor: tag.textColor ? ReactNative.processColor(chroma(tag.textColor).hex()) : undefined,
             tagBackgroundColor: ReactNative.processColor(chroma(tag.backgroundColor).hex()),
             tagVerified: false,

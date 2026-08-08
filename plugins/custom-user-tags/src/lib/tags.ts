@@ -3,6 +3,7 @@ import { storage } from "@vendetta/plugin";
 export interface UserTag {
     text: string;
     color: string;
+    icon?: string;
 }
 
 export function allTags(): Record<string, UserTag> {
