@@ -20,9 +20,15 @@ export default () => {
         const tag = getTag(guild, channel, message?.author);
         if (!tag) return;
 
+        const tagText = tag.icon
+            ? tag.text
+                ? `${tag.icon.fallback} ${tag.text}`
+                : tag.icon.fallback
+            : tag.text;
+
         return {
             ...ret,
-            tagText: tag.text,
+            tagText,
             tagTextColor: tag.textColor ? ReactNative.processColor(chroma(tag.textColor).hex()) : undefined,
             tagBackgroundColor: ReactNative.processColor(chroma(tag.backgroundColor).hex()),
             tagVerified: tag.verified,

@@ -3,8 +3,10 @@ import { storage } from "@vendetta/plugin";
 import { useProxy } from "@vendetta/storage";
 import { TableRowGroup, TableSwitchRow, TextInput } from "@shared/ui/table";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
-import ColorInput from "@shared/ui/ColorInput";
 import { TAG_DEFINITIONS, tagSettings } from "../../lib/getTag";
+import { getIcon } from "../../lib/icons";
+import ColorInput from "../ColorInput";
+import IconPicker from "../IconPicker";
 
 
 function TagSettingsSection({ id, defaultText, defaultColor }: { id: string; defaultText: string; defaultColor: string }) {
@@ -12,9 +14,12 @@ function TagSettingsSection({ id, defaultText, defaultColor }: { id: string; def
     useProxy(settings);
 
     const enabled = settings.enabled !== false;
+    const activeColor = settings.useCustomColor && settings.color ? settings.color : defaultColor;
+    const iconFallback = getIcon(settings.icon)?.fallback;
+    const title = iconFallback ? `${iconFallback} ${defaultText}` : defaultText;
 
     return (
-        <TableRowGroup title={defaultText}>
+        <TableRowGroup title={title}>
             <TableSwitchRow
                 label="Show this tag"
                 value={enabled}
@@ -26,6 +31,12 @@ function TagSettingsSection({ id, defaultText, defaultColor }: { id: string; def
                 value={settings.text ?? ""}
                 editable={enabled}
                 onChange={(v: string) => { settings.text = v; }}
+            />
+            <IconPicker
+                title="Icon"
+                value={settings.icon ?? "none"}
+                onChange={(v: string) => { settings.icon = v === "none" ? undefined : v; }}
+                color={activeColor}
             />
             <TableSwitchRow
                 label="Custom color"
