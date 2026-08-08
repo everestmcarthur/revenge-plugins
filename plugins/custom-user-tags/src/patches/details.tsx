@@ -42,6 +42,8 @@ const rowPatch = ([{ user }]: any[], res: any) => {
                 text: tag.text,
                 textColor: tag.textColor,
                 backgroundColor: tag.backgroundColor,
+                icon: tag.icon,
+                iconColor: tag.iconColor,
                 verified: false
             });
             return;
@@ -58,6 +60,8 @@ const rowPatch = ([{ user }]: any[], res: any) => {
                     text={tag.text}
                     textColor={tag.textColor}
                     backgroundColor={tag.backgroundColor}
+                    icon={tag.icon}
+                    iconColor={tag.iconColor}
                     verified={false}
                 />
             );

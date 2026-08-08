@@ -5,10 +5,12 @@ import { TableRowGroup, TextInput } from "@shared/ui/table";
 import { showToast } from "@vendetta/ui/toasts";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import ListSection from "@shared/ui/ListSection";
-import ColorInput from "@shared/ui/ColorInput";
 import PrimaryButton from "@shared/ui/PrimaryButton";
 import NoteBox from "@shared/ui/NoteBox";
 import { allTags, setUserTag, removeUserTag } from "../lib/tags";
+import { getIcon } from "../lib/icons";
+import ColorInput from "./ColorInput";
+import IconPicker from "./IconPicker";
 
 const { View } = ReactNative;
 
@@ -16,7 +18,8 @@ function AddTagForm() {
     const [userId, setUserId] = React.useState("");
     const [text, setText] = React.useState("");
     const [color, setColor] = React.useState("#5865F2");
-    const canSave = !!userId.trim() && !!text.trim();
+    const [icon, setIcon] = React.useState("none");
+    const canSave = !!userId.trim() && (!!text.trim() || icon !== "none");
 
     return (
         <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
@@ -26,17 +29,19 @@ function AddTagForm() {
                 value={userId}
                 onChange={setUserId}
             />
-            <TextInput label="Tag text" placeholder="e.g. FRIEND" value={text} onChange={setText} />
+            <TextInput label="Tag text (optional if icon is set)" placeholder="e.g. FRIEND" value={text} onChange={setText} />
+            <IconPicker title="Icon" value={icon} onChange={setIcon} color={color} />
             <ColorInput title="Color" value={color} onChange={setColor} />
             <PrimaryButton
                 label="Save tag"
                 disabled={!canSave}
                 style={{ marginTop: 8 }}
                 onPress={() => {
-                    setUserTag(userId.trim(), { text: text.trim(), color });
+                    setUserTag(userId.trim(), { text: text.trim(), color, icon: icon === "none" ? undefined : icon });
                     showToast(`Tagged user ${userId.trim()}`, undefined);
                     setUserId("");
                     setText("");
+                    setIcon("none");
                 }}
             />
         </View>
@@ -62,15 +67,19 @@ export default function Settings() {
             <ListSection
                 title="Tagged users"
                 emptyText="No one's tagged yet."
-                items={userIds.map((id) => ({
-                    key: id,
-                    label: tags[id].text,
-                    subLabel: `${id}  •  Tap to remove`,
-                    onPress: () => {
-                        removeUserTag(id);
-                        showToast("Removed tag", undefined);
-                    }
-                }))}
+                items={userIds.map((id) => {
+                    const icon = getIcon(tags[id].icon)?.fallback;
+                    const label = icon ? `${icon} ${tags[id].text}`.trim() : tags[id].text;
+                    return {
+                        key: id,
+                        label,
+                        subLabel: `${id}  •  Tap to remove`,
+                        onPress: () => {
+                            removeUserTag(id);
+                            showToast("Removed tag", undefined);
+                        }
+                    };
+                })}
             />
         </SettingsScaffold>
     );

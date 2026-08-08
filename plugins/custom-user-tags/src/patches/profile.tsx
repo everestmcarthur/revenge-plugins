@@ -41,6 +41,8 @@ export default function patchProfile(): () => void {
                     text: tag.text,
                     textColor: tag.textColor,
                     backgroundColor: tag.backgroundColor,
+                    icon: tag.icon,
+                    iconColor: tag.iconColor,
                     verified: false
                 });
                 return;
@@ -60,6 +62,8 @@ export default function patchProfile(): () => void {
                     text={tag.text}
                     textColor={tag.textColor}
                     backgroundColor={tag.backgroundColor}
+                    icon={tag.icon}
+                    iconColor={tag.iconColor}
                     verified={false}
                 />
             );
