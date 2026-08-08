@@ -5,6 +5,20 @@ import { waitFor } from "@shared/lib/waitFor";
 import { rawFindByName } from "@shared/lib/rawFind";
 import renderTimestamp from "../lib/renderTimestamp";
 
+function wrapTimestamp(original: any): any {
+    const getFormatted = (..._args: any[]) => renderTimestamp(original);
+    if (typeof Proxy === "undefined") return getFormatted();
+    return new Proxy(original, {
+        get(target, prop) {
+            if (prop === "format" || prop === "calendar" || prop === "fromNow" || prop === "toISOString") {
+                return getFormatted;
+            }
+            const value = target[prop];
+            return typeof value === "function" ? value.bind(target) : value;
+        }
+    });
+}
+
 // RowManager used to be looked up eagerly at module-import time with the cached findByName - a
 // plugin's top-level code runs as soon as Discord requires its bundle, which can be before Discord's
 // own code has required RowManager itself, and Revenge's findByName permanently caches a negative
@@ -24,7 +38,7 @@ export default function patchRowManager(): () => void {
                 try {
                     if (row.rowType === 1) {
                         if (storage.separateMessages) row.isFirst = true;
-                        row.message.__customTimestamp = renderTimestamp(row.message.timestamp);
+                        row.message.__customTimestamp = wrapTimestamp(row.message.timestamp);
                     } else if (row.rowType === "day") {
                         row.text = renderTimestamp(moment(row.text, "LL"));
                     }
