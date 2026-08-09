@@ -2,7 +2,7 @@
     "name": "CopyRoleColor",
     "description": "Long-press a role pill (member list, role list) to copy its color as hex.",
     "authors": [
-        { "name": "everestmcarthur" },
+        { "name": "Rosie" },
         { "name": "MSMA" }
     ],
     "main": "src/index.ts"

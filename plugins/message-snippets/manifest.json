@@ -2,7 +2,7 @@
     "name": "Message Snippets",
     "description": "Save reusable text and send it with /snippet <name>. Manage snippets from the plugin settings, or with /snippet-save, /snippet-delete, /snippet-list.",
     "authors": [
-        { "name": "everestmcarthur" }
+        { "name": "Rosie" }
     ],
     "main": "src/index.ts"
 }

@@ -2,7 +2,7 @@
     "name": "BetterTimestamps",
     "description": "Replace message and day-divider timestamps with calendar-relative, fully relative, ISO 8601, or a custom moment.js format.",
     "authors": [
-        { "name": "everestmcarthur" },
+        { "name": "Rosie" },
         { "name": "nexpid" }
     ],
     "main": "src/index.ts"

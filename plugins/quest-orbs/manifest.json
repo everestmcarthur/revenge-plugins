@@ -2,7 +2,7 @@
     "name": "Quest Orbs",
     "description": "WARNING: THIS CAN GET YOUR ACCOUNT BANNED. Automates completion of mobile-video Discord Quests and claims the Orb rewards - real-time paced (no accelerated/faked timestamps), so the traffic mirrors a real client, but this is still client-modification automation that violates Discord's Terms of Service and can get the account it runs on suspended or banned. If claiming a reward triggers Discord's captcha challenge, this plugin never tries to solve or bypass it - it stops immediately and you complete that captcha yourself, directly in Discord's normal Quests screen. Use only on an account you're willing to risk.",
     "authors": [
-        { "name": "everestmcarthur" }
+        { "name": "Rosie" }
     ],
     "main": "src/index.ts",
     "vendetta": {

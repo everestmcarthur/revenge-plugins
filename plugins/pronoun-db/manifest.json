@@ -2,7 +2,7 @@
     "name": "PronounDB",
     "description": "Shows a user's pronouns in their profile, if they've set them at pronoundb.org - see the plugin settings for details.",
     "authors": [
-        { "name": "everestmcarthur" }
+        { "name": "Rosie" }
     ],
     "main": "src/index.tsx",
     "vendetta": {

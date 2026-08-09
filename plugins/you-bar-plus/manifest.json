@@ -2,7 +2,7 @@
     "name": "YouBar+",
     "description": "Adds Settings and DM buttons to the YouBar. (May require a restart after enabling.)",
     "authors": [
-        { "name": "everestmcarthur" },
+        { "name": "Rosie" },
         { "name": "Purple_Ξye™" }
     ],
     "main": "src/index.ts"

@@ -2,7 +2,7 @@
     "name": "Staff Tags",
     "description": "Adds customizable tags (OWNER, ADMIN, STAFF, MOD, and more) next to members based on their server permissions. Supports per-tag colors, gradients, custom text, custom icons, and visibility toggles. Includes a color picker with hex/RGB support.",
     "authors": [
-        { "name": "everestmcarthur" }
+        { "name": "Rosie" }
     ],
     "main": "src/index.ts",
     "vendetta": {

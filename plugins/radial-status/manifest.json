@@ -2,7 +2,7 @@
     "name": "Radial Status",
     "description": "Replaces the small presence dot on avatars with a colored ring instead - one color per status (online/idle/DND), fully configurable, plus size and thickness controls.",
     "authors": [
-        { "name": "everestmcarthur" },
+        { "name": "Rosie" },
         { "name": "AngelW0lf" }
     ],
     "main": "src/index.ts"

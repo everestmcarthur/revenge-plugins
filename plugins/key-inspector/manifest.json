@@ -2,7 +2,7 @@
     "name": "Key Inspector",
     "description": "Plugin-dev toolkit: on-device module search (incl. a cache-safe raw mode), a Flux event logger, a component render/props logger, an eval console, and full API/color-token dumps - for diagnosing and building plugins without needing a computer.",
     "authors": [
-        { "name": "everestmcarthur" }
+        { "name": "Rosie" }
     ],
     "main": "src/index.tsx"
 }

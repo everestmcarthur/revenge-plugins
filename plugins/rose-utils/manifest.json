@@ -2,7 +2,7 @@
     "name": "RoseUtils",
     "description": "A small collection of independent utilities - Spotify listen-along, colorful channel icons, a Message Logger for deleted/edited messages, and more. Fork of nexpid's NexxUtils.",
     "authors": [
-        { "name": "everestmcarthur" },
+        { "name": "Rosie" },
         { "name": "nexpid" }
     ],
     "main": "src/index.ts"

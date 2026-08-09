@@ -2,7 +2,7 @@
     "name": "RoleColorEverywhere",
     "description": "Displays a member's top role color in more places: mentions, the typing indicator, voice channel participant names, member list role headers, and optionally message text.",
     "authors": [
-        { "name": "everestmcarthur" }
+        { "name": "Rosie" }
     ],
     "main": "src/index.ts",
     "vendetta": {
