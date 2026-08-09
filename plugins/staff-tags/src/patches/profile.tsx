@@ -6,39 +6,13 @@ import GradientTag from "../ui/GradientTag";
 
 const GuildStore = findByStoreName("GuildStore");
 
-/**
- * Full profile screen tag, live-verified end to end (see /root/evals-for-rn for the session this
- * was worked out in, and the Next repo's `staff-tags` `patches/details.tsx` for the exact same
- * class of bug this replaces one of).
- *
- * The full profile doesn't render through `UserRow` (member list/profile popout) at all - it's a
- * separate tree, `UserProfileContent` -> `PrimaryInfo` -> `UserProfilePrimaryInfo`, and neither
- * `PrimaryInfo` nor `UserProfileContent` carry a rendered name+tag row worth patching:
- * `PrimaryInfo` only ever appears as an *unrendered* `<PrimaryInfo user=... guildId=... />`
- * element inside `UserProfileContent`'s own output (confirmed live it has no `children` at that
- * point, so searching inside it for anything finds nothing, silently, no matter how good the
- * search predicate is). `UserProfilePrimaryInfo` is the component that actually renders the name
- * row and, conveniently, receives `user`/`guildId` directly as its own props - no need to also
- * patch `UserProfileContent` just to recover context.
- *
- * `UserProfilePrimaryInfo` can't be found by a Metro module search the way `UserProfileContent`
- * is above (confirmed live - it isn't a top-level export findByProps/findByTypeName can reach,
- * only ever created as an implementation detail inside `PrimaryInfo`'s own render). Patching
- * `React.createElement`/the `jsx` runtime (`@shared/lib/createElementIntercept`) sidesteps that:
- * `registerTypeDetector` observes the *first* time anything, anywhere, creates an element with
- * this name, handing back the live function reference the moment it exists - then
- * `registerIntercept` swaps in our own wrapper for every future use of that exact reference,
- * including the one that triggered the detector (both run synchronously inside the same
- * `createElement`/`jsx` call, so even the very first render is already patched).
- *
- * Confirmed live, `UserProfilePrimaryInfo` renders:
- * `<View>[<DisplayName/>, <View>[<UserTagAndPronouns/>, <GuildTag/>, <ProfileBadgeRows/>]]</View>`
- * - `UserTagAndPronouns` is Discord's `@username` handle + pronouns display, not a badge slot
- * (misleading name); `GuildTag` is Discord's own unrelated "server tag" feature; `ProfileBadgeRows`
- * is Nitro/HypeSquad-style badges. None of these read custom text/color, so - same lesson as the
- * member list's `BotTag` - the fix pushes the plugin's own `GradientTag` as a new sibling in that
- * inner row rather than trying to repurpose any of them.
- */
+// The full profile doesn't render through UserRow at all - it's PrimaryInfo -> UserProfilePrimaryInfo,
+// and PrimaryInfo only shows up unrendered inside UserProfileContent's own output (no children to
+// search). UserProfilePrimaryInfo is the one that actually builds the name row, and it's not a
+// top-level export, so we grab its reference via createElementIntercept the first time it renders.
+// The row it builds is [DisplayName, [UserTagAndPronouns, GuildTag, ProfileBadgeRows]] - none of
+// those read custom text/color (UserTagAndPronouns is just the @handle, GuildTag is Discord's own
+// server-tag feature), so we push our GradientTag in as a sibling instead of trying to reuse one.
 export default function patchProfile(): () => void {
     const cleanups: (() => void)[] = [];
     patchCreateElement(cleanups);

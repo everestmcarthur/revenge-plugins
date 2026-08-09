@@ -3,19 +3,9 @@ import { registerTypeDetector, registerIntercept, patchCreateElement } from "@sh
 import resolveTag from "../lib/resolveTag";
 import CustomTag from "../ui/Tag";
 
-/**
- * Full profile screen tag - see Staff Tags' own `patches/profile.tsx` (same repo pattern, worked
- * out together in the same live session, see /root/evals-for-rn) for the full writeup of why this
- * needs `createElement`/`jsx` interception rather than patching `UserProfileContent` and searching
- * its output: `UserProfilePrimaryInfo` (the component that actually renders the name+tag row) is
- * only ever created as an implementation detail several layers deep, unreachable by a Metro module
- * search, and receives `user` directly as its own prop - so `registerTypeDetector` catches the
- * first render to recover the live reference, and `registerIntercept` swaps in a wrapper for every
- * later use, no separate context-passing patch needed.
- *
- * Unlike Staff Tags, `resolveTag` only needs a `userId` - no guild/permission context - so this
- * doesn't need `guildId` from props at all.
- */
+// Same approach as Staff Tags' patches/profile.tsx: UserProfilePrimaryInfo builds the name row but
+// isn't a top-level export, so we grab it via createElementIntercept. Unlike Staff Tags, resolveTag
+// only needs a userId, no guild context, so we don't bother reading guildId here.
 export default function patchProfile(): () => void {
     const cleanups: (() => void)[] = [];
     patchCreateElement(cleanups);

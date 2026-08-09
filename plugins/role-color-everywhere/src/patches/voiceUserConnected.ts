@@ -1,4 +1,5 @@
 import { findByName } from "@vendetta/metro";
+import { findInReactTree } from "@vendetta/utils";
 import { after } from "@vendetta/patcher";
 import { storage } from "@vendetta/plugin";
 import { defaultTextColor } from "../lib/color";
@@ -11,16 +12,12 @@ export default function patchVoiceUserConnected(): () => void {
         try {
             if (storage.noVoice || !res?.type) return;
 
-            const usesRender = !!res.type.prototype?.render;
-            const hook = usesRender ? "render" : "type";
-            const target = usesRender ? res.type.prototype : res.type;
-
-            const unpatch = after(hook, target, (_: any, innerRes: any) => {
+            const unpatch = after("type", res.type, (_: any, innerRes: any) => {
                 try {
                     unpatch();
-                    const textProps = innerRes?.props?.children?.[1]?.props;
-                    if (!textProps?.style) return;
-                    textProps.style.color = args?.member?.colorString || defaultTextColor();
+                    const nameItem = findInReactTree(innerRes, (n: any) => n?.type?.name === "VoiceUserNameItem");
+                    if (!nameItem?.props) return;
+                    nameItem.props.color = args?.member?.colorString || defaultTextColor();
                 } catch {
                     // Leave the default voice row color.
                 }

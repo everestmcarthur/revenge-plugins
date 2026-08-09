@@ -6,9 +6,6 @@ import { getSnippets, saveSnippet, deleteSnippet } from "./lib/snippets";
 // Discord slash-command option type for a plain string argument.
 const STRING = 3;
 
-// Returning a CommandResult object from `execute` and relying on the framework to auto-send it
-// turned out to be unreliable in practice - real-world plugins (e.g. InfoCommands) route around it
-// by sending the message themselves, so this does the same instead of relying on the return value.
 const MessageActions = findByProps("sendMessage", "sendBotMessage");
 
 export default function loadCommands(): (() => void)[] {
@@ -30,7 +27,14 @@ export default function loadCommands(): (() => void)[] {
                 return;
             }
 
-            MessageActions.sendMessage(ctx.channel.id, { content: text });
+            // sendMessage silently rejects (TypeError reading nonce) without a 3rd/4th arg, even
+            // though its own signature only shows two params - both are required to actually send.
+            MessageActions.sendMessage(
+                ctx.channel.id,
+                { content: text, tts: false, invalidEmojis: [], validNonShortcutEmojis: [] },
+                true,
+                {}
+            );
         }
     });
 

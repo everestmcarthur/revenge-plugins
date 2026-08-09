@@ -67,7 +67,7 @@ export function isElement(arg: RN.Node): arg is RN.Element {
 }
 
 export function isElementWithChildren<T extends RN.Element>(arg: T | RN.Element<RN.PropsWithChildren>): arg is RN.Element<RN.PropsWithChildren> {
-    return "children" in arg.props;
+    return isNonNullObject(arg.props) && "children" in arg.props;
 }
 
 export function isProviderType(arg: Exclude<RN.ElementType, symbol>): arg is RN.ProviderType {

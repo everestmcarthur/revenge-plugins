@@ -1,4 +1,5 @@
 import { React } from "@vendetta/metro/common";
+import { after } from "@vendetta/patcher";
 
 interface Intercept {
     replacement: React.ComponentType<any>;
@@ -73,61 +74,33 @@ export function registerIntercept(
     intercepts.set(original, { replacement, extraProps, collapseAncestors: options?.collapseAncestors });
 }
 
-/**
- * Same idea as registerIntercept, but matches by a predicate over the element's props instead of
- * an exact type reference - useful when the component itself has no reliable name to find it by
- * (no named export, and a stripped/mangled runtime function name), but it always passes some
- * distinguishing literal prop (e.g. a nativeID) that survives into the compiled bundle unchanged.
- * Pass `replacement: null` to render nothing at all instead of swapping in a component.
- */
+// Same idea as registerIntercept, but matches on a predicate over the element's props instead of
+// an exact type reference - useful when the component has no reliable name to find it by, but
+// always passes some distinguishing prop. Pass replacement: null to render nothing instead.
 export function registerPropsIntercept(predicate: (props: any) => boolean, replacement: React.ComponentType<any> | null) {
     propsIntercepts.push({ predicate, replacement });
 }
 
-/**
- * Rewrites an element's props in place while keeping the same type - unlike registerPropsIntercept,
- * this doesn't swap in a different component, it lets the real one render with different input.
- *
- * Exists because monkey-patching a hook's exported property (`someModule.useSomeHook = wrapper`)
- * only affects callers that go through that exact exports-object reference. Confirmed live (Key
- * Inspector fiber capture) that Discord's Quest Dock hooks are called via an internal, same-chunk
- * closure reference instead - the patched export sits there unused, and the real, unpatched hook
- * result flows through untouched. A React.createElement/jsx call has no such ambiguity: it's always
- * the one shared runtime function, called the same way regardless of which chunk the JSX originated
- * in - so rewriting the `value` prop of a Context.Provider element here reaches every consumer
- * exactly as if the underlying hooks had actually returned that value.
- */
+// Rewrites an element's props in place, keeping the same type - unlike registerPropsIntercept,
+// this doesn't swap in a different component, it just lets the real one render with different
+// input. Exists because Quest Dock's hooks are called through a same-chunk closure reference, not
+// the exported property - patching the export does nothing, but every element creation goes
+// through this one shared path regardless of chunk, so there's no equivalent staleness here.
 export function registerPropsTransform(predicate: (props: any) => boolean, transform: (props: any) => any) {
     propsTransforms.push({ predicate, transform });
 }
 
-/**
- * Purely observational: the first time an element is created whose `type` matches `predicate`,
- * calls `onDetected(type)` with the real, live type reference - it never alters what actually
- * renders (pair with registerIntercept/registerPropsIntercept in the callback for that).
- *
- * This exists for components that can't be found reliably by searching Metro's module registry
- * after the fact (findByTypeName/rawFindByTypeName), because that races against whenever the
- * component first mounts - if it mounts before the search finds it, and it never mounts again for
- * the rest of the session (true for some React.memo'd chrome components), the search losing that
- * race means the patch never gets a chance to apply at all, permanently. Intercepting element
- * creation instead sidesteps the race entirely: by the time ANYTHING calls createElement/jsx with
- * this component as `type`, that reference already exists and is already the real one about to be
- * used - there's no way to observe the call any earlier than this.
- *
- * `key` deduplicates registrations. index.ts retries any patch that hasn't landed yet every 200ms
- * for ~10s, and each of those retries used to append another copy of the same detector - up to ~50
- * duplicates per patch, every one of them re-tested against the `type` of every element created
- * anywhere in the app, during the exact window (cold boot) where the drawer is trying to appear
- * quickly. Registering under a key makes a retry a no-op instead.
- *
- * `persistent` (default false, one-shot): keeps watching and firing `onDetected` again for every
- * later match too, instead of stopping after the first. Needed when the component's own type
- * reference isn't a stable session-long singleton - confirmed live for GuildsBar, whose reference
- * changes on some navigation paths (e.g. switching servers via this plugin's own drawer), which a
- * one-shot detector plus registerIntercept's identity-keyed map can't follow: the intercept stays
- * registered for the old, now-abandoned reference while the new one renders unmodified.
- */
+// Purely observational: the first time an element is created whose type matches predicate, calls
+// onDetected(type) with the live reference. Doesn't touch rendering - pair it with
+// registerIntercept/registerPropsIntercept in the callback for that. Exists for components that
+// aren't findable by searching Metro's registry after the fact (races against first mount).
+//
+// key dedupes registrations - index.ts retries every 200ms for ~10s, and duplicate detectors used
+// to pile up, each re-tested against every element created anywhere in the app.
+//
+// persistent keeps the detector alive for every future match instead of firing once. GuildsBar's
+// own type reference changes on some navigation paths (switching servers via this plugin's own
+// drawer), so a one-shot detector would only ever catch the first, now-abandoned reference.
 export function registerTypeDetector(
     key: string,
     predicate: (type: any) => boolean,
@@ -161,7 +134,10 @@ function runTypeDetectors(type: any) {
         } catch {
             // Same - a detector's own handler throwing shouldn't take anything else down.
         }
-        if (!detector.persistent) consumed = true;
+        if (!detector.persistent) {
+            detector.justFired = true;
+            consumed = true;
+        }
     }
 
     // Only rebuild the list when a one-shot detector actually fired. The previous version rebuilt
@@ -264,54 +240,45 @@ function resolveReplacement(type: any, props: any, rest: any[]): { type: any; pr
     return undefined;
 }
 
-function makeWrapper(orig: Function, thisArg: any) {
-    return function (this: any, type: any, props: any, ...rest: any[]) {
-        const resolved = resolveReplacement(type, props, rest);
-        if (resolved === null) return null;
-
-        if (resolved) {
-            const el = orig.call(thisArg ?? this, resolved.type, resolved.props ?? null, ...rest);
-            if (resolved.collapse && resolved.collapse > 0 && el && typeof el === "object") {
-                collapseMarks.set(el, resolved.collapse);
-            }
-            return el;
+// Mutates the already-created element in place rather than substituting args before creation -
+// after() only sees the return value, not the call itself. A raw property reassignment on the
+// jsx-runtime object (what this used to do) doesn't reliably reach real render calls here; after()
+// does. Confirmed live: GuildsBar creations were observed firing through this exact patch point,
+// but res.type never actually changed - the intercept logic was correct, the patch mechanism wasn't.
+function applyResolved(res: any, type: any, props: any, rest: any[]) {
+    if (!res || typeof res !== "object") return res;
+    const resolved = resolveReplacement(type, props, rest);
+    if (resolved === null) {
+        res.type = () => null;
+        return res;
+    }
+    if (resolved) {
+        res.type = resolved.type;
+        res.props = resolved.props ?? null;
+        if (resolved.collapse && resolved.collapse > 0) {
+            collapseMarks.set(res, resolved.collapse);
         }
-
-        return orig.call(thisArg ?? this, type, props ?? null, ...rest);
-    };
+    }
+    return res;
 }
 
 export function patchCreateElement(cleanups: (() => void)[]) {
     if (isPatched) return;
-
-    const origCreateElement = React.createElement;
-    if (!origCreateElement) {
-        console.warn("[ServerDrawer] React.createElement is null, skipping patch");
-        return;
-    }
-
-    const patchedCreateElement = makeWrapper(origCreateElement, React);
-    Object.assign(patchedCreateElement, origCreateElement);
-    React.createElement = patchedCreateElement as typeof React.createElement;
     isPatched = true;
 
-    // Modern React/RN builds (Discord's included) compile JSX through the automatic runtime
-    // (jsx/jsxs/jsxDEV from react/jsx-runtime) instead of React.createElement - patching only
-    // createElement misses effectively every one of Discord's own render calls. Found by shape
-    // (jsx/jsxs/Fragment together), not by name, for the same reason everything else in this file
-    // avoids name-based lookups.
-    //
-    // Two changes over the previous version, both of which were causing the drawer to show up only
-    // sometimes:
-    //
-    // 1. ALL matching runtime modules get patched, not just the first one rawFind returned. A
-    //    bundle can hold more than one copy of the runtime, and any chunk importing a copy we
-    //    didn't patch renders completely uninterceptable elements.
-    // 2. The scan keeps running instead of stopping at the first success. Metro registers modules
-    //    lazily, so a runtime copy belonging to a chunk that hasn't been required yet at boot
-    //    simply does not exist to be found at that moment - the old one-shot waitFor resolved off
-    //    the first copy and never looked again, permanently missing every copy registered later.
-    const restoreJsx: (() => void)[] = [];
+    if (React.createElement) {
+        cleanups.push(
+            after("createElement", React, (args: any[], res: any) => applyResolved(res, args[0], args[1], args.slice(2)))
+        );
+    } else {
+        console.warn("[ServerDrawer] React.createElement is null, skipping patch");
+    }
+
+    // Discord's bundle compiles JSX through the automatic runtime (jsx/jsxs/jsxDEV) instead of
+    // React.createElement, so patching createElement alone misses nearly everything. We scan for
+    // the runtime by shape rather than name since names get mangled, patch every copy we find (a
+    // bundle can have more than one), and keep scanning on an interval since Metro registers
+    // modules lazily - a copy that hasn't been required yet at boot just isn't there to find.
     const patchedJsxRuntimes = new WeakSet<any>();
 
     function isJsxRuntime(m: any): boolean {
@@ -322,25 +289,11 @@ export function patchCreateElement(cleanups: (() => void)[]) {
         if (patchedJsxRuntimes.has(runtime)) return;
         patchedJsxRuntimes.add(runtime);
         for (const key of ["jsx", "jsxs", "jsxDEV"] as const) {
-            const orig = runtime[key];
-            if (typeof orig !== "function") continue;
-            runtime[key] = makeWrapper(orig, runtime);
-            restoreJsx.push(() => { runtime[key] = orig; });
+            if (typeof runtime[key] !== "function") continue;
+            cleanups.push(
+                after(key, runtime, (args: any[], res: any) => applyResolved(res, args[0], args[1], args.slice(2)))
+            );
         }
-    }
-
-    function wrapJsxFunction(runtime: any): any {
-        const wrappedJsx = makeWrapper(runtime, runtime);
-        for (const key of ["jsxs", "jsxDEV"] as const) {
-            const orig = runtime[key];
-            if (typeof orig === "function") {
-                wrappedJsx[key] = makeWrapper(orig, runtime);
-            }
-        }
-        if ("Fragment" in runtime) {
-            wrappedJsx.Fragment = runtime.Fragment;
-        }
-        return wrappedJsx;
     }
 
     function patchJsxModule(def: any) {
@@ -348,23 +301,10 @@ export function patchCreateElement(cleanups: (() => void)[]) {
         const exports = def.publicModule.exports;
 
         try {
-            if (typeof exports === "function" && isJsxRuntime(exports) && !patchedJsxRuntimes.has(exports)) {
-                patchedJsxRuntimes.add(exports);
-                const wrapped = wrapJsxFunction(exports);
-                def.publicModule.exports = wrapped;
-                restoreJsx.push(() => { def.publicModule.exports = exports; });
-            } else if (isJsxRuntime(exports) && !patchedJsxRuntimes.has(exports)) {
-                patchedJsxRuntimes.add(exports);
-                patchJsxObject(exports);
-            }
+            if (isJsxRuntime(exports)) patchJsxObject(exports);
 
             const dflt = exports.default;
-            if (dflt != null && typeof dflt === "function" && isJsxRuntime(dflt) && !patchedJsxRuntimes.has(dflt)) {
-                patchedJsxRuntimes.add(dflt);
-                const wrapped = wrapJsxFunction(dflt);
-                exports.default = wrapped;
-                restoreJsx.push(() => { exports.default = dflt; });
-            }
+            if (dflt != null && isJsxRuntime(dflt)) patchJsxObject(dflt);
         } catch {
             // Ignore one module's bad shape and continue scanning.
         }
@@ -380,25 +320,20 @@ export function patchCreateElement(cleanups: (() => void)[]) {
         }
     }
 
-    // Patch any jsx runtimes already loaded before Discord's first render pass starts.
-    // This is synchronous because the race we're fixing is specifically the first QuestDock render:
-    // an async scan completes too late and the element is created through an unpatched runtime.
+    // Patch any jsx runtimes already loaded before Discord's first render pass starts, synchronously
+    // - an async scan would complete too late for the very first render of an early-mounting target.
     scanAndPatchJsxRuntimes();
-
-    const scan = () => { scanAndPatchJsxRuntimes(); };
-
-    scan();
 
     // Fast while the app is still booting and chunks are being pulled in, then slow, then stop -
     // a full window.modules walk is not free and there's nothing left to catch once the UI has
     // settled.
     let ticks = 0;
     let timer: ReturnType<typeof setInterval> | undefined = setInterval(() => {
-        scan();
+        scanAndPatchJsxRuntimes();
         if (++ticks === 50 && timer) { // ~5s at 100ms
             clearInterval(timer);
             timer = setInterval(() => {
-                scan();
+                scanAndPatchJsxRuntimes();
                 if (++ticks >= 75 && timer) { // + ~25s at 1s
                     clearInterval(timer);
                     timer = undefined;
@@ -410,12 +345,7 @@ export function patchCreateElement(cleanups: (() => void)[]) {
     cleanups.push(() => {
         if (timer) clearInterval(timer);
         timer = undefined;
-        if (isPatched) {
-            React.createElement = origCreateElement;
-            isPatched = false;
-        }
-        restoreJsx.forEach((fn) => fn());
-        restoreJsx.length = 0;
+        isPatched = false;
         intercepts.clear();
         propsIntercepts.length = 0;
         propsTransforms.length = 0;

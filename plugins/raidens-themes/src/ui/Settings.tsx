@@ -3,6 +3,7 @@ import { storage } from "@vendetta/plugin";
 import { useProxy } from "@vendetta/storage";
 import { clipboard } from "@vendetta/metro/common";
 import { showToast } from "@vendetta/ui/toasts";
+import { themes } from "@vendetta";
 import { TableRow, TableRowGroup, TableRowArrow } from "@shared/ui/table";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import NoteBox from "@shared/ui/NoteBox";
@@ -10,23 +11,25 @@ import { THEMES } from "../lib/themes";
 
 const { Text } = ReactNative;
 
+// Used to check window.bunny.themes - this client only has vendetta, so every tap silently fell
+// back to the clipboard-copy path. vendetta.themes has the same shape, ported directly.
 export default function Settings() {
     useProxy(storage);
 
     const applyTheme = async (theme: typeof THEMES[number]) => {
-        const bunny = (window as any).bunny;
-
-        if (!bunny?.themes?.installTheme) {
+        if (!themes?.installTheme) {
             clipboard.setString(theme.url);
             showToast("Theme URL copied — paste it into Settings > Revenge > Themes");
             return;
         }
 
         try {
-            await bunny.themes.installTheme(theme.url);
-            const installed = bunny.themes.themes?.[theme.url];
-            if (installed && bunny.themes.selectTheme) {
-                bunny.themes.selectTheme(installed);
+            await themes.installTheme(theme.url);
+            // vendetta-types says selectTheme takes an id string, but that resolves without
+            // applying anything - it actually wants the installed theme object.
+            const installed = themes.themes?.[theme.url];
+            if (installed && themes.selectTheme) {
+                await themes.selectTheme(installed as any);
             }
             storage.current = theme.id;
             showToast(`Switched to ${theme.name}`);
@@ -36,14 +39,12 @@ export default function Settings() {
     };
 
     const reset = () => {
-        const bunny = (window as any).bunny;
-
-        if (!bunny?.themes?.selectTheme) {
+        if (!themes?.selectTheme) {
             showToast("Revenge theme engine not available");
             return;
         }
 
-        bunny.themes.selectTheme(null);
+        themes.selectTheme(null);
         storage.current = "";
         showToast("Default theme restored");
     };
