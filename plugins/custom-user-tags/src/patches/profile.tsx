@@ -1,74 +1,58 @@
-import { find, findByProps } from "@vendetta/metro";
-import { after } from "@vendetta/patcher";
 import { findInReactTree } from "@vendetta/utils";
+import { registerTypeDetector, registerIntercept, patchCreateElement } from "@shared/lib/createElementIntercept";
 import resolveTag from "../lib/resolveTag";
-
-// Same top-level profile component PronounDB already confirmed works, and the same one Staff Tags
-// now patches for its own profile-screen tag - see that plugin's patches/profile.tsx for the full
-// writeup on why this is a separate component from UserRow (which details.tsx already handles).
-const UserProfile =
-    find((m: any) => m?.type?.name === "UserProfileContent") ??
-    find((m: any) => m?.type?.name === "UserProfile");
-
-const TagModule = findByProps("getBotLabel");
+import CustomTag from "../ui/Tag";
 
 /**
- * Not independently confirmed against a live render yet - the exact prop shape passed to this
- * component isn't verified on-device, so this pulls from whichever of several plausible field names
- * is actually present. Every step is guarded, so a wrong assumption just means no tag appears here.
+ * Full profile screen tag - see Staff Tags' own `patches/profile.tsx` (same repo pattern, worked
+ * out together in the same live session, see /root/evals-for-rn) for the full writeup of why this
+ * needs `createElement`/`jsx` interception rather than patching `UserProfileContent` and searching
+ * its output: `UserProfilePrimaryInfo` (the component that actually renders the name+tag row) is
+ * only ever created as an implementation detail several layers deep, unreachable by a Metro module
+ * search, and receives `user` directly as its own prop - so `registerTypeDetector` catches the
+ * first render to recover the live reference, and `registerIntercept` swaps in a wrapper for every
+ * later use, no separate context-passing patch needed.
+ *
+ * Unlike Staff Tags, `resolveTag` only needs a `userId` - no guild/permission context - so this
+ * doesn't need `guildId` from props at all.
  */
 export default function patchProfile(): () => void {
-    if (!UserProfile) return () => {};
+    const cleanups: (() => void)[] = [];
+    patchCreateElement(cleanups);
 
-    return after("type", UserProfile, (args: any[], res: any) => {
-        try {
-            const props = args?.[0] ?? {};
-            const userId: string | undefined = props.userId ?? props.user?.id ?? props.displayProfile?.userId;
-            if (!userId) return;
+    registerTypeDetector(
+        "custom-user-tags-profile-primary-info",
+        (type) => typeof type === "function" && type.name === "UserProfilePrimaryInfo",
+        (UserProfilePrimaryInfo: any) => {
+            const PatchedUserProfilePrimaryInfo = (props: any) => {
+                const ret = UserProfilePrimaryInfo(props);
 
-            const tag = resolveTag(userId);
-            if (!tag) return;
+                try {
+                    const userId: string | undefined = props?.user?.id;
+                    if (!userId) return ret;
 
-            const primaryInfo = findInReactTree(res, (c) => c?.type?.name === "PrimaryInfo" || c?.type?.displayName === "PrimaryInfo");
-            if (!primaryInfo) return;
+                    const tag = resolveTag(userId);
+                    if (!tag) return ret;
 
-            const existingTag = findInReactTree(primaryInfo, (c) => c?.type?.Types);
-            if (existingTag && existingTag.props?.type !== 0) return;
+                    const row = findInReactTree(
+                        ret,
+                        (c: any) =>
+                            Array.isArray(c?.props?.children) &&
+                            c.props.children.some((ch: any) => ch?.type?.name === "UserTagAndPronouns")
+                    );
+                    if (!Array.isArray(row?.props?.children)) return ret;
 
-            if (existingTag) {
-                Object.assign(existingTag.props, {
-                    type: 0,
-                    text: tag.text,
-                    textColor: tag.textColor,
-                    backgroundColor: tag.backgroundColor,
-                    icon: tag.icon,
-                    iconColor: tag.iconColor,
-                    verified: false
-                });
-                return;
-            }
+                    row.props.children.push(<CustomTag tag={tag} />);
+                } catch {
+                    // Skip - a broken profile tag beats a crashed profile screen.
+                }
 
-            const nameRow = findInReactTree(
-                primaryInfo,
-                (c) =>
-                    Array.isArray(c?.props?.children) &&
-                    c.props.children.some((ch: any) => typeof ch === "string" || typeof ch?.props?.children === "string")
-            );
-            if (!Array.isArray(nameRow?.props?.children) || !TagModule) return;
+                return ret;
+            };
 
-            nameRow.props.children.push(
-                <TagModule.default
-                    type={0}
-                    text={tag.text}
-                    textColor={tag.textColor}
-                    backgroundColor={tag.backgroundColor}
-                    icon={tag.icon}
-                    iconColor={tag.iconColor}
-                    verified={false}
-                />
-            );
-        } catch {
-            // Skip - a broken profile tag beats a crashed profile screen.
+            registerIntercept(UserProfilePrimaryInfo, PatchedUserProfilePrimaryInfo);
         }
-    });
+    );
+
+    return () => cleanups.forEach((fn) => fn());
 }
