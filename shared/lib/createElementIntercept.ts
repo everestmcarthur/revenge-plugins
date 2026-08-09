@@ -1,4 +1,5 @@
 import { React } from "@vendetta/metro/common";
+import { after } from "@vendetta/patcher";
 
 interface Intercept {
     replacement: React.ComponentType<any>;
@@ -180,28 +181,57 @@ function resolveReplacement(type: any, props: any, rest: any[]): { type: any; pr
     return undefined;
 }
 
-function makeWrapper(orig: Function, thisArg: any) {
-    return function (this: any, type: any, props: any, ...rest: any[]) {
-        const resolved = resolveReplacement(type, props, rest);
-        if (resolved === null) return null;
-        if (resolved) return orig.call(thisArg ?? this, resolved.type, resolved.props ?? null, ...rest);
-        return orig.call(thisArg ?? this, type, props ?? null, ...rest);
-    };
+/**
+ * Applies a resolved replacement to an already-created element in place, mutating `res` rather
+ * than substituting arguments before creation.
+ *
+ * This patches with `@vendetta/patcher`'s `after()` - the same mechanism proven reliable
+ * throughout this repo for every other patch - rather than raw property reassignment
+ * (`runtime.jsx = wrapper`). Confirmed live (see /root/evals-for-rn) that raw reassignment on the
+ * jsx-runtime module's `jsx`/`jsxs` properties does *not* reliably reach real render calls on this
+ * client: after mutating the property directly, a diagnostic hook wrapped the *same* object with
+ * `vendetta.patcher.after` and correctly observed real calls, while a diagnostic that only
+ * reassigned the property directly (mirroring what this file used to do, and what
+ * `server-drawer`'s otherwise more battle-tested copy still does) never fired at all for the same
+ * real calls. `after()` clearly does something a plain reassignment doesn't to actually reach
+ * consumers - since `React.createElement`/`jsx`/`jsxs` are always looked up fresh through the one
+ * shared runtime function (not destructured into a same-chunk closure the way some of Discord's
+ * own hooks are, per this repo's other same-chunk-staleness notes), the difference isn't about
+ * reaching a stale binding - it's specifically that `after()`'s patching mechanism is what
+ * actually gets observed, and a bare property set on the exports object is not, for reasons this
+ * investigation didn't need to fully explain to fix: use the mechanism proven to work.
+ *
+ * Because `after()` fires once the real function has already run and produced `res`, replacing
+ * the *type* (registerIntercept/registerPropsIntercept) is expressed by mutating `res.type`/
+ * `res.props` after the fact rather than by substituting arguments beforehand - React reads
+ * `.type`/`.props` off whatever object it's handed for reconciliation regardless of how those
+ * fields were set, so this has the same practical effect (confirmed live).
+ */
+function applyResolved(res: any, type: any, props: any, rest: any[]) {
+    if (!res || typeof res !== "object") return res;
+    const resolved = resolveReplacement(type, props, rest);
+    if (resolved === null) {
+        res.type = () => null;
+        return res;
+    }
+    if (resolved) {
+        res.type = resolved.type;
+        res.props = resolved.props ?? null;
+    }
+    return res;
 }
 
 export function patchCreateElement(cleanups: (() => void)[]) {
     if (isPatched) return;
-
-    const origCreateElement = React.createElement;
-    if (!origCreateElement) {
-        console.warn("[createElementIntercept] React.createElement is null, skipping patch");
-        return;
-    }
-
-    const patchedCreateElement = makeWrapper(origCreateElement, React);
-    Object.assign(patchedCreateElement, origCreateElement);
-    React.createElement = patchedCreateElement as typeof React.createElement;
     isPatched = true;
+
+    if (React.createElement) {
+        cleanups.push(
+            after("createElement", React, (args: any[], res: any) => applyResolved(res, args[0], args[1], args.slice(2)))
+        );
+    } else {
+        console.warn("[createElementIntercept] React.createElement is null, skipping patch");
+    }
 
     // Modern React/RN builds (Discord's included) compile JSX through the automatic runtime
     // (jsx/jsxs/jsxDEV from react/jsx-runtime) instead of React.createElement - patching only
@@ -213,7 +243,6 @@ export function patchCreateElement(cleanups: (() => void)[]) {
     // runtime (different chunks importing different copies), and Metro registers modules lazily, so
     // a copy belonging to a chunk that hasn't been required yet at boot simply does not exist to be
     // found at that moment - a one-shot search permanently misses every copy registered later.
-    const restoreJsx: (() => void)[] = [];
     const patchedJsxRuntimes = new WeakSet<any>();
 
     function isJsxRuntime(m: any): boolean {
@@ -224,25 +253,11 @@ export function patchCreateElement(cleanups: (() => void)[]) {
         if (patchedJsxRuntimes.has(runtime)) return;
         patchedJsxRuntimes.add(runtime);
         for (const key of ["jsx", "jsxs", "jsxDEV"] as const) {
-            const orig = runtime[key];
-            if (typeof orig !== "function") continue;
-            runtime[key] = makeWrapper(orig, runtime);
-            restoreJsx.push(() => { runtime[key] = orig; });
+            if (typeof runtime[key] !== "function") continue;
+            cleanups.push(
+                after(key, runtime, (args: any[], res: any) => applyResolved(res, args[0], args[1], args.slice(2)))
+            );
         }
-    }
-
-    function wrapJsxFunction(runtime: any): any {
-        const wrappedJsx = makeWrapper(runtime, runtime);
-        for (const key of ["jsxs", "jsxDEV"] as const) {
-            const orig = runtime[key];
-            if (typeof orig === "function") {
-                wrappedJsx[key] = makeWrapper(orig, runtime);
-            }
-        }
-        if ("Fragment" in runtime) {
-            wrappedJsx.Fragment = runtime.Fragment;
-        }
-        return wrappedJsx;
     }
 
     function patchJsxModule(def: any) {
@@ -250,23 +265,10 @@ export function patchCreateElement(cleanups: (() => void)[]) {
         const exports = def.publicModule.exports;
 
         try {
-            if (typeof exports === "function" && isJsxRuntime(exports) && !patchedJsxRuntimes.has(exports)) {
-                patchedJsxRuntimes.add(exports);
-                const wrapped = wrapJsxFunction(exports);
-                def.publicModule.exports = wrapped;
-                restoreJsx.push(() => { def.publicModule.exports = exports; });
-            } else if (isJsxRuntime(exports) && !patchedJsxRuntimes.has(exports)) {
-                patchedJsxRuntimes.add(exports);
-                patchJsxObject(exports);
-            }
+            if (isJsxRuntime(exports)) patchJsxObject(exports);
 
             const dflt = exports.default;
-            if (dflt != null && typeof dflt === "function" && isJsxRuntime(dflt) && !patchedJsxRuntimes.has(dflt)) {
-                patchedJsxRuntimes.add(dflt);
-                const wrapped = wrapJsxFunction(dflt);
-                exports.default = wrapped;
-                restoreJsx.push(() => { exports.default = dflt; });
-            }
+            if (dflt != null && isJsxRuntime(dflt)) patchJsxObject(dflt);
         } catch {
             // Ignore one module's bad shape and continue scanning.
         }
@@ -306,12 +308,7 @@ export function patchCreateElement(cleanups: (() => void)[]) {
     cleanups.push(() => {
         if (timer) clearInterval(timer);
         timer = undefined;
-        if (isPatched) {
-            React.createElement = origCreateElement;
-            isPatched = false;
-        }
-        restoreJsx.forEach((fn) => fn());
-        restoreJsx.length = 0;
+        isPatched = false;
         intercepts.clear();
         propsIntercepts.length = 0;
         propsTransforms.length = 0;
