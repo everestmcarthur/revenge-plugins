@@ -1,0 +1,11 @@
+{
+    "name": "TypingAvatars",
+    "description": "Replaces the \"X is typing...\" indicator with the avatars of whoever's typing.",
+    "authors": [
+        { "name": "Rosie" }
+    ],
+    "main": "src/index.ts",
+    "vendetta": {
+        "icon": "ic_group"
+    }
+}
