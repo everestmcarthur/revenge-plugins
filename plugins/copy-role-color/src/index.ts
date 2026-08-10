@@ -12,11 +12,39 @@ import { registerTypeDetector, registerIntercept, patchCreateElement } from "@sh
 // tertiaryColor}), not the flattened colorString - copying that exact JSON back into Discord's own
 // role color picker recreates the gradient. A solid-color role only has primaryColor set, so this
 // falls back to the plain hex for those, keeping the existing single-color behavior unchanged.
-function getClipboardValue(colorStrings: any, fallbackColor?: string | null): string | null {
-    if (colorStrings?.primaryColor && colorStrings?.secondaryColor) {
-        return JSON.stringify(colorStrings);
+function formatReadable(colorStrings: any): string {
+    const lines = [`Primary: ${colorStrings.primaryColor}`, `Secondary: ${colorStrings.secondaryColor}`];
+    if (colorStrings.tertiaryColor) lines.push(`Tertiary: ${colorStrings.tertiaryColor}`);
+    return lines.join("\n");
+}
+
+// Clipboard only holds one value, so a gradient can't be copied both ways at once - instead, a
+// second long-press on the same role within this window swaps the JSON for the readable text.
+const GRADIENT_TOGGLE_WINDOW_MS = 3000;
+let lastGradientCopy: { key: string; time: number } | null = null;
+
+function copyRoleColor(colorStrings: any, fallbackColor?: string | null) {
+    const isGradient = !!(colorStrings?.primaryColor && colorStrings?.secondaryColor);
+    if (!isGradient) {
+        const value = colorStrings?.primaryColor ?? fallbackColor;
+        if (!value) return;
+        clipboard.setString(value);
+        showToast("Copied role color to clipboard", getAssetIDByName("ic_message_copy"));
+        lastGradientCopy = null;
+        return;
     }
-    return colorStrings?.primaryColor ?? fallbackColor ?? null;
+
+    const key = JSON.stringify(colorStrings);
+    const now = Date.now();
+    if (lastGradientCopy?.key === key && now - lastGradientCopy.time < GRADIENT_TOGGLE_WINDOW_MS) {
+        clipboard.setString(formatReadable(colorStrings));
+        showToast("Copied readable colors to clipboard", getAssetIDByName("ic_message_copy"));
+        lastGradientCopy = null;
+    } else {
+        clipboard.setString(key);
+        showToast("Copied gradient JSON - press again for readable text", getAssetIDByName("ic_message_copy"));
+        lastGradientCopy = { key, time: now };
+    }
 }
 
 function patchRolePill(): () => void {
@@ -45,13 +73,8 @@ function patchRolePill(): () => void {
             const guildId = res.props?.guildId;
             const roleId = res.props?.roleId ?? res.props?.role?.id;
             const role = guildId && roleId ? GuildRoleStore?.getRole?.(guildId, roleId) : null;
-            const value = getClipboardValue(role?.colorStrings, color);
-            if (!value) return;
 
-            res.props.onLongPress = () => {
-                clipboard.setString(value);
-                showToast("Copied role color to clipboard", getAssetIDByName("ic_message_copy"));
-            };
+            res.props.onLongPress = () => copyRoleColor(role?.colorStrings, color);
         } catch {
             // Leave the role pill without a long-press handler.
         }
@@ -75,14 +98,12 @@ function patchProfileRoleItem(): () => void {
                 const ret = RoleItem(props);
 
                 try {
-                    const value = getClipboardValue(props?.role?.colorStrings, props?.role?.colorString);
-                    if (value && ret && typeof ret === "object") {
+                    const colorStrings = props?.role?.colorStrings;
+                    const fallback = props?.role?.colorString;
+                    if ((colorStrings?.primaryColor || fallback) && ret && typeof ret === "object") {
                         ret.props = {
                             ...ret.props,
-                            onLongPress: () => {
-                                clipboard.setString(value);
-                                showToast("Copied role color to clipboard", getAssetIDByName("ic_message_copy"));
-                            }
+                            onLongPress: () => copyRoleColor(colorStrings, fallback)
                         };
                     }
                 } catch {
