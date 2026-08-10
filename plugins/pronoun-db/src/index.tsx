@@ -27,8 +27,12 @@ function patchProfile(): () => void {
             const children = bioSection?.props?.children;
             if (!Array.isArray(children)) return;
 
-            const withProfile = children.find((c: any) => typeof c?.props?.displayProfile?.userId === "string");
-            const userId = withProfile?.props?.displayProfile?.userId;
+            // userId is a direct prop on these cards now, not nested under displayProfile.userId
+            // - keeping the old path as a fallback in case another build still shapes it that way.
+            const withProfile = children.find(
+                (c: any) => typeof c?.props?.userId === "string" || typeof c?.props?.displayProfile?.userId === "string"
+            );
+            const userId = withProfile?.props?.userId ?? withProfile?.props?.displayProfile?.userId;
             if (!userId) return;
 
             children.unshift(<PronounSection userId={userId} />);

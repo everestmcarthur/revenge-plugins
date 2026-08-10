@@ -1,46 +1,44 @@
+import { React, ReactNative } from "@vendetta/metro/common";
 import { findByStoreName } from "@vendetta/metro";
-import { ReactNative } from "@vendetta/metro/common";
-import { after } from "@vendetta/patcher";
-import { findInReactTree } from "@vendetta/utils";
 import { storage } from "@vendetta/plugin";
+import { registerPropsTransform, patchCreateElement } from "@shared/lib/createElementIntercept";
 
-const { View } = ReactNative;
-const GuildStore = findByStoreName("GuildStore");
+const { Text } = ReactNative;
+const SelectedGuildStore = findByStoreName("SelectedGuildStore");
+const GuildRoleStore = findByStoreName("GuildRoleStore");
 
-// Colors the role section headers in the member list. Patches the generic View render, since these headers
-// aren't exposed as a named component - `roleId` on the found node is what narrows it down to the right one.
+// Colors the role section headers in the member list ("MODERATORS", "ADMINS", etc). The old
+// version patched View.prototype.render looking for a roleId prop - View isn't a class component
+// anymore and roleId doesn't exist by the time this reaches React. All we get is a pre-formatted
+// title string like "🚨 Moderator — 1" on a memo'd component called UserSectionInner, so we parse
+// the role name back out of that and match it against the guild's roles by name.
 export default function patchMemberList(): () => void {
-    if (!View) return () => {};
+    const cleanups: (() => void)[] = [];
+    patchCreateElement(cleanups);
 
-    return after("render", View, (_: any, res: any) => {
-        try {
-            if (storage.noRole) return;
+    registerPropsTransform(
+        (props: any, type: any) => {
+            if (storage.noRole) return false;
+            if (typeof props?.title !== "string") return false;
+            const isSectionHeader = typeof type === "function" ? type.name === "UserSectionInner" : type?.type?.name === "UserSectionInner";
+            return isSectionHeader;
+        },
+        (props: any) => {
+            try {
+                const stripped = props.title.replace(/^[^\p{L}\p{N}]+/u, "").replace(/\s*—\s*\d+$/, "").trim();
+                if (!stripped) return props;
 
-            const roleHeader = findInReactTree(res, (r) => r?.props?.roleId !== undefined);
-            if (!roleHeader) return;
-            if (Number.isNaN(Number(roleHeader.props.roleId))) return;
-            if (roleHeader.props.excludedApplications) return;
-            if ("displayRoleIcon" in roleHeader.props) return;
-            if ("searchable" in roleHeader.props) return;
+                const guildId = SelectedGuildStore?.getGuildId?.();
+                const roles = guildId ? GuildRoleStore?.getSortedRoles?.(guildId) : null;
+                const role = roles?.find((r: any) => r.name === stripped);
+                if (!role?.colorString) return props;
 
-            const outer = { type: { ...roleHeader.type } };
-            after("type", outer.type, (_: any, inner: any) => {
-                const labelWrapper = inner?.props?.children?.[1];
-                if (!labelWrapper?.type) return;
-
-                const label = { type: { ...labelWrapper.type } };
-                after("render", label.type, (_: any, labelRes: any) => {
-                    const role = GuildStore?.getGuild(roleHeader.props.guildId)?.roles?.[roleHeader.props.roleId];
-                    if (!role?.colorString || !labelRes?.props?.style?.push) return;
-                    labelRes.props.style.push({ color: role.colorString });
-                });
-
-                labelWrapper.type = label.type;
-            });
-
-            roleHeader.type = outer.type;
-        } catch {
-            // Skip this render pass - a header staying uncolored beats a crashed member list.
+                return { ...props, title: React.createElement(Text, { style: { color: role.colorString } }, props.title) };
+            } catch {
+                return props;
+            }
         }
-    });
+    );
+
+    return () => cleanups.forEach((fn) => fn());
 }

@@ -5,8 +5,6 @@ import { fetchDefinition } from "./lib/urbanDictionary";
 
 const STRING = 3;
 
-// Same lesson as Message Snippets: returning a CommandResult and relying on the framework to
-// auto-send it is unreliable in practice, so this sends the message directly instead.
 const MessageActions = findByProps("sendMessage", "sendBotMessage");
 
 export default function loadCommands(): (() => void)[] {
@@ -40,7 +38,14 @@ export default function loadCommands(): (() => void)[] {
                 `**${definition.word}** (👍 ${definition.thumbsUp} 👎 ${definition.thumbsDown})\n${definition.definition}` +
                 (definition.example ? `\n\n*${definition.example}*` : "");
 
-            MessageActions.sendMessage(ctx.channel.id, { content });
+            // sendMessage silently rejects (TypeError reading nonce) without a 3rd/4th arg, even
+            // though its own signature only shows two params - both are required to actually send.
+            MessageActions.sendMessage(
+                ctx.channel.id,
+                { content, tts: false, invalidEmojis: [], validNonShortcutEmojis: [] },
+                true,
+                {}
+            );
         }
     });
 

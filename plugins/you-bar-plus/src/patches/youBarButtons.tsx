@@ -4,18 +4,13 @@ import { instead } from "@vendetta/patcher";
 import { storage } from "@vendetta/plugin";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 
-// Reset to Purple-EyeZ's original upstream logic, verbatim aside from the import path
-// (@revenge-mod/metro -> @vendetta/metro, since this repo only has the vendetta-compat alias
-// configured) - no retry loop, no raw* passive finder, no forced re-render. Every one of those
-// layers added this session was meant to fix "sometimes needs a reload," but on the actual device
-// buttons stopped appearing at all, even after ten restarts - worse than upstream's own documented
-// "requires a restart" baseline. Resetting to the exact known-quantity upstream version first, to
-// find out whether the *added* logic was the actual problem or something else in this port
-// (a renamed lookup, a build difference) was always broken and just wasn't visible under the retry
-// logic's own try/catch swallowing it.
+// Keep the actual patch logic here dead simple - a previous attempt to fix the load-order race
+// by adding retry/re-render logic directly into this function made buttons stop appearing at all.
+// The retry now lives one level up in index.ts instead, calling this repeatedly until it succeeds.
 export let updateYouBar = () => {};
 
-export default function patchYouBarButtons(): () => void {
+/** Returns null (not undefined) when YouBarNotificationsButton isn't registered in Metro yet, so a caller can tell "not ready" apart from "patched, here's the unpatch fn". */
+export default function patchYouBarButtons(): (() => void) | null {
     const YouBarNotificationsButton = findByTypeName("YouBarNotificationsButton");
     const userSettingsAction = findByProps("openUserSettings");
     const transitionModule = findByProps("transitionToGuild");
@@ -23,7 +18,7 @@ export default function patchYouBarButtons(): () => void {
     const SettingsIcon = getAssetIDByName("SettingsIcon");
     const ChatIcon = getAssetIDByName("ChatIcon");
 
-    if (!YouBarNotificationsButton) return () => {};
+    if (!YouBarNotificationsButton) return null;
 
     return instead("type", YouBarNotificationsButton, (args: any[], OriginalRender: (...a: any[]) => any) => {
         const [, forceUpdate] = React.useReducer((x: number) => ~x, 0);

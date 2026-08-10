@@ -1,60 +1,67 @@
 import { findByProps, findByStoreName } from "@vendetta/metro";
-import { React, constants } from "@vendetta/metro/common";
-import { after } from "@vendetta/patcher";
-import { General } from "@vendetta/ui/components";
+import { findInReactTree } from "@vendetta/utils";
 import { storage } from "@vendetta/plugin";
+import { registerTypeDetector, registerIntercept, patchCreateElement } from "@shared/lib/createElementIntercept";
 import { defaultTextColor } from "../lib/color";
 
-const { Text } = General;
-const UserStore = findByStoreName("UserStore");
-const RelationshipStore = findByStoreName("RelationshipStore");
 const GuildMemberStore = findByStoreName("GuildMemberStore");
-const TypingWrapper = findByProps("TYPING_WRAPPER_HEIGHT");
 
+// Colors usernames in the "X is typing..." indicator. TYPING_WRAPPER_HEIGHT (what this used to
+// look up) doesn't exist anymore - the actual component is TypingIndicatorInner, which isn't a
+// top-level export, and it hands us channel + typingUserIds directly as props. Each typing user
+// gets their own inner <Text> element in the same order as typingUserIds, so we just zip them up.
 export default function patchTypingWrapper(): () => void {
-    if (!TypingWrapper?.default) return () => {};
+    const cleanups: (() => void)[] = [];
+    patchCreateElement(cleanups);
 
-    return after("default", TypingWrapper, ([{ channel }]: any[], res: any) => {
-        try {
-            if (!res || storage.hideTyping) return;
+    registerTypeDetector(
+        "role-color-everywhere-typing-indicator",
+        (type) => typeof type === "function" ? type.name === "TypingIndicatorInner" : type?.type?.name === "TypingIndicatorInner",
+        (TypingIndicatorInner: any) => {
+            const inner = typeof TypingIndicatorInner === "function" ? TypingIndicatorInner : TypingIndicatorInner.type;
 
-            const Typing = res.props?.children;
-            if (!Typing) return;
+            const PatchedTypingIndicatorInner = (props: any) => {
+                const ret = inner(props);
 
-            const unpatchTyping = after("type", Typing, (_: any, typingRes: any) => {
                 try {
-                    React.useEffect(() => () => unpatchTyping(), []);
+                    if (storage.hideTyping) return ret;
 
-                    const typingThing = typingRes?.props?.children?.[0]?.props?.children?.[1]?.props;
-                    if (!typingThing?.children || typingThing.children === "Several people are typing...") return;
+                    const label = findInReactTree(
+                        ret,
+                        (n: any) =>
+                            Array.isArray(n?.props?.children) &&
+                            n.props.children.some((c: any) => typeof c === "string" && c.includes("typing..."))
+                    );
+                    if (!Array.isArray(label?.props?.children)) return ret;
 
-                    const users = (TypingWrapper.useTypingUserIds?.(channel.id) ?? []).map((userId: string) => {
-                        const member = GuildMemberStore?.getMember(channel.guild_id, userId);
-                        const user = UserStore?.getUser(userId);
-                        const name = member?.nick || RelationshipStore?.getNickname?.(userId) || user?.globalName || user?.username || "Someone";
+                    // "Several people are typing..." collapses to one plain string with no
+                    // per-user elements to color - nothing to do here, leave it as-is.
+                    const userElements = label.props.children.filter((c: any) => c && typeof c === "object");
+                    const typingUserIds: string[] = props?.typingUserIds ?? [];
+                    if (!userElements.length || userElements.length !== typingUserIds.length) return ret;
+
+                    const channel = props?.channel;
+                    userElements.forEach((el: any, i: number) => {
+                        const userId = typingUserIds[i];
+                        const member = userId && channel ? GuildMemberStore?.getMember(channel.guild_id, userId) : null;
                         const color = member?.colorString || defaultTextColor();
-                        return { name, color };
+                        if (!color || !el?.props) return;
+                        el.props.style = Array.isArray(el.props.style)
+                            ? [...el.props.style, { color }]
+                            : el.props.style
+                              ? [el.props.style, { color }]
+                              : { color };
                     });
-
-                    if (!users.length) return;
-
-                    const userText = (u: { name: string; color: any }) =>
-                        React.createElement(Text, { style: { color: u.color, fontFamily: constants.Fonts.DISPLAY_SEMIBOLD } }, u.name);
-
-                    typingThing.children =
-                        users.length === 1
-                            ? [userText(users[0]), " is typing..."]
-                            : [
-                                  ...users.slice(0, -1).flatMap((u: any, i: number) => [userText(u), i < users.length - 2 ? ", " : " and "]),
-                                  userText(users[users.length - 1]),
-                                  " are typing..."
-                              ];
                 } catch {
                     // Leave the default "X is typing..." text alone.
                 }
-            });
-        } catch {
-            // Skip typing indicator coloring entirely for this render.
+
+                return ret;
+            };
+
+            registerIntercept(TypingIndicatorInner, PatchedTypingIndicatorInner);
         }
-    });
+    );
+
+    return () => cleanups.forEach((fn) => fn());
 }

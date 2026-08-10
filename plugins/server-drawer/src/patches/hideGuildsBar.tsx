@@ -77,11 +77,32 @@ function hasChildWithTestID(children: any, rest: any[], testID: string): boolean
 
 export function patchHideGuildsBar(cleanups: (() => void)[]): boolean {
     // Hard-enforce the GuildsBar parent's visibility by detecting the hidden Nothing child and
-    // applying display: none to the rail wrapper itself.
+    // zeroing the rail wrapper itself. Confirmed live that the immediate parent carries an
+    // explicit width: 72 in its own style, so display: none alone left the space reserved -
+    // zeroing width/flex directly, the same way collapseAncestors does further up, actually
+    // reclaims it.
     registerPropsTransform(
         (props: any, _type: any, rest: any[]) =>
             hasChildWithTestID(props?.children, rest, SD_NOTHING_TEST_ID),
-        (props: any) => ({ ...props, style: [props?.style, { display: "none" }] }),
+        (props: any) => ({
+            ...props,
+            style: [
+                props?.style,
+                {
+                    display: "none",
+                    width: 0,
+                    minWidth: 0,
+                    maxWidth: 0,
+                    flexGrow: 0,
+                    flexShrink: 0,
+                    flexBasis: 0,
+                    margin: 0,
+                    padding: 0,
+                    borderWidth: 0,
+                    overflow: "hidden",
+                },
+            ],
+        }),
     );
 
     // Use a stable string key so duplicate registrations from retry loops are deduped correctly.

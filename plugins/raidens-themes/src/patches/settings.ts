@@ -1,23 +1,21 @@
 import { React, NavigationNative } from "@vendetta/metro/common";
-import { getAssetIDByName } from "@vendetta/ui/assets";
+import { findByProps, findByName } from "@vendetta/metro";
 import { after } from "@vendetta/patcher";
 import { Forms } from "@vendetta/ui/components";
 import { findInReactTree } from "@vendetta/utils";
 
 const { FormSection, FormRow } = Forms;
-const bunny = (window as any).bunny;
 
-declare global {
-    interface Window {
-        bunny?: any;
-    }
-}
-
-const tabsNavigationRef = bunny?.metro?.findByPropsLazy?.("getRootNavigationRef");
-const settingConstants = bunny?.metro?.findByPropsLazy?.("SETTING_RENDERER_CONFIG");
-const createListModule = bunny?.metro?.findByPropsLazy?.("createList");
-const SettingsOverviewScreen = bunny?.metro?.findByNameLazy?.("SettingsOverviewScreen", false);
-const TableRowIconModule = bunny?.metro?.findByPropsLazy?.("TableRowIcon");
+// Pins a settings entry into Discord's own App Settings screen instead of leaving it buried under
+// Revenge's Plugins list - ported from Commands (kmmiio99o/vd-plugins), which calls through
+// window.bunny. This client only has vendetta, not bunny, so those lookups always came back
+// undefined and it silently fell back to copying the theme URL. Swapped to Vendetta's
+// findByProps/findByName, same as every other plugin in this repo.
+const tabsNavigationRef = findByProps("getRootNavigationRef");
+const settingConstants = findByProps("SETTING_RENDERER_CONFIG");
+const createListModule = findByProps("createList");
+const SettingsOverviewScreen = findByName("SettingsOverviewScreen", false);
+const TableRowIconModule = findByProps("TableRowIcon");
 
 function Section({ tabs }: { tabs: any }) {
     const navigation = NavigationNative.useNavigation();
@@ -40,41 +38,45 @@ function Section({ tabs }: { tabs: any }) {
 }
 
 function patchPanelUI(tabs: any, patches: any[]) {
-    const target = bunny?.metro?.findByPropsLazy?.(["renderTitle", "sections"], false)
-        ?? bunny?.metro?.findByProps?.("renderTitle", "sections");
-
+    const target = findByProps("renderTitle", "sections");
     if (!target) return;
 
-    patches.push(
-        after("default", target, (_: any, ret: any) => {
-            const UserSettingsOverview = findInReactTree(
-                ret.props.children,
-                (n: any) => n.type?.name === "UserSettingsOverview"
-            );
-
-            if (UserSettingsOverview) {
-                patches.push(
-                    after("render", UserSettingsOverview.type.prototype, (_args: any, res: any) => {
-                        const sections = findInReactTree(
-                            res.props.children,
-                            (n: any) => n?.children?.[1]?.type === FormSection
-                        )?.children;
-
-                        if (sections) {
-                            const index = sections.findIndex((c: any) =>
-                                ["BILLING_SETTINGS", "PREMIUM_SETTINGS"].includes(c?.props?.label)
-                            );
-                            sections.splice(
-                                -~index || 4,
-                                0,
-                                React.createElement(Section, { key: tabs.key, tabs })
-                            );
-                        }
-                    })
+    try {
+        patches.push(
+            after("default", target, (_: any, ret: any) => {
+                const UserSettingsOverview = findInReactTree(
+                    ret.props.children,
+                    (n: any) => n.type?.name === "UserSettingsOverview"
                 );
-            }
-        }, true)
-    );
+
+                if (UserSettingsOverview) {
+                    patches.push(
+                        after("render", UserSettingsOverview.type.prototype, (_args: any, res: any) => {
+                            const sections = findInReactTree(
+                                res.props.children,
+                                (n: any) => n?.children?.[1]?.type === FormSection
+                            )?.children;
+
+                            if (sections) {
+                                const index = sections.findIndex((c: any) =>
+                                    ["BILLING_SETTINGS", "PREMIUM_SETTINGS"].includes(c?.props?.label)
+                                );
+                                sections.splice(
+                                    -~index || 4,
+                                    0,
+                                    React.createElement(Section, { key: tabs.key, tabs })
+                                );
+                            }
+                        })
+                    );
+                }
+            }, true)
+        );
+    } catch {
+        // This surface (the tablet/desktop-style settings panel) may not exist on this build at
+        // all - patchTabsUI below covers the mobile settings list, which is what actually matters
+        // here. A miss on this one shouldn't block that one.
+    }
 }
 
 function patchTabsUI(tabs: any, patches: any[]) {
