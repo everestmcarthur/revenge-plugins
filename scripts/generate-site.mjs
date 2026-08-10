@@ -58,4 +58,15 @@ for (const p of plugins) {
     await copyFile("./site/index.html", `./dist/${p.id}/index.html`);
 }
 
+// Static install files (manifest.json / index.js) are served directly by the Workers Assets layer,
+// bypassing the Worker code, so CORS headers must be attached here.
+const headers = `/*
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, HEAD, PUT, DELETE, OPTIONS, PATCH
+  Access-Control-Allow-Headers: authorization, content-type
+  Access-Control-Max-Age: 86400
+  Vary: Origin
+`;
+await writeFile("./dist/_headers", headers);
+
 console.log(`Generated site data for ${plugins.length} plugin(s).`);
