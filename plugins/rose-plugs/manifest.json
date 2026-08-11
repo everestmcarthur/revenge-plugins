@@ -1,0 +1,11 @@
+{
+    "name": "RosePlugs",
+    "description": "Gives Rosie's plugins their own home in Settings, with one-tap installs for anything not installed yet.",
+    "authors": [
+        { "name": "Rosie" }
+    ],
+    "main": "src/index.ts",
+    "vendetta": {
+        "icon": "ic_group"
+    }
+}
