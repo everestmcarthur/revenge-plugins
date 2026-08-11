@@ -1,5 +1,5 @@
 import { React, ReactNative } from "@vendetta/metro/common";
-import { plugins as installedPlugins, installPlugin } from "@vendetta/plugins";
+import { plugins as installedPlugins, installPlugin, removePlugin } from "@vendetta/plugins";
 import { showToast } from "@vendetta/ui/toasts";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import NoteBox from "@shared/ui/NoteBox";
@@ -30,7 +30,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 
 export default function PluginsBrowser() {
     const [state, setState] = React.useState<BrowserState>({ loading: true, error: null, plugins: [] });
-    const [installingId, setInstallingId] = React.useState<string | null>(null);
+    const [busyId, setBusyId] = React.useState<string | null>(null);
 
     const load = React.useCallback(() => {
         setState((s) => ({ ...s, loading: true, error: null }));
@@ -44,11 +44,23 @@ export default function PluginsBrowser() {
     }, [load]);
 
     const onInstall = React.useCallback((plugin: NexusPlugin) => {
-        setInstallingId(plugin.id);
+        setBusyId(plugin.id);
         withTimeout(installPlugin(plugin.installUrl), 20000)
             .then(() => showToast(`${plugin.name} installed`))
             .catch((e: any) => showToast(`Install failed: ${e?.message ?? e}`))
-            .finally(() => setInstallingId(null));
+            .finally(() => setBusyId(null));
+    }, []);
+
+    const onUninstall = React.useCallback((plugin: NexusPlugin) => {
+        setBusyId(plugin.id);
+        try {
+            removePlugin(plugin.installUrl);
+            showToast(`${plugin.name} removed`);
+        } catch (e: any) {
+            showToast(`Remove failed: ${e?.message ?? e}`);
+        } finally {
+            setBusyId(null);
+        }
     }, []);
 
     if (state.loading) {
@@ -81,12 +93,12 @@ export default function PluginsBrowser() {
                 <TableRowGroup key={category} title={category}>
                     {plugins.map((plugin) => {
                         const installed = plugin.installUrl in installedPlugins;
-                        const installing = installingId === plugin.id;
+                        const busy = busyId === plugin.id;
                         return (
                             <TableRow
                                 key={plugin.id}
                                 label={plugin.name}
-                                subLabel={installed ? "Installed" : plugin.tagline || plugin.description}
+                                subLabel={installed ? "Installed - tap to remove" : plugin.tagline || plugin.description}
                                 trailing={
                                     <View style={{ flexDirection: "row", alignItems: "center" }}>
                                         {plugin.status && plugin.status !== "default" && (
@@ -94,25 +106,23 @@ export default function PluginsBrowser() {
                                                 {plugin.status.toUpperCase()}
                                             </Text>
                                         )}
-                                        {installed ? (
-                                            <Text style={{ fontSize: 14, fontWeight: "700", color: "#23A55A" }}>✓</Text>
-                                        ) : (
-                                            <TouchableOpacity
-                                                disabled={installing}
-                                                onPress={() => onInstall(plugin)}
-                                                style={{
-                                                    backgroundColor: "#5865F2",
-                                                    borderRadius: 6,
-                                                    paddingHorizontal: 10,
-                                                    paddingVertical: 5,
-                                                    opacity: installing ? 0.6 : 1,
-                                                }}
-                                            >
-                                                <Text style={{ color: "white", fontSize: 12, fontWeight: "600" }}>
-                                                    {installing ? "Installing…" : "Install"}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        )}
+                                        <TouchableOpacity
+                                            disabled={busy}
+                                            onPress={() => (installed ? onUninstall(plugin) : onInstall(plugin))}
+                                            style={{
+                                                backgroundColor: installed ? "rgba(35,165,90,0.2)" : "#5865F2",
+                                                borderRadius: 6,
+                                                paddingHorizontal: 10,
+                                                paddingVertical: 5,
+                                                opacity: busy ? 0.6 : 1,
+                                            }}
+                                        >
+                                            <Text style={{ color: installed ? "#23A55A" : "white", fontSize: 12, fontWeight: "600" }}>
+                                                {busy
+                                                    ? installed ? "Removing…" : "Installing…"
+                                                    : installed ? "✓ Installed" : "Install"}
+                                            </Text>
+                                        </TouchableOpacity>
                                     </View>
                                 }
                             />
