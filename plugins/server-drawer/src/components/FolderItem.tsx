@@ -30,7 +30,10 @@ function folderColor(color?: number | null): string {
 }
 
 function FolderBadge({ node }: { node: GuildNode }) {
-    const total = Flux?.useStateFromStores?.(
+    // Same guard as useFolderExpanded in utils/theme.ts - GuildReadStateStore is a one-shot lookup
+    // with no retry, and passing an undefined store into useStateFromStores throws instead of
+    // failing safely, which would take the whole drawer down, not just this badge.
+    const total = (Flux?.useStateFromStores && GuildReadStateStore) ? Flux.useStateFromStores(
         [GuildReadStateStore],
         () => {
             let sum = 0;
@@ -40,7 +43,7 @@ function FolderBadge({ node }: { node: GuildNode }) {
             return sum;
         },
         [node.children],
-    ) ?? 0;
+    ) : 0;
 
     if (total > 0) {
         return (
