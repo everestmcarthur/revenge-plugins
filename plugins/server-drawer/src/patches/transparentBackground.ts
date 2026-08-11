@@ -1,4 +1,4 @@
-import { registerPropsTransform } from "./createElementIntercept";
+import { registerPropsTransform, registerPropsIntercept } from "./createElementIntercept";
 
 const TAG = "[ServerDrawer]";
 
@@ -20,6 +20,23 @@ function isQuestDockCard(props: any): boolean {
     return s.borderRadius === 24 && typeof s.backgroundColor === "string";
 }
 
+// Removing the card's own color only revealed a second, separate layer underneath: the quest's own
+// promotional hero photo, rendered as a real <FastImageAndroid> pointed at a discordapp.com/quests/
+// URL - confirmed live (an actual promo image showed through once the color was gone). Matching by
+// URL shape, not by component, since the same image component renders ordinary guild/folder icons
+// everywhere else in the app too.
+function getSourceUri(props: any): string | undefined {
+    const source = props?.source;
+    if (!source) return undefined;
+    if (Array.isArray(source)) return source[0]?.uri;
+    return source.uri;
+}
+
+function isQuestHeroImage(props: any): boolean {
+    const uri = getSourceUri(props);
+    return typeof uri === "string" && uri.includes("/quests/");
+}
+
 export function patchTransparentBackground(cleanups: (() => void)[]): boolean {
     registerPropsTransform(
         (props: any) => isQuestDockCard(props),
@@ -28,6 +45,7 @@ export function patchTransparentBackground(cleanups: (() => void)[]): boolean {
             style: [props?.style, { backgroundColor: "transparent" }],
         }),
     );
-    console.log(TAG, "PATCH: watching for the quest dock card background");
+    registerPropsIntercept(isQuestHeroImage, null);
+    console.log(TAG, "PATCH: watching for the quest dock card background and hero image");
     return true;
 }
