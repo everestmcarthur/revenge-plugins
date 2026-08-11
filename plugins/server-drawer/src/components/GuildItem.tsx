@@ -126,7 +126,7 @@ export default function GuildItem({ node, onPick, showNames }: { node: GuildNode
                         <Badge guildId={guildId} />
                     </View>
                     {showNames && (
-                        <Text numberOfLines={1} ellipsizeMode="tail" style={st.label}>
+                        <Text numberOfLines={2} ellipsizeMode="tail" style={st.label}>
                             {name}
                         </Text>
                     )}
@@ -150,9 +150,9 @@ const st = StyleSheet.create({
     icon: { width: ICON, height: ICON, borderRadius: 16, overflow: "hidden" },
     label: {
         marginTop: 4,
-        width: ICON + 16,
-        fontSize: 11,
-        lineHeight: 13,
+        width: ICON,
+        fontSize: 10,
+        lineHeight: 12,
         fontWeight: "600",
         textAlign: "center",
         color: colors?.HEADER_PRIMARY ?? colors?.TEXT_NORMAL ?? "#fff",
