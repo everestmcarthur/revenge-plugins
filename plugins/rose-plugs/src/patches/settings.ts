@@ -6,7 +6,11 @@ import { findInReactTree } from "@vendetta/utils";
 
 const { FormSection, FormRow } = Forms;
 
-const SECTION_LABEL = "ROSES_PLUGS";
+// The mobile settings list renders a section's `label` field directly as its header text - `title`
+// goes unused there (confirmed live: an internal-looking label like "ROSES_PLUGS" rendered verbatim
+// instead of a real title). Raiden's Themes' own working section lookup relies on the same thing
+// (label === title === "Revenge"), so both fields just carry the same human-readable string.
+const SECTION_LABEL = "Rosie's Plugs";
 const SECTION_TITLE = "Rosie's Plugs";
 
 const tabsNavigationRef = findByProps("getRootNavigationRef");
