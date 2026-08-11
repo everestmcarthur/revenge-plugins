@@ -1,4 +1,3 @@
-import { chunk } from "lodash";
 import React, { type ReactNode, useContext, useMemo, useState } from "react";
 import { View, type ViewStyle } from "react-native";
 
@@ -11,6 +10,18 @@ import { Button, FlashList, Icon, PressableOpacity, StaticEffect, Text } from "@
 import { Radius, SafeAreaContext, Spacing, useWindowDimensions } from "@fpte/ui/length";
 
 const ROW_SIZE = 3;
+
+// lodash isn't a dependency of this repo (no node_modules/lodash, nothing in package.json) - the
+// build's Rollup config only marks react/react-native external, so an unresolved "lodash" import
+// got emitted as a bare, undefined global reference in the compiled bundle. That threw
+// "ReferenceError: lodash is not defined" the instant Revenge evaluated this plugin's bundle,
+// before onLoad ever ran - which is why enabling the plugin silently reverted with no visible
+// error anywhere. Only one function was ever used from it, so it's inlined here instead.
+function chunk<T>(arr: T[], size: number): T[][] {
+    const result: T[][] = [];
+    for (let i = 0; i < arr.length; i += size) result.push(arr.slice(i, i + size));
+    return result;
+}
 
 interface ItemProps {
     label: string;
