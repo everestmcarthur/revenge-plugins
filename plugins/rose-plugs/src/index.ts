@@ -1,14 +1,11 @@
 import { logger } from "@vendetta";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 import Settings from "./ui/Settings";
+import PluginsBrowser from "./ui/PluginsBrowser";
 import patchRosiesPlugsSection, { SectionRow } from "./patches/settings";
 import { discoverRosiesPlugins } from "./patches/discoverPlugins";
 
 let unpatch: (() => void) | undefined;
-
-function StubPluginsScreen() {
-    return null;
-}
 
 function buildRows(): SectionRow[] {
     const rows: SectionRow[] = [
@@ -16,7 +13,7 @@ function buildRows(): SectionRow[] {
             key: "ROSES_PLUGS_BROWSER",
             title: () => "Plugins",
             icon: getAssetIDByName("SettingsIcon"),
-            page: StubPluginsScreen,
+            page: PluginsBrowser,
         },
     ];
 
