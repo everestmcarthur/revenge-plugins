@@ -4,6 +4,7 @@ import { patchMobileQuestDock } from "./patches/mobileQuestDock";
 import { patchGetQuestAsset } from "./patches/getQuestAsset";
 import { patchExpanded, patchEmpty } from "./patches/contentPatch";
 import { patchHideGuildsBar } from "./patches/hideGuildsBar";
+import { patchDisableHomeDrawer } from "./patches/disableHomeDrawer";
 import { patchCreateElement } from "./patches/createElementIntercept";
 import { storage } from "@vendetta/plugin";
 import Settings from "./ui/Settings";
@@ -34,6 +35,7 @@ export default {
         if (patchEmpty("QuestDockEnrolledBody", cleanups)) patched++;
         if (patchEmpty("QuestDockUnenrolledBody", cleanups)) patched++;
         if (patchHideGuildsBar(cleanups)) patched++;
+        if (patchDisableHomeDrawer(cleanups)) patched++;
 
         console.log(TAG, `onLoad done — ${patched} patches applied, ${cleanups.length} cleanups`);
     },

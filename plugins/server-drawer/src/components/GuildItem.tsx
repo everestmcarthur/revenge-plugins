@@ -149,12 +149,16 @@ const st = StyleSheet.create({
     iconWrap: { width: ICON, height: ICON },
     icon: { width: ICON, height: ICON, borderRadius: 16, overflow: "hidden" },
     label: {
-        marginTop: 3,
-        width: ICON + 8,
-        fontSize: 9.5,
-        lineHeight: 11,
+        marginTop: 4,
+        width: ICON + 16,
+        fontSize: 11,
+        lineHeight: 13,
+        fontWeight: "600",
         textAlign: "center",
-        color: colors?.TEXT_MUTED ?? colors?.HEADER_SECONDARY ?? "#96989d",
+        color: colors?.HEADER_PRIMARY ?? colors?.TEXT_NORMAL ?? "#fff",
+        textShadowColor: "rgba(0,0,0,0.75)",
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
     },
 });
 
