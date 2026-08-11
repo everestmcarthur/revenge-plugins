@@ -15,6 +15,12 @@ function buildRows(): SectionRow[] {
             icon: getAssetIDByName("SettingsIcon"),
             page: PluginsBrowser,
         },
+        {
+            key: "ROSES_PLUGS_SETTINGS",
+            title: () => "RosePlugs",
+            icon: getAssetIDByName("SettingsIcon"),
+            page: Settings,
+        },
     ];
 
     const discovered = discoverRosiesPlugins().filter((p) => p.settingsComponent);
