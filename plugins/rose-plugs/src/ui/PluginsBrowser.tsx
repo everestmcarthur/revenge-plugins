@@ -1,13 +1,11 @@
 import { React, ReactNative } from "@vendetta/metro/common";
 import { plugins as installedPlugins, installPlugin } from "@vendetta/plugins";
-import { showCustomAlert } from "@vendetta/ui/alerts";
 import { showToast } from "@vendetta/ui/toasts";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import NoteBox from "@shared/ui/NoteBox";
 import PrimaryButton from "@shared/ui/PrimaryButton";
 import { TableRow, TableRowGroup } from "@shared/ui/table";
 import { fetchNexusPlugins, NexusPlugin } from "../lib/nexusApi";
-import PluginDetailSheet from "./PluginDetailSheet";
 
 const { Text, View, TouchableOpacity } = ReactNative;
 
@@ -117,7 +115,6 @@ export default function PluginsBrowser() {
                                         )}
                                     </View>
                                 }
-                                onPress={() => showCustomAlert(PluginDetailSheet, { plugin })}
                             />
                         );
                     })}
