@@ -103,9 +103,19 @@ const CACHE_TTL_SECONDS = 60; // Workers KV's enforced minimum
 
 const CORS_HEADERS = {
     "access-control-allow-origin": "*",
-    "access-control-allow-methods": "GET,PUT,DELETE,OPTIONS",
+    "access-control-allow-methods": "GET,HEAD,PUT,DELETE,OPTIONS,PATCH",
     "access-control-allow-headers": "authorization,content-type",
+    "access-control-max-age": "86400",
+    "vary": "Origin",
 };
+
+function withCors(response: Response): Response {
+    const headers = new Headers(response.headers);
+    for (const [k, v] of Object.entries(CORS_HEADERS)) {
+        headers.set(k, v);
+    }
+    return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
 
 function json(data: unknown, status = 200): Response {
     return new Response(JSON.stringify(data), {
@@ -174,7 +184,7 @@ export default {
 async function handle(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
-    if (request.method === "OPTIONS" && url.pathname.startsWith("/api/")) {
+    if (request.method === "OPTIONS") {
         return new Response(null, { headers: CORS_HEADERS });
     }
 
@@ -219,11 +229,11 @@ async function handle(request: Request, env: Env): Promise<Response> {
             return new Response(row.main_js, { headers: { "content-type": "application/javascript", ...CORS_HEADERS } });
         }
 
-        return env.ASSETS.fetch(request);
+        return withCors(await env.ASSETS.fetch(request));
     }
 
     if (!url.pathname.startsWith("/api/")) {
-        return env.ASSETS.fetch(request);
+        return withCors(await env.ASSETS.fetch(request));
     }
 
     // GET /api/overlay - public read, used by the admin plugin/site to show current values before
