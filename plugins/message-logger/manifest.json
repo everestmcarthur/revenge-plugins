@@ -1,0 +1,11 @@
+{
+    "name": "MessageLogger",
+    "description": "Keeps deleted and edited messages visible in the chat, the way Equicord's MessageLogger does on desktop - plus a viewer for anything that couldn't be kept inline.",
+    "authors": [
+        { "name": "Rosie" }
+    ],
+    "main": "src/index.ts",
+    "vendetta": {
+        "icon": "ic_message_edit"
+    }
+}
