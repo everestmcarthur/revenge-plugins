@@ -1,27 +1,19 @@
-import { lazy } from "../lib/lazy";
-import { rawFindByStoreName } from "../lib/rawFind";
-import { getFlux, getColorModule } from "../lib/commonModules";
+import { findByProps, findByStoreName } from "@vendetta/metro";
 
-const getExpandedGuildFolderStore = lazy(() => rawFindByStoreName("ExpandedGuildFolderStore"));
+const Flux = findByProps("useStateFromStores");
+const colors = findByProps("colors", "unsafe_rawColors")?.colors;
+const ExpandedGuildFolderStore = findByStoreName("ExpandedGuildFolderStore");
 
 export function useTheme() {
-    const colors = getColorModule()?.colors;
     return {
-        text: colors?.TEXT_NORMAL ?? colors?.TEXT_DEFAULT ?? "#dbdee1",
+        text: colors?.TEXT_NORMAL ?? "#dbdee1",
         folder: "#5865f2",
         hover: colors?.STATE_LAYER_PRESS ?? "rgba(255,255,255,0.06)",
     };
 }
 
 export function useFolderExpanded(folderId: string | number): boolean {
-    const Flux = getFlux();
-    const ExpandedGuildFolderStore = getExpandedGuildFolderStore();
-    // Guards against an undefined store, not just a falsy return value - confirmed live that
-    // passing [undefined] into useStateFromStores throws rather than failing safely, which used to
-    // take the whole drawer down (this only ever runs when there's an actual folder to render, so
-    // an account with folders showed nothing at all while one without rendered fine).
-    if (!Flux?.useStateFromStores || !ExpandedGuildFolderStore) return false;
-    return Flux.useStateFromStores(
+    return Flux?.useStateFromStores?.(
         [ExpandedGuildFolderStore],
         () => {
             const folders = ExpandedGuildFolderStore?.getExpandedFolders?.();

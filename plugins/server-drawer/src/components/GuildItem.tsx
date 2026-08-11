@@ -1,34 +1,19 @@
 import React from "react";
 import { View, Text, Pressable, Animated, StyleSheet } from "react-native";
-import { storage } from "@vendetta/plugin";
-import { useProxy } from "@vendetta/storage";
-import { lazy } from "../lib/lazy";
-import { rawFind, rawFindByStoreName } from "../lib/rawFind";
-import { getFlux, getHaptic } from "../lib/commonModules";
-import { GuildNode, useTheme } from "../utils/theme";
+import { find, findByProps, findByStoreName } from "@vendetta/metro";
+import { GuildNode } from "../utils/theme";
 import GuildIcon from "./GuildIcon";
 import { ContextMenuModal, ContextMenuItem } from "./ContextMenuModal";
 
 const ICON = 48;
 
-const getGuildReadStateStore = lazy(() => rawFindByStoreName("GuildReadStateStore"));
-const getGuildStore = lazy(() => rawFindByStoreName("GuildStore"));
-const getSortedGuildStore = lazy(() => rawFindByStoreName("SortedGuildStore"));
-
-// Discord's own per-guild context menu (getGuildsBarGuildMenuItems) is a bare default export with
-// no named export - matches the original plugin's own heuristic (a short function whose name
-// mentions "guild"). Rendered through ContextMenuModal since there's no accessible way to mount
-// Discord's own native menu component standalone outside its usual host, but every item/action in
-// it is Discord's real menu, not a custom-built one.
-const getMenuItemsFn = lazy(() =>
-    rawFind((m) => m?.default?.name === "getGuildsBarGuildMenuItems")?.default
-    ?? rawFind((m) => typeof m?.default === "function" && m.default.length <= 2 && /guild/i.test(m.default.name ?? ""))?.default
-);
+const Flux = findByProps("useStateFromStores");
+const GuildReadStateStore = findByStoreName("GuildReadStateStore");
+const GuildStore = findByStoreName("GuildStore");
+const SortedGuildStore = findByStoreName("SortedGuildStore");
+const Haptic = findByProps("triggerHapticFeedback", "HapticFeedbackTypes");
 
 function Badge({ guildId }: { guildId: string }) {
-    const Flux = getFlux();
-    const GuildReadStateStore = getGuildReadStateStore();
-
     const mentionCount = Flux?.useStateFromStores?.(
         [GuildReadStateStore],
         () => GuildReadStateStore?.getMentionCount?.(guildId) ?? 0,
@@ -62,28 +47,6 @@ function Badge({ guildId }: { guildId: string }) {
     return null;
 }
 
-function GuildLabel({ guildId }: { guildId: string }) {
-    useProxy(storage);
-    const theme = useTheme();
-
-    const Flux = getFlux();
-    const GuildStore = getGuildStore();
-
-    const name = Flux?.useStateFromStores?.(
-        [GuildStore],
-        () => GuildStore?.getGuild?.(guildId)?.name ?? "",
-        [guildId],
-    ) ?? "";
-
-    if (storage.showGuildNames === false || !name) return null;
-
-    return (
-        <Text numberOfLines={2} style={[lb.label, { color: theme.text }]}>
-            {name}
-        </Text>
-    );
-}
-
 export default function GuildItem({ node, onPick }: { node: GuildNode; onPick: (id: string) => void }) {
     const viewRef = React.useRef<View>(null);
     const scale = React.useRef(new Animated.Value(1)).current;
@@ -100,11 +63,15 @@ export default function GuildItem({ node, onPick }: { node: GuildNode; onPick: (
 
     const showMenu = React.useCallback(() => {
         const guildId = node.id as string;
-        const guild = getGuildStore()?.getGuild?.(guildId);
-        const menuItemsFn = getMenuItemsFn();
-        if (!guild || !menuItemsFn) return;
+        const guild = GuildStore?.getGuild?.(guildId);
+        const menuItemsFn = find((m) => m?.default?.name === "getGuildsBarGuildMenuItems")?.default
+            ?? find((m) => typeof m?.default === "function" && m.default.length <= 2 && /guild/i.test(m.default.name ?? ""))?.default;
 
-        const treeVersion = getSortedGuildStore()?.getGuildsTree?.()?.version;
+        if (!guild || !menuItemsFn) {
+            return;
+        }
+
+        const treeVersion = SortedGuildStore?.getGuildsTree?.()?.version;
         const rawItems = menuItemsFn(guildId, treeVersion);
         if (!rawItems?.length) return;
 
@@ -129,7 +96,6 @@ export default function GuildItem({ node, onPick }: { node: GuildNode; onPick: (
     }, [node.id]);
 
     const handleLongPress = React.useCallback(() => {
-        const Haptic = getHaptic();
         Haptic?.triggerHapticFeedback?.(Haptic.HapticFeedbackTypes.IMPACT_MEDIUM);
         showMenu();
     }, [showMenu]);
@@ -145,14 +111,11 @@ export default function GuildItem({ node, onPick }: { node: GuildNode; onPick: (
                 onLongPress={handleLongPress}
                 delayLongPress={500}
             >
-                <View style={st.outer}>
-                    <View ref={viewRef} style={st.iconWrap} collapsable={false}>
-                        <Animated.View style={[st.icon, { transform: [{ scale }] }]}>
-                            <GuildIcon id={guildId} />
-                        </Animated.View>
-                        <Badge guildId={guildId} />
-                    </View>
-                    <GuildLabel guildId={guildId} />
+                <View ref={viewRef} style={st.outer} collapsable={false}>
+                    <Animated.View style={[st.icon, { transform: [{ scale }] }]}>
+                        <GuildIcon id={guildId} />
+                    </Animated.View>
+                    <Badge guildId={guildId} />
                 </View>
             </Pressable>
             <ContextMenuModal
@@ -168,19 +131,8 @@ export default function GuildItem({ node, onPick }: { node: GuildNode; onPick: (
 }
 
 const st = StyleSheet.create({
-    outer: { width: ICON },
-    iconWrap: { width: ICON, height: ICON },
+    outer: { width: ICON, height: ICON },
     icon: { width: ICON, height: ICON, borderRadius: 16, overflow: "hidden" },
-});
-
-const lb = StyleSheet.create({
-    label: {
-        width: ICON,
-        marginTop: 4,
-        fontSize: 10,
-        lineHeight: 12,
-        textAlign: "center",
-    },
 });
 
 const bd = StyleSheet.create({

@@ -6,7 +6,7 @@
         { "name": "kmmiio99o" },
         { "name": "fres" }
     ],
-    "main": "src/index.ts",
+    "main": "src/index.tsx",
     "vendetta": {
         "icon": "ServerIcon"
     }

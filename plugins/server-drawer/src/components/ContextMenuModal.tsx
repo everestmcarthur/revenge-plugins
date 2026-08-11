@@ -1,17 +1,17 @@
 import React from "react";
 import { View, Text, Pressable, Image, Modal, StyleSheet, Dimensions, Animated } from "react-native";
 import { semanticColors } from "@vendetta/ui";
-import { resolveSemanticColor } from "../lib/color";
-import { lazy } from "../lib/lazy";
-import { rawFindByValidProps } from "../lib/rawFind";
-import { getHaptic } from "../lib/commonModules";
+import { findByProps, findByStoreName } from "@vendetta/metro";
 
-const getTextStyleSheet = lazy(() => rawFindByValidProps<any>({
-    TextStyleSheet: (v) => v?.["text-md/bold"] !== undefined,
-})?.TextStyleSheet);
+const TextStyleSheet = findByProps("TextStyleSheet")?.TextStyleSheet;
+const ThemeStore = findByStoreName("ThemeStore");
+const colorModule = findByProps("colors", "unsafe_rawColors");
+const colorResolver = colorModule?.internal ?? colorModule?.meta;
+const Haptic = findByProps("triggerHapticFeedback", "HapticFeedbackTypes");
 
-function resolve(token: any, fallback: string): string {
-    return resolveSemanticColor(token) ?? fallback;
+function resolve(color: any): string {
+    const theme = ThemeStore?.theme;
+    return (color && colorResolver?.resolveSemanticColor(theme, color)) || "#000000";
 }
 
 const EDGE = 12;
@@ -47,9 +47,6 @@ export function ContextMenuModal({
     anchorY: number;
     onClose: () => void;
 }) {
-    const TextStyleSheet = getTextStyleSheet();
-    const Haptic = getHaptic();
-
     const { width: winW, height: winH } = Dimensions.get("window");
 
     const titleH = title ? PAD + 20 + DIVIDER_H : 0;
@@ -62,10 +59,10 @@ export function ContextMenuModal({
     if (top + menuH > winH - EDGE) top = anchorY - menuH - 10;
     if (top < EDGE) top = EDGE;
 
-    const bgContainer = resolve(semanticColors?.BACKGROUND_SURFACE_HIGHEST, "#1e1f22");
-    const borderColor = resolve(semanticColors?.BORDER_SUBTLE, "#3f4147");
-    const textColor = resolve(semanticColors?.TEXT_STRONG, "#f2f3f5");
-    const pressedColor = resolve(semanticColors?.BACKGROUND_MOD_SUBTLE, "rgba(255,255,255,0.06)");
+    const bgContainer = resolve(semanticColors?.BACKGROUND_SURFACE_HIGHEST);
+    const borderColor = resolve(semanticColors?.BORDER_SUBTLE);
+    const textColor = resolve(semanticColors?.TEXT_STRONG);
+    const pressedColor = resolve(semanticColors?.BACKGROUND_MOD_SUBTLE);
 
     const backdropOpacity = React.useRef(new Animated.Value(0)).current;
     const menuScale = React.useRef(new Animated.Value(0.5)).current;
