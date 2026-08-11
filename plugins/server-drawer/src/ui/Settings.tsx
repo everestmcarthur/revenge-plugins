@@ -22,6 +22,12 @@ export default function Settings() {
                     value={!!storage.hideDmTile}
                     onValueChange={(v: boolean) => { storage.hideDmTile = v; }}
                 />
+                <TableSwitchRow
+                    label="Show server names"
+                    subLabel="Print each server's name under its icon in the drawer"
+                    value={!!storage.showGuildNames}
+                    onValueChange={(v: boolean) => { storage.showGuildNames = v; }}
+                />
             </TableRowGroup>
         </SettingsScaffold>
     );

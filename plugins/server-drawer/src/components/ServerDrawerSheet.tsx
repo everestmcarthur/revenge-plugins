@@ -118,8 +118,8 @@ export default function ServerDrawerSheet({ gestureContext }: { gestureContext: 
                 {!storage.hideDmTile && <DmTile />}
                 {nodes.map((node) =>
                     node.type === "folder"
-                        ? <FolderItem key={node.id} node={node} onPick={pick} />
-                        : <GuildItem key={node.id} node={node} onPick={pick} />
+                        ? <FolderItem key={node.id} node={node} onPick={pick} showNames={!!storage.showGuildNames} />
+                        : <GuildItem key={node.id} node={node} onPick={pick} showNames={!!storage.showGuildNames} />
                 )}
                 <CreateJoinButton />
             </View>

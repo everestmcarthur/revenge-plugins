@@ -14,6 +14,7 @@ const cleanups: (() => void)[] = [];
 export default {
     onLoad() {
         storage.hideDmTile ??= false;
+        storage.showGuildNames ??= false;
 
         console.log(TAG, "onLoad");
 
