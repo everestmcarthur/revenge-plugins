@@ -1,5 +1,5 @@
 import { storage } from "@vendetta/plugin";
-import { patchFakeQuestDock } from "./patches/fakeQuestDock";
+import { patchQuestDockRender, patchQuestDockBase, patchMobileQuestDock, patchGetQuestAsset } from "./patches/fakeQuestDock";
 import { patchQuestDockSlot, patchEmpty } from "./patches/contentPatch";
 import { patchHideGuildsBar } from "./patches/hideGuildsBar";
 import { patchCreateElement } from "./lib/createElementIntercept";
@@ -17,7 +17,12 @@ function applyAll() {
     patchCreateElement(cleanups);
     patched++;
 
-    if (storage.fakeQuestDock !== false && patchFakeQuestDock(cleanups)) patched++;
+    if (storage.fakeQuestDock !== false) {
+        if (patchQuestDockRender(cleanups)) patched++;
+        if (patchQuestDockBase(cleanups)) patched++;
+        if (patchMobileQuestDock(cleanups)) patched++;
+        if (patchGetQuestAsset(cleanups)) patched++;
+    }
     if (patchQuestDockSlot("QuestDockContentExpanded", cleanups)) patched++;
     if (patchQuestDockSlot("QuestDockContentCollapsed", cleanups)) patched++;
     if (patchEmpty("QuestDockEnrolledHeader", cleanups)) patched++;

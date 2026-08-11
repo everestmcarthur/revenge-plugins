@@ -1,22 +1,7 @@
-import { rawFindByFunctionProps, rawFindByStoreName } from "../lib/rawFind";
+import { findByProps } from "@vendetta/metro";
 
 const TAG = "[ServerDrawer]";
 
-// Every field here was checked field-by-field against a real, currently-live quest object (Key
-// Inspector's Eval console, direct QuestStore.getQuest() call) until this matched its shape
-// exactly. That mattered more than it sounds: an empty task map renders nothing (Discord silently
-// treats a quest with zero tasks as invalid), and a null asset string crashes
-// useQuestGameLogotypeAssetUrl with "Cannot read property 'startsWith' of null" instead of just
-// showing no logo - empty string doesn't. The task's `applications` entry only feeds that same
-// logotype lookup, and getQuestAsset below is guarded, so it never needs to point at a real
-// Discord application - confirmed live with a fake id that the dock still renders fine, just
-// without a game logo.
-//
-// The image-asset fields use a real, always-available Discord CDN URL rather than an empty
-// string - confirmed live that an empty string still resolves "successfully" through buildUrl,
-// but produces a malformed URL with nothing after the trailing slash (it concatenates onto
-// Discord's own CDN base rather than being recognized as already-absolute). That never crashes
-// either, but a real URL costs nothing and rules out asset loading as a factor.
 const FALLBACK_ASSET_URL = "https://cdn.discordapp.com/embed/avatars/0.png";
 
 function buildFallbackQuest(userId: string | undefined) {
@@ -98,84 +83,77 @@ function buildFallbackQuest(userId: string | undefined) {
     };
 }
 
-// Replaces questDockContext.ts's Context-value force entirely - confirmed live that context's
-// value shape is no longer {isRendered, isVisibleToUser, quest} at all (Discord restructured it
-// into pure scroll/animation coordination: {lastScrollEventSourceId, restingQuestDockMode,
-// setRestingQuestDockMode, questDockOffset}), so that predicate could never match again. The real
-// gate turned out to be much simpler than the hour spent chasing Flux stores and Reanimated shared
-// values suggested: QuestDockWithQuestContext and everything under it (including
-// QuestDockContentExpanded, which contentPatch.tsx has been correctly waiting on this whole time)
-// only mounts at all once useMobileQuestDock returns a truthy quest. With no active quest, it
-// returns null/undefined and Discord's own dock renders nothing - not a bug, just nothing to show.
-// Feeding it a real-shaped placeholder here is what lets contentPatch.tsx's swap ever get a chance
-// to fire in the first place.
-export function patchFakeQuestDock(cleanups: (() => void)[]): boolean {
-    const mod = rawFindByFunctionProps<any>("useMobileQuestDock");
-    if (!mod) {
-        console.log(TAG, "WARN: useMobileQuestDock not found yet (will retry)");
+// Each of these four does its own completely independent findByProps() lookup, matching the
+// original plugin's four separate files (questDockRender.ts, questDockBase.ts, mobileQuestDock.ts,
+// getQuestAsset.ts) exactly, rather than sharing one resolved module reference across all of them.
+// Confirmed elsewhere in this repo (GuildsBar's own patch writeup) that a metro search can land on
+// a different module copy than another search for a related property, even when both "succeed" -
+// so patching useMobileQuestDock and useIsMobileQuestDockRendered off the same found object is not
+// guaranteed to be the same reference the real render path actually reads from.
+export function patchMobileQuestDock(cleanups: (() => void)[]): boolean {
+    const mod = findByProps("useMobileQuestDock");
+    if (!mod?.useMobileQuestDock) {
+        console.log(TAG, "WARN: useMobileQuestDock not found");
         return false;
     }
+    const orig = mod.useMobileQuestDock;
+    let cachedUserId: string | undefined;
+    mod.useMobileQuestDock = function (...args: any[]) {
+        const real = orig.apply(this, args);
+        if (real) return real;
+        if (cachedUserId === undefined) {
+            cachedUserId = findByProps("getCurrentUser")?.getCurrentUser?.()?.id;
+        }
+        return buildFallbackQuest(cachedUserId);
+    };
+    cleanups.push(() => { mod.useMobileQuestDock = orig; });
+    return true;
+}
 
-    // Found and patched first, before any of the render-forcing hooks below - confirmed live that
-    // this module's own registration timing is independent of useMobileQuestDock's, and the two
-    // used to be patched in the opposite order. That left a real window where the render-forcing
-    // hooks were already active but this safety net wasn't yet, and once those hooks got good
-    // enough at their job to actually reach render paths that call getQuestAsset, they reached one
-    // this plugin hadn't patched yet - "Cannot read property 'startsWith' of undefined" reaching an
-    // uncaught render crash despite the guard existing, just not soon enough. Retrying the whole
-    // function together until both are ready means the risky hooks never go live without their net.
-    const assetMod = rawFindByFunctionProps<any>("getQuestAsset");
-    if (!assetMod) {
-        console.log(TAG, "WARN: getQuestAsset not found yet (will retry)");
+export function patchQuestDockRender(cleanups: (() => void)[]): boolean {
+    const mod = findByProps("useIsMobileQuestDockRendered");
+    if (!mod?.useIsMobileQuestDockRendered) {
+        console.log(TAG, "WARN: useIsMobileQuestDockRendered not found");
         return false;
     }
-    const origGetQuestAsset = assetMod.getQuestAsset;
-    assetMod.getQuestAsset = function (this: unknown, ...args: any[]) {
+    const orig = mod.useIsMobileQuestDockRendered;
+    mod.useIsMobileQuestDockRendered = function (...args: any[]) {
+        orig.apply(this, args);
+        return true;
+    };
+    cleanups.push(() => { mod.useIsMobileQuestDockRendered = orig; });
+    return true;
+}
+
+export function patchQuestDockBase(cleanups: (() => void)[]): boolean {
+    const mod = findByProps("useIsMobileQuestDockRenderedBase");
+    if (!mod?.useIsMobileQuestDockRenderedBase) {
+        console.log(TAG, "WARN: useIsMobileQuestDockRenderedBase not found");
+        return false;
+    }
+    const orig = mod.useIsMobileQuestDockRenderedBase;
+    mod.useIsMobileQuestDockRenderedBase = function (...args: any[]) {
+        orig.apply(this, args);
+        return true;
+    };
+    cleanups.push(() => { mod.useIsMobileQuestDockRenderedBase = orig; });
+    return true;
+}
+
+export function patchGetQuestAsset(cleanups: (() => void)[]): boolean {
+    const mod = findByProps("getQuestAsset");
+    if (!mod?.getQuestAsset) {
+        console.log(TAG, "WARN: getQuestAsset not found");
+        return false;
+    }
+    const orig = mod.getQuestAsset;
+    mod.getQuestAsset = function (...args: any[]) {
         try {
-            return origGetQuestAsset.apply(this, args);
+            return orig.apply(this, args);
         } catch {
             return { url: null, isAnimated: false };
         }
     };
-    cleanups.push(() => { assetMod.getQuestAsset = origGetQuestAsset; });
-
-    const origUseMobileQuestDock = mod.useMobileQuestDock;
-    let cachedUserId: string | undefined;
-    mod.useMobileQuestDock = function (this: unknown, ...args: any[]) {
-        const real = origUseMobileQuestDock.apply(this, args);
-        if (real) return real;
-        if (cachedUserId === undefined) {
-            cachedUserId = rawFindByStoreName<any>("UserStore")?.getCurrentUser?.()?.id;
-        }
-        return buildFallbackQuest(cachedUserId);
-    };
-    cleanups.push(() => { mod.useMobileQuestDock = origUseMobileQuestDock; });
-
-    // Matches kmmiio99o's original plugin (questDockRender.ts/questDockBase.ts) exactly - confirmed
-    // live on the account this whole investigation has been stuck on (no active quest, previously
-    // seemed permanently blocked no matter what useMobileQuestDock returned) that installing the
-    // original plugin's simple version of this same technique rendered the dock immediately. The
-    // difference from every eval-based live test tonight that hit this same pattern and either did
-    // nothing or crashed: this runs at plugin load time, before Discord's own first render of the
-    // Quest Dock tree, not injected mid-session into an already-running one. Both hooks live on the
-    // same module as useMobileQuestDock, so no extra lookup needed.
-    if (typeof mod.useIsMobileQuestDockRendered === "function") {
-        const origRendered = mod.useIsMobileQuestDockRendered;
-        mod.useIsMobileQuestDockRendered = function (this: unknown, ...args: any[]) {
-            origRendered.apply(this, args);
-            return true;
-        };
-        cleanups.push(() => { mod.useIsMobileQuestDockRendered = origRendered; });
-    }
-    if (typeof mod.useIsMobileQuestDockRenderedBase === "function") {
-        const origRenderedBase = mod.useIsMobileQuestDockRenderedBase;
-        mod.useIsMobileQuestDockRenderedBase = function (this: unknown, ...args: any[]) {
-            origRenderedBase.apply(this, args);
-            return true;
-        };
-        cleanups.push(() => { mod.useIsMobileQuestDockRenderedBase = origRenderedBase; });
-    }
-
-    console.log(TAG, "PATCH: fake Quest Dock fallback active");
+    cleanups.push(() => { mod.getQuestAsset = orig; });
     return true;
 }
