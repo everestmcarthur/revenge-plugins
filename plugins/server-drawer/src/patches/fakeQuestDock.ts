@@ -11,6 +11,14 @@ const TAG = "[ServerDrawer]";
 // logotype lookup, and getQuestAsset below is guarded, so it never needs to point at a real
 // Discord application - confirmed live with a fake id that the dock still renders fine, just
 // without a game logo.
+//
+// The image-asset fields use a real, always-available Discord CDN URL rather than an empty
+// string - confirmed live that an empty string still resolves "successfully" through buildUrl,
+// but produces a malformed URL with nothing after the trailing slash (it concatenates onto
+// Discord's own CDN base rather than being recognized as already-absolute). That never crashes
+// either, but a real URL costs nothing and rules out asset loading as a factor.
+const FALLBACK_ASSET_URL = "https://cdn.discordapp.com/embed/avatars/0.png";
+
 function buildFallbackQuest(userId: string | undefined) {
     const now = new Date();
     const nowIso = now.toISOString();
@@ -26,9 +34,10 @@ function buildFallbackQuest(userId: string | undefined) {
             expiresAt: farFuture,
             features: [],
             assets: {
-                hero: "", heroVideo: "", questBarHero: "", questBarHeroBlurhash: "",
-                questBarHeroVideo: "", gameTile: "", logotype: "",
-                gameTileLight: "", gameTileDark: "", logotypeLight: "", logotypeDark: "",
+                hero: FALLBACK_ASSET_URL, heroVideo: "", questBarHero: FALLBACK_ASSET_URL, questBarHeroBlurhash: "",
+                questBarHeroVideo: "", gameTile: FALLBACK_ASSET_URL, logotype: FALLBACK_ASSET_URL,
+                gameTileLight: FALLBACK_ASSET_URL, gameTileDark: FALLBACK_ASSET_URL,
+                logotypeLight: FALLBACK_ASSET_URL, logotypeDark: FALLBACK_ASSET_URL,
             },
             colors: { primary: "#5865F2", secondary: "#000000" },
             messages: {
@@ -118,6 +127,31 @@ export function patchFakeQuestDock(cleanups: (() => void)[]): boolean {
         return buildFallbackQuest(cachedUserId);
     };
     cleanups.push(() => { mod.useMobileQuestDock = origUseMobileQuestDock; });
+
+    // Matches kmmiio99o's original plugin (questDockRender.ts/questDockBase.ts) exactly - confirmed
+    // live on the account this whole investigation has been stuck on (no active quest, previously
+    // seemed permanently blocked no matter what useMobileQuestDock returned) that installing the
+    // original plugin's simple version of this same technique rendered the dock immediately. The
+    // difference from every eval-based live test tonight that hit this same pattern and either did
+    // nothing or crashed: this runs at plugin load time, before Discord's own first render of the
+    // Quest Dock tree, not injected mid-session into an already-running one. Both hooks live on the
+    // same module as useMobileQuestDock, so no extra lookup needed.
+    if (typeof mod.useIsMobileQuestDockRendered === "function") {
+        const origRendered = mod.useIsMobileQuestDockRendered;
+        mod.useIsMobileQuestDockRendered = function (this: unknown, ...args: any[]) {
+            origRendered.apply(this, args);
+            return true;
+        };
+        cleanups.push(() => { mod.useIsMobileQuestDockRendered = origRendered; });
+    }
+    if (typeof mod.useIsMobileQuestDockRenderedBase === "function") {
+        const origRenderedBase = mod.useIsMobileQuestDockRenderedBase;
+        mod.useIsMobileQuestDockRenderedBase = function (this: unknown, ...args: any[]) {
+            origRenderedBase.apply(this, args);
+            return true;
+        };
+        cleanups.push(() => { mod.useIsMobileQuestDockRenderedBase = origRenderedBase; });
+    }
 
     const assetMod = rawFindByFunctionProps<any>("getQuestAsset");
     if (assetMod) {
