@@ -39,7 +39,11 @@ function PatchedEffectPickerActionSheet(props: EffectPickerActionSheetProps) {
 
     const themeContext = useThemeContext();
 
-    const effectRecords = useMemo(() => effects.map(effect => ({ items: new ProfileEffectRecord(effect) })), [effects]);
+    // ProfileEffectRecord's fields mirror the raw shop config (skuId, title, thumbnailPreviewSrc,
+    // effects, ...) - confirmed live that constructing it from our {id, skuId, config} wrapper
+    // instead of effect.config leaves everything but skuId/type undefined, which is why the picker
+    // used to open with a fully empty effect list.
+    const effectRecords = useMemo(() => effects.map(effect => ({ items: new ProfileEffectRecord(effect.config) })), [effects]);
 
     let isLegacyEffectPicker = false;
     const effectPickerInner: RN.Element<any> | null = findElementInTree(tree, element => {
@@ -93,7 +97,7 @@ function PatchedEffectPickerActionSheet(props: EffectPickerActionSheetProps) {
     } else {
         if (effectPickerInner.props.selectedProfileEffect === undefined)
             effectPickerInner.props.setSelectedProfileEffect(currentEffectId
-                ? new ProfileEffectRecord({ id: currentEffectId } as any)
+                ? new ProfileEffectRecord({ skuId: currentEffectId } as any)
                 : null);
         effectPickerInner.props.purchases = effectRecords;
     }
@@ -101,7 +105,9 @@ function PatchedEffectPickerActionSheet(props: EffectPickerActionSheetProps) {
     setPreviewUserId(user.id);
     applyButton.props.onPress = () => {
         setPreviewUserId(undefined);
-        onSelect(effects.find(effect => effect.id === effectPickerInner.props.selectedProfileEffect?.id)?.config ?? null);
+        // selectedProfileEffect is a ProfileEffectRecord - confirmed live it has no .id field, only
+        // .skuId, so comparing against effect.id here always missed and onSelect got null every time.
+        onSelect(effects.find(effect => effect.skuId === effectPickerInner.props.selectedProfileEffect?.skuId)?.config ?? null);
     };
 
     return (lastGoodTree = tree) as ReactElement;

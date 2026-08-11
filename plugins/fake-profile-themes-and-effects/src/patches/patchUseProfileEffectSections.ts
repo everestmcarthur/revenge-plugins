@@ -21,7 +21,7 @@ export const patchUseProfileEffectSections = () => useSectionModules.map(
                     origSections.splice(1);
                     origSections[0]!.items.splice(1);
                     profileEffectStore.profileEffects.forEach(effect => {
-                        origSections[0]!.items.push(new ProfileEffectRecord(effect));
+                        origSections[0]!.items.push(new ProfileEffectRecord(effect.config));
                     });
                     prevSections = origSections;
                 } else if (prevSections) {
