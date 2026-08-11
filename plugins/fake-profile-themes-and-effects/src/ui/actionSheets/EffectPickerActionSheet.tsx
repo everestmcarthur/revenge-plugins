@@ -24,14 +24,22 @@ let lastGoodTree: RN.Node;
 function PatchedEffectPickerActionSheet(props: EffectPickerActionSheetProps) {
     const { currentEffectId, effects, onSelect, user } = props;
 
+    // This has to be the very first thing checked, before EffectPicker is ever called below -
+    // that call runs Discord's own EditProfileEffectActionSheet as a plain function from inside
+    // this component's own render, which chains its internal hooks onto this fiber. Checking the
+    // setting only *after* that call (as this used to) still paid that cost on every render
+    // regardless of the setting - the crash it exists to avoid had already happened by the time
+    // the fallback kicked in. forceFallbackEffectPicker doesn't change while this component is
+    // mounted, so returning early here before any hooks run is safe across this component's own
+    // re-renders.
+    if (storage.forceFallbackEffectPicker)
+        return <FallbackEffectPickerActionSheet {...props} />;
+
     const tree = EffectPicker!({ user });
 
     const themeContext = useThemeContext();
 
     const effectRecords = useMemo(() => effects.map(effect => ({ items: new ProfileEffectRecord(effect) })), [effects]);
-
-    if (storage.forceFallbackEffectPicker)
-        return <FallbackEffectPickerActionSheet {...props} />;
 
     let isLegacyEffectPicker = false;
     const effectPickerInner: RN.Element<any> | null = findElementInTree(tree, element => {
