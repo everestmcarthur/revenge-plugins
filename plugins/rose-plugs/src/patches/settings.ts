@@ -26,6 +26,20 @@ export interface SectionRow {
     page: React.ComponentType<any>;
 }
 
+// A section's own row-key list is a one-time snapshot (see patchTabsUI below), but SETTING_RENDERER_
+// CONFIG used to rebuild fresh from getRows() on every access - confirmed live, those two calls can
+// observe different results (discovery is live, plugin state can shift between them), leaving a key
+// the snapshot still references missing from the config. Discord's own settings code assumes every
+// referenced key always resolves and crashes ("Cannot read property 'parent' of undefined") the
+// moment it doesn't. Accumulating here instead of rebuilding means any key ever referenced by a
+// section stays resolvable for good - populated both eagerly (right when a section snapshot is
+// built) and lazily (on every config read), so there's no window where one is ahead of the other.
+const rendererRowCache: Record<string, any> = {};
+
+function cacheRows(rows: SectionRow[]) {
+    for (const row of rows) rendererRowCache[row.key] = buildRendererRow(row);
+}
+
 function navigateToRow(row: SectionRow) {
     const navigation = tabsNavigationRef.getRootNavigationRef();
     const Component = row.page;
@@ -120,9 +134,8 @@ function patchTabsUI(getRows: () => SectionRow[], patches: (() => void)[]) {
         enumerable: true,
         configurable: true,
         get: () => {
-            const extra: Record<string, any> = {};
-            for (const row of getRows()) extra[row.key] = buildRendererRow(row);
-            return { ...rendererConfigValue, ...extra };
+            cacheRows(getRows());
+            return { ...rendererConfigValue, ...rendererRowCache };
         },
         set(v: any) { rendererConfigValue = v; },
     });
@@ -140,6 +153,7 @@ function patchTabsUI(getRows: () => SectionRow[], patches: (() => void)[]) {
                 const sections = config.sections;
                 const rows = getRows();
                 if (!rows.length || !sections) return;
+                cacheRows(rows);
 
                 const anchorIndex = sections.findIndex((x: any) =>
                     ["Bunny", "Revenge", "Kettu", "Vencore", "ShiggyCord"].some(
@@ -164,6 +178,7 @@ function patchTabsUI(getRows: () => SectionRow[], patches: (() => void)[]) {
                 const { sections } = findInReactTree(ret, (i: any) => i.props?.sections)?.props ?? {};
                 const rows = getRows();
                 if (!rows.length || !sections) return;
+                cacheRows(rows);
 
                 const anchorIndex = sections.findIndex((x: any) =>
                     ["Bunny", "Revenge", "Kettu", "Vencore", "ShiggyCord"].some(
