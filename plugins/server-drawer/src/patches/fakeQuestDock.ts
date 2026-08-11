@@ -116,6 +116,29 @@ export function patchFakeQuestDock(cleanups: (() => void)[]): boolean {
         return false;
     }
 
+    // Found and patched first, before any of the render-forcing hooks below - confirmed live that
+    // this module's own registration timing is independent of useMobileQuestDock's, and the two
+    // used to be patched in the opposite order. That left a real window where the render-forcing
+    // hooks were already active but this safety net wasn't yet, and once those hooks got good
+    // enough at their job to actually reach render paths that call getQuestAsset, they reached one
+    // this plugin hadn't patched yet - "Cannot read property 'startsWith' of undefined" reaching an
+    // uncaught render crash despite the guard existing, just not soon enough. Retrying the whole
+    // function together until both are ready means the risky hooks never go live without their net.
+    const assetMod = rawFindByFunctionProps<any>("getQuestAsset");
+    if (!assetMod) {
+        console.log(TAG, "WARN: getQuestAsset not found yet (will retry)");
+        return false;
+    }
+    const origGetQuestAsset = assetMod.getQuestAsset;
+    assetMod.getQuestAsset = function (this: unknown, ...args: any[]) {
+        try {
+            return origGetQuestAsset.apply(this, args);
+        } catch {
+            return { url: null, isAnimated: false };
+        }
+    };
+    cleanups.push(() => { assetMod.getQuestAsset = origGetQuestAsset; });
+
     const origUseMobileQuestDock = mod.useMobileQuestDock;
     let cachedUserId: string | undefined;
     mod.useMobileQuestDock = function (this: unknown, ...args: any[]) {
@@ -151,19 +174,6 @@ export function patchFakeQuestDock(cleanups: (() => void)[]): boolean {
             return true;
         };
         cleanups.push(() => { mod.useIsMobileQuestDockRenderedBase = origRenderedBase; });
-    }
-
-    const assetMod = rawFindByFunctionProps<any>("getQuestAsset");
-    if (assetMod) {
-        const origGetQuestAsset = assetMod.getQuestAsset;
-        assetMod.getQuestAsset = function (this: unknown, ...args: any[]) {
-            try {
-                return origGetQuestAsset.apply(this, args);
-            } catch {
-                return { url: null, isAnimated: false };
-            }
-        };
-        cleanups.push(() => { assetMod.getQuestAsset = origGetQuestAsset; });
     }
 
     console.log(TAG, "PATCH: fake Quest Dock fallback active");
