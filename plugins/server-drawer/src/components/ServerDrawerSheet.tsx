@@ -5,12 +5,10 @@ import { useProxy } from "@vendetta/storage";
 import { lazy } from "../lib/lazy";
 import { rawFind, rawFindByFunctionProps } from "../lib/rawFind";
 import { getFlux, getHaptic, getColorModule } from "../lib/commonModules";
-import { captureFiberRef } from "../lib/fiberCapture";
 import { GuildNode } from "../utils/theme";
 import GuildItem from "./GuildItem";
 import FolderItem from "./FolderItem";
 import DmTile from "./DmTile";
-import MarkAllReadButton from "./MarkAllReadButton";
 
 // getFlux/getHaptic/getColorModule come from lib/commonModules.ts - see that file for the decoy
 // module writeup. These three below are specific to this file only.
@@ -67,12 +65,6 @@ export default function ServerDrawerSheet({ gestureContext }: { gestureContext: 
 
         const routing = getRouting();
         if (routing?.transitionToGuild) {
-            // Confirmed against decompiled current-build Discord source
-            // (modules/routing/transitionToGuild.native.tsx): the mobile transitionToGuild takes
-            // (guildId, options?) and resolves the channel itself - it does NOT take a channelId
-            // as a second positional argument. Passing one (as this used to) risked being silently
-            // wrong depending on which of the two same-named "transitionToGuild" modules metro
-            // happened to resolve.
             routing.transitionToGuild(id);
         } else {
             getRootNav()?.getRootNavigationRef?.()?.navigate("guilds", { guildId: id });
@@ -127,11 +119,6 @@ export default function ServerDrawerSheet({ gestureContext }: { gestureContext: 
 
     return (
         <View style={st.alignTop}>
-            {/* Invisible - see lib/fiberCapture.ts. This is the reliable capture point: it's
-                guaranteed to mount whenever the drawer itself is visibly rendering, independent of
-                whether hideGuildsBar.tsx's own capture point (which depends on that separate
-                intercept actually firing) works or not. */}
-            <View ref={captureFiberRef} style={{ width: 1, height: 1 }} />
             <View
                 style={[st.grid, { paddingHorizontal: padX, gap: GAP }]}
                 onLayout={onLayout}
@@ -143,7 +130,6 @@ export default function ServerDrawerSheet({ gestureContext }: { gestureContext: 
                         : <GuildItem key={node.id} node={node} onPick={pick} />
                 )}
                 <CreateJoinButton />
-                <MarkAllReadButton />
             </View>
         </View>
     );

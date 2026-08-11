@@ -1,7 +1,7 @@
 import { logger } from "@vendetta";
 import { storage } from "@vendetta/plugin";
 import { patchFakeQuestDock } from "./patches/fakeQuestDock";
-import { patchExpanded, patchEmpty } from "./patches/contentPatch";
+import { patchQuestDockSlot, patchEmpty } from "./patches/contentPatch";
 import { patchHideGuildsBar } from "./patches/hideGuildsBar";
 import { patchCreateElement } from "./lib/createElementIntercept";
 import { patchAutoCollapseFolders } from "./patches/autoCollapseFolders";
@@ -24,17 +24,17 @@ function tryPatch(name: string, fn: () => boolean): boolean {
 }
 
 // The Quest Dock (and the internals it depends on) isn't guaranteed to be registered in Metro yet
-// at the exact moment onLoad runs - same class of startup race fixed elsewhere in this repo
-// (YouBar+'s button patch, ServerDrawer's own navigation lookups). A single onLoad attempt could
-// permanently miss one or more of these, which is what "the drawer sometimes just doesn't show up"
-// looked like. Instead of one shot, this retries whatever hasn't landed yet on a fast interval
-// until everything's applied (or it gives up after ~10s, which would mean something's genuinely
-// missing rather than just not loaded yet).
+// at the exact moment onLoad runs - this is exactly why the original plugin needed a server
+// tapped before the drawer would show: every one of its lookups was a one-shot find() with no
+// retry, so a module that hadn't registered yet at that instant stayed unresolved for the rest of
+// the session. Retrying whatever hasn't landed yet on a fast interval until everything's applied
+// (or it gives up after ~10s) means the drawer shows up on its own instead of needing a tap to
+// nudge Discord into registering the modules this plugin is waiting on.
 function applyAll() {
     const patchers: Record<string, () => boolean> = {
         ...(storage.fakeQuestDock ? { fakeQuestDock: () => patchFakeQuestDock(cleanups) } : {}),
-        expanded: () => patchExpanded(cleanups),
-        collapsed: () => patchEmpty("QuestDockContentCollapsed", cleanups),
+        expanded: () => patchQuestDockSlot("QuestDockContentExpanded", cleanups),
+        collapsed: () => patchQuestDockSlot("QuestDockContentCollapsed", cleanups),
         enrolledHeader: () => patchEmpty("QuestDockEnrolledHeader", cleanups),
         unenrolledHeader: () => patchEmpty("QuestDockUnenrolledHeader", cleanups),
         enrolledBody: () => patchEmpty("QuestDockEnrolledBody", cleanups),
@@ -104,7 +104,7 @@ export function restart() {
 export default {
     onLoad: () => {
         storage.hideGuildsBar ??= true;
-        storage.showUnreadBadges ??= true;
+        storage.showGuildNames ??= true;
         storage.autoCollapseFolders ??= false;
         storage.hideFolderIcons ??= false;
         storage.fakeQuestDock ??= true;

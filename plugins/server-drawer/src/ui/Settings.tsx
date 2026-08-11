@@ -15,8 +15,8 @@ export default function Settings() {
             <NoteBox>
                 Server Drawer takes over the Quest Dock (the strip above the tab bar) to show your
                 servers as a grid instead - tap to expand, long-press a server for its usual context
-                menu, the chat bubble jumps to DMs, the + button creates or joins a server through
-                Discord's own modal, and the check button marks every channel in every server as read.
+                menu, the chat bubble jumps to DMs, and the + button creates or joins a server
+                through Discord's own modal.
             </NoteBox>
             <TableRowGroup title="Layout">
                 <TableSwitchRow
@@ -27,12 +27,6 @@ export default function Settings() {
                         storage.hideGuildsBar = v;
                         restart();
                     }}
-                />
-                <TableSwitchRow
-                    label="Unread badges"
-                    subLabel="Show mention counts and unread dots on server icons in the drawer"
-                    value={storage.showUnreadBadges !== false}
-                    onValueChange={(v: boolean) => { storage.showUnreadBadges = v; }}
                 />
                 <TableSwitchRow
                     label="Show server names"
