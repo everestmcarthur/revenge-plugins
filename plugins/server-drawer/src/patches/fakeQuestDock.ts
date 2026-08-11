@@ -1,4 +1,19 @@
+import { findByProps } from "@vendetta/metro";
 import { rawFindByFunctionProps, rawFindByStoreName } from "../lib/rawFind";
+
+// Confirmed live: rawFindByFunctionProps never found any of these four on some accounts, across
+// multiple reload and account-switch cycles spanning over a minute - not a timing race, since
+// rawFind only scans modules Metro has *already* naturally initialized and never triggers one
+// itself. On an account where nothing in the normal boot path happens to touch this specific
+// module, passive scanning can retry forever and never find it. Revenge's own findByProps forces
+// a module to initialize if it isn't yet, which is exactly what's needed here - confirmed live via
+// direct eval that it finds this exact module instantly on an account where rawFind never did.
+// Tried first since it's free and carries no caching risk; findByProps is the fallback precisely
+// because a failed call there is cached negatively forever, so it's only worth risking once
+// rawFind has already had a real chance to succeed on its own.
+function findHookModule(...props: string[]): any {
+    return rawFindByFunctionProps<any>(...props) ?? findByProps(...props);
+}
 
 const TAG = "[ServerDrawer]";
 
@@ -97,7 +112,7 @@ function buildFallbackQuest(userId: string | undefined) {
 // files (questDockRender.ts, questDockBase.ts, mobileQuestDock.ts, getQuestAsset.ts) in spirit,
 // just retry-safe.
 export function patchMobileQuestDock(cleanups: (() => void)[]): boolean {
-    const mod = rawFindByFunctionProps<any>("useMobileQuestDock");
+    const mod = findHookModule("useMobileQuestDock");
     if (!mod?.useMobileQuestDock) {
         console.log(TAG, "WARN: useMobileQuestDock not found yet (will retry)");
         return false;
@@ -117,7 +132,7 @@ export function patchMobileQuestDock(cleanups: (() => void)[]): boolean {
 }
 
 export function patchQuestDockRender(cleanups: (() => void)[]): boolean {
-    const mod = rawFindByFunctionProps<any>("useIsMobileQuestDockRendered");
+    const mod = findHookModule("useIsMobileQuestDockRendered");
     if (!mod?.useIsMobileQuestDockRendered) {
         console.log(TAG, "WARN: useIsMobileQuestDockRendered not found yet (will retry)");
         return false;
@@ -132,7 +147,7 @@ export function patchQuestDockRender(cleanups: (() => void)[]): boolean {
 }
 
 export function patchQuestDockBase(cleanups: (() => void)[]): boolean {
-    const mod = rawFindByFunctionProps<any>("useIsMobileQuestDockRenderedBase");
+    const mod = findHookModule("useIsMobileQuestDockRenderedBase");
     if (!mod?.useIsMobileQuestDockRenderedBase) {
         console.log(TAG, "WARN: useIsMobileQuestDockRenderedBase not found yet (will retry)");
         return false;
@@ -147,7 +162,7 @@ export function patchQuestDockBase(cleanups: (() => void)[]): boolean {
 }
 
 export function patchGetQuestAsset(cleanups: (() => void)[]): boolean {
-    const mod = rawFindByFunctionProps<any>("getQuestAsset");
+    const mod = findHookModule("getQuestAsset");
     if (!mod?.getQuestAsset) {
         console.log(TAG, "WARN: getQuestAsset not found yet (will retry)");
         return false;
