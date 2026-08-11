@@ -44,6 +44,7 @@ function buildRendererRow(row: SectionRow) {
         IconComponent:
             row.icon && TableRowIconModule &&
             (() => React.createElement(TableRowIconModule.TableRowIcon, { source: row.icon })),
+        usePredicate: () => true,
         onPress: () => navigateToRow(row),
         withArrow: true,
     };
@@ -140,7 +141,17 @@ function patchTabsUI(getRows: () => SectionRow[], patches: (() => void)[]) {
                 const rows = getRows();
                 if (!rows.length || !sections) return;
 
-                sections.unshift({ label: SECTION_LABEL, title: SECTION_TITLE, settings: rows.map((r) => r.key) });
+                const anchorIndex = sections.findIndex((x: any) =>
+                    ["Bunny", "Revenge", "Kettu", "Vencore", "ShiggyCord"].some(
+                        (mod) => x.label === mod && x.title === mod
+                    )
+                );
+
+                sections.splice(
+                    anchorIndex >= 0 ? anchorIndex + 1 : 0,
+                    0,
+                    { label: SECTION_LABEL, title: SECTION_TITLE, settings: rows.map((r) => r.key) }
+                );
             })
         );
     } catch {
@@ -154,7 +165,17 @@ function patchTabsUI(getRows: () => SectionRow[], patches: (() => void)[]) {
                 const rows = getRows();
                 if (!rows.length || !sections) return;
 
-                sections.unshift({ label: SECTION_LABEL, title: SECTION_TITLE, settings: rows.map((r) => r.key) });
+                const anchorIndex = sections.findIndex((x: any) =>
+                    ["Bunny", "Revenge", "Kettu", "Vencore", "ShiggyCord"].some(
+                        (mod) => x.label === mod && x.title === mod
+                    )
+                );
+
+                sections.splice(
+                    anchorIndex >= 0 ? anchorIndex + 1 : 0,
+                    0,
+                    { label: SECTION_LABEL, title: SECTION_TITLE, settings: rows.map((r) => r.key) }
+                );
             })
         );
     }
