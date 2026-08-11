@@ -24,7 +24,7 @@ function applyAll() {
         if (patchGetQuestAsset(cleanups)) patched++;
     }
     if (patchQuestDockSlot("QuestDockContentExpanded", cleanups)) patched++;
-    if (patchQuestDockSlot("QuestDockContentCollapsed", cleanups)) patched++;
+    if (patchEmpty("QuestDockContentCollapsed", cleanups)) patched++;
     if (patchEmpty("QuestDockEnrolledHeader", cleanups)) patched++;
     if (patchEmpty("QuestDockUnenrolledHeader", cleanups)) patched++;
     if (patchEmpty("QuestDockEnrolledBody", cleanups)) patched++;
