@@ -20,14 +20,14 @@ function buildRows(): SectionRow[] {
         },
     ];
 
-    for (const plugin of discoverRosiesPlugins()) {
-        if (!plugin.settingsComponent) continue;
-        rows.push({
+    const discovered = discoverRosiesPlugins().filter((p) => p.settingsComponent);
+    rows.push(
+        ...discovered.map((plugin) => ({
             key: `ROSES_PLUGS_${plugin.id}`,
             title: () => plugin.name,
             page: plugin.settingsComponent as any,
-        });
-    }
+        }))
+    );
 
     return rows;
 }
