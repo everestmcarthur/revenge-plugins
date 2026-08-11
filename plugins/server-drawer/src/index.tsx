@@ -5,12 +5,16 @@ import { patchGetQuestAsset } from "./patches/getQuestAsset";
 import { patchExpanded, patchEmpty } from "./patches/contentPatch";
 import { patchHideGuildsBar } from "./patches/hideGuildsBar";
 import { patchCreateElement } from "./patches/createElementIntercept";
+import { storage } from "@vendetta/plugin";
+import Settings from "./ui/Settings";
 
 const TAG = "[ServerDrawer]";
 const cleanups: (() => void)[] = [];
 
 export default {
     onLoad() {
+        storage.hideDmTile ??= false;
+
         console.log(TAG, "onLoad");
 
         let patched = 0;
@@ -37,4 +41,5 @@ export default {
         for (const fn of cleanups) fn();
         cleanups.length = 0;
     },
+    settings: Settings,
 };
