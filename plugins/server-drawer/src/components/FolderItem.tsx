@@ -1,16 +1,17 @@
 import React from "react";
 import { View, Text, Animated, Pressable, Image, ViewStyle, StyleSheet } from "react-native";
-import { findByProps, findByStoreName } from "@vendetta/metro";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 import { storage } from "@vendetta/plugin";
 import { useProxy } from "@vendetta/storage";
 import { useFolderExpanded, GuildNode } from "../utils/theme";
+import { lazy } from "../lib/lazy";
+import { rawFindByFunctionProps, rawFindByStoreName } from "../lib/rawFind";
+import { getFlux } from "../lib/commonModules";
 import GuildIcon from "./GuildIcon";
 import GuildItem from "./GuildItem";
 
-const GuildActions = findByProps("toggleGuildFolderExpand");
-const Flux = findByProps("useStateFromStores");
-const GuildReadStateStore = findByStoreName("GuildReadStateStore");
+const getGuildActions = lazy(() => rawFindByFunctionProps<any>("toggleGuildFolderExpand"));
+const getGuildReadStateStore = lazy(() => rawFindByStoreName("GuildReadStateStore"));
 
 const ICON = 48;
 const MINI = 16;
@@ -30,9 +31,13 @@ function folderColor(color?: number | null): string {
 }
 
 function FolderBadge({ node }: { node: GuildNode }) {
-    // Same guard as useFolderExpanded in utils/theme.ts - GuildReadStateStore is a one-shot lookup
-    // with no retry, and passing an undefined store into useStateFromStores throws instead of
-    // failing safely, which would take the whole drawer down, not just this badge.
+    const Flux = getFlux();
+    const GuildReadStateStore = getGuildReadStateStore();
+
+    // Guards against an undefined store, not just a falsy return value - confirmed live that
+    // passing [undefined] into useStateFromStores throws rather than failing safely, which used to
+    // take the whole drawer down (this only ever runs when there's an actual folder to render, so
+    // an account with folders showed nothing at all while one without rendered fine).
     const total = (Flux?.useStateFromStores && GuildReadStateStore) ? Flux.useStateFromStores(
         [GuildReadStateStore],
         () => {
@@ -100,7 +105,7 @@ export default function FolderItem({ node, onPick }: { node: GuildNode; onPick: 
     const open = useFolderExpanded(node.id);
 
     const toggle = () => {
-        GuildActions?.toggleGuildFolderExpand?.(node.id);
+        getGuildActions()?.toggleGuildFolderExpand?.(node.id);
     };
 
     if (open) {

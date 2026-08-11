@@ -1,7 +1,12 @@
-import { findByProps } from "@vendetta/metro";
+import { rawFindByFunctionProps, rawFindByStoreName } from "../lib/rawFind";
 
 const TAG = "[ServerDrawer]";
 
+// A real, always-available Discord CDN URL - confirmed live that an empty string still resolves
+// "successfully" through Discord's buildUrl (concatenates onto the CDN base rather than being
+// recognized as absolute) but produces a malformed URL, and a full external https:// URL gets
+// double-prefixed the same way ("https://cdn.discordapp.com/https://..."). Neither crashes -
+// getQuestAsset below is guarded regardless - so this is cosmetic, not load-bearing.
 const FALLBACK_ASSET_URL = "https://cdn.discordapp.com/embed/avatars/0.png";
 
 function buildFallbackQuest(userId: string | undefined) {
@@ -83,26 +88,27 @@ function buildFallbackQuest(userId: string | undefined) {
     };
 }
 
-// Each of these four does its own completely independent findByProps() lookup, matching the
-// original plugin's four separate files (questDockRender.ts, questDockBase.ts, mobileQuestDock.ts,
-// getQuestAsset.ts) exactly, rather than sharing one resolved module reference across all of them.
-// Confirmed elsewhere in this repo (GuildsBar's own patch writeup) that a metro search can land on
-// a different module copy than another search for a related property, even when both "succeed" -
-// so patching useMobileQuestDock and useIsMobileQuestDockRendered off the same found object is not
-// guaranteed to be the same reference the real render path actually reads from.
+// Each of these four does its own completely independent rawFind lookup rather than sharing one
+// resolved module reference across all of them - confirmed live (GuildsBar's own patch writeup)
+// that a metro search can land on a different module copy than another search for a related
+// property, even when both "succeed", so patching useMobileQuestDock and
+// useIsMobileQuestDockRendered off the same found object was never guaranteed to be the same
+// reference the real render path actually reads from. Matches the original plugin's four separate
+// files (questDockRender.ts, questDockBase.ts, mobileQuestDock.ts, getQuestAsset.ts) in spirit,
+// just retry-safe.
 export function patchMobileQuestDock(cleanups: (() => void)[]): boolean {
-    const mod = findByProps("useMobileQuestDock");
+    const mod = rawFindByFunctionProps<any>("useMobileQuestDock");
     if (!mod?.useMobileQuestDock) {
-        console.log(TAG, "WARN: useMobileQuestDock not found");
+        console.log(TAG, "WARN: useMobileQuestDock not found yet (will retry)");
         return false;
     }
     const orig = mod.useMobileQuestDock;
     let cachedUserId: string | undefined;
-    mod.useMobileQuestDock = function (...args: any[]) {
+    mod.useMobileQuestDock = function (this: unknown, ...args: any[]) {
         const real = orig.apply(this, args);
         if (real) return real;
         if (cachedUserId === undefined) {
-            cachedUserId = findByProps("getCurrentUser")?.getCurrentUser?.()?.id;
+            cachedUserId = rawFindByStoreName<any>("UserStore")?.getCurrentUser?.()?.id;
         }
         return buildFallbackQuest(cachedUserId);
     };
@@ -111,13 +117,13 @@ export function patchMobileQuestDock(cleanups: (() => void)[]): boolean {
 }
 
 export function patchQuestDockRender(cleanups: (() => void)[]): boolean {
-    const mod = findByProps("useIsMobileQuestDockRendered");
+    const mod = rawFindByFunctionProps<any>("useIsMobileQuestDockRendered");
     if (!mod?.useIsMobileQuestDockRendered) {
-        console.log(TAG, "WARN: useIsMobileQuestDockRendered not found");
+        console.log(TAG, "WARN: useIsMobileQuestDockRendered not found yet (will retry)");
         return false;
     }
     const orig = mod.useIsMobileQuestDockRendered;
-    mod.useIsMobileQuestDockRendered = function (...args: any[]) {
+    mod.useIsMobileQuestDockRendered = function (this: unknown, ...args: any[]) {
         orig.apply(this, args);
         return true;
     };
@@ -126,13 +132,13 @@ export function patchQuestDockRender(cleanups: (() => void)[]): boolean {
 }
 
 export function patchQuestDockBase(cleanups: (() => void)[]): boolean {
-    const mod = findByProps("useIsMobileQuestDockRenderedBase");
+    const mod = rawFindByFunctionProps<any>("useIsMobileQuestDockRenderedBase");
     if (!mod?.useIsMobileQuestDockRenderedBase) {
-        console.log(TAG, "WARN: useIsMobileQuestDockRenderedBase not found");
+        console.log(TAG, "WARN: useIsMobileQuestDockRenderedBase not found yet (will retry)");
         return false;
     }
     const orig = mod.useIsMobileQuestDockRenderedBase;
-    mod.useIsMobileQuestDockRenderedBase = function (...args: any[]) {
+    mod.useIsMobileQuestDockRenderedBase = function (this: unknown, ...args: any[]) {
         orig.apply(this, args);
         return true;
     };
@@ -141,13 +147,13 @@ export function patchQuestDockBase(cleanups: (() => void)[]): boolean {
 }
 
 export function patchGetQuestAsset(cleanups: (() => void)[]): boolean {
-    const mod = findByProps("getQuestAsset");
+    const mod = rawFindByFunctionProps<any>("getQuestAsset");
     if (!mod?.getQuestAsset) {
-        console.log(TAG, "WARN: getQuestAsset not found");
+        console.log(TAG, "WARN: getQuestAsset not found yet (will retry)");
         return false;
     }
     const orig = mod.getQuestAsset;
-    mod.getQuestAsset = function (...args: any[]) {
+    mod.getQuestAsset = function (this: unknown, ...args: any[]) {
         try {
             return orig.apply(this, args);
         } catch {

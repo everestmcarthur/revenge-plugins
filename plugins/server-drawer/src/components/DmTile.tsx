@@ -1,27 +1,33 @@
 import React from "react";
 import { View, Pressable, Image, StyleSheet } from "react-native";
 import { getAssetIDByName } from "@vendetta/ui/assets";
-import { findByProps, findByName } from "@vendetta/metro";
+import { lazy } from "../lib/lazy";
+import { rawFindByFunctionProps, rawFindByName } from "../lib/rawFind";
+import { getFlux, getHaptic, getColorModule } from "../lib/commonModules";
 
 const ICON = 48;
 
 const ChatIcon = getAssetIDByName("ChatIcon");
-const Haptic = findByProps("triggerHapticFeedback", "HapticFeedbackTypes");
-const ChannelActions = findByProps("selectPrivateChannel");
-const SelectedChannelStore = findByName("SelectedChannelStore");
-const Flux = findByProps("useStateFromStores");
-const NavContext = findByProps("getGuildId");
-const colors = findByProps("colors", "unsafe_rawColors")?.colors;
+
+const getChannelActions = lazy(() => rawFindByFunctionProps<any>("selectPrivateChannel"));
+const getSelectedChannelStore = lazy(() => rawFindByName<any>("SelectedChannelStore"));
+const getNavContext = lazy(() => rawFindByFunctionProps<any>("getGuildId"));
 
 function openDms() {
+    const Haptic = getHaptic();
     Haptic?.triggerHapticFeedback?.(Haptic.HapticFeedbackTypes.SOFT);
+    const ChannelActions = getChannelActions();
     if (ChannelActions?.selectPrivateChannel) {
-        const lastChannelId = SelectedChannelStore?.getLastSelectedChannelId?.();
+        const lastChannelId = getSelectedChannelStore()?.getLastSelectedChannelId?.();
         ChannelActions.selectPrivateChannel(lastChannelId);
     }
 }
 
 export default function DmTile() {
+    const Flux = getFlux();
+    const NavContext = getNavContext();
+    const colors = getColorModule()?.colors;
+
     const selected = Flux?.useStateFromStores?.(
         [NavContext],
         () => NavContext?.getGuildId?.() == null,

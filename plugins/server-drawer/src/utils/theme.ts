@@ -1,24 +1,25 @@
-import { findByProps, findByStoreName } from "@vendetta/metro";
+import { lazy } from "../lib/lazy";
+import { rawFindByStoreName } from "../lib/rawFind";
+import { getFlux, getColorModule } from "../lib/commonModules";
 
-const Flux = findByProps("useStateFromStores");
-const colors = findByProps("colors", "unsafe_rawColors")?.colors;
-const ExpandedGuildFolderStore = findByStoreName("ExpandedGuildFolderStore");
+const getExpandedGuildFolderStore = lazy(() => rawFindByStoreName("ExpandedGuildFolderStore"));
 
 export function useTheme() {
+    const colors = getColorModule()?.colors;
     return {
-        text: colors?.TEXT_NORMAL ?? "#dbdee1",
+        text: colors?.TEXT_NORMAL ?? colors?.TEXT_DEFAULT ?? "#dbdee1",
         folder: "#5865f2",
         hover: colors?.STATE_LAYER_PRESS ?? "rgba(255,255,255,0.06)",
     };
 }
 
 export function useFolderExpanded(folderId: string | number): boolean {
-    // Confirmed live: an account with folders and one without exercise different code paths (this
-    // hook is only ever called by FolderItem, which only exists when there's a folder to render) -
-    // an account with no folders rendered fine while one with folders showed nothing at all.
-    // ExpandedGuildFolderStore is a one-shot findByStoreName at module-eval time with no retry, so
-    // if it hadn't registered yet, this passed [undefined] into useStateFromStores - which throws
-    // rather than returning safely, taking down the whole drawer render, not just this one folder.
+    const Flux = getFlux();
+    const ExpandedGuildFolderStore = getExpandedGuildFolderStore();
+    // Guards against an undefined store, not just a falsy return value - confirmed live that
+    // passing [undefined] into useStateFromStores throws rather than failing safely, which used to
+    // take the whole drawer down (this only ever runs when there's an actual folder to render, so
+    // an account with folders showed nothing at all while one without rendered fine).
     if (!Flux?.useStateFromStores || !ExpandedGuildFolderStore) return false;
     return Flux.useStateFromStores(
         [ExpandedGuildFolderStore],
