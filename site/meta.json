@@ -1,4 +1,19 @@
 {
+  "rose-plugs": {
+    "category": "Utility",
+    "status": "new",
+    "accent": "#F47FFF",
+    "tagline": "A home of Rosie's own in Settings, with one-tap installs for anything not installed yet.",
+    "note": "",
+    "howItWorks": "Adds a \"Rosie's Plugs\" section to Discord's Settings, separate from Revenge's own Plugins list. Its first entry, \"Plugins,\" is a quick-install browser pulling live from this site's own plugin catalog, grouped by category, with a one-tap button per row that installs or removes it directly. Every other Rosie-authored plugin that's currently installed gets a direct settings shortcut listed right below it, and RosePlugs' own settings live in that same section too.",
+    "features": [
+      "New top-level \"Rosie's Plugs\" settings section, positioned right below Revenge's own",
+      "One-tap install/uninstall browser for every plugin in this catalog, grouped by category",
+      "Direct settings shortcuts for each installed Rosie-authored plugin - no digging through Revenge's own Plugins list"
+    ],
+    "commands": [],
+    "limitations": "Only surfaces plugins whose manifest lists \"Rosie\" as an author - a plugin credited to someone else (like Raiden's Themes, credited to the original theme's creator) won't be picked up automatically."
+  },
   "radial-status": {
     "category": "Moderation & Appearance",
     "status": "revived",

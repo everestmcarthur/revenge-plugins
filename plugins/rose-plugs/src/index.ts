@@ -28,6 +28,7 @@ function buildRows(): SectionRow[] {
         ...discovered.map((plugin) => ({
             key: `ROSES_PLUGS_${plugin.id}`,
             title: () => plugin.name,
+            icon: getAssetIDByName("SettingsIcon"),
             page: plugin.settingsComponent as any,
         }))
     );
