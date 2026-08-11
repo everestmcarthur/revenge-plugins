@@ -89,6 +89,12 @@ export function getComponentNameFromType(type: RN.ElementType) {
         return Symbol.keyFor(type) || null;
     if (typeof type === "function")
         return type.displayName || type.name || null;
+    // Host components (View, Text, ...) are plain strings, not objects - isProviderType and the
+    // checks after it all use the `in` operator, which throws on a string primitive rather than
+    // returning false. This is the exact same bug class as isElementWithChildren's props: null
+    // crash, just a second, separate instance in this same file.
+    if (typeof type !== "object" || type === null)
+        return null;
     if (isProviderType(type))
         return type._context.displayName || null;
     if (type.displayName)

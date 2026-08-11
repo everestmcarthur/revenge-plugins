@@ -29,9 +29,14 @@ function removeNitroCards(node: RN.Node): RN.Node | null {
 }
 
 export const patchNitroUpsellCard = () => {
-  if (!funcParent) return;
+  if (!funcParent) return () => {};
 
-  after("default", funcParent, (_args: unknown[], tree: RN.Node) => {
-    return removeNitroCards(tree) || tree;
+  return after("default", funcParent, (_args: unknown[], tree: RN.Node) => {
+    try {
+      return removeNitroCards(tree) || tree;
+    } catch {
+      // One broken upsell-card removal shouldn't crash the whole profile edit screen.
+      return tree;
+    }
   });
 };

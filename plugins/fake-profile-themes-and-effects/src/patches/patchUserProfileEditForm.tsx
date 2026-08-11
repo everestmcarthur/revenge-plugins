@@ -8,31 +8,38 @@ import { Builder } from "@fpte/ui/components";
 
 const funcParent = findByName("UserProfileEditForm", false);
 
-export const patchUserProfileEditForm = () =>
-  after("default", funcParent, (_args: unknown[], tree: RN.Node) => {
-    if (storage.hideBuilder) return tree;
+export const patchUserProfileEditForm = () => {
+  if (!funcParent) return () => {};
 
-    const parent = findParentInTree(tree, (children): children is RN.Node[] =>
-      Array.isArray(children) &&
-      children.some(child =>
-        isElement(child) &&
-        getComponentNameFromType(child.type) === "UserProfileEditFormTextField"
-      )
-    );
+  return after("default", funcParent, (_args: unknown[], tree: RN.Node) => {
+    try {
+      if (storage.hideBuilder) return tree;
 
-    if (parent) {
-      const index = parent.props.children.reduce<number[]>((acc, child, i) => {
-        if (
+      const parent = findParentInTree(tree, (children): children is RN.Node[] =>
+        Array.isArray(children) &&
+        children.some(child =>
           isElement(child) &&
           getComponentNameFromType(child.type) === "UserProfileEditFormTextField"
-        ) acc.push(i);
-        return acc;
-      }, []);
+        )
+      );
 
-      if (index.length >= 3) {
-        parent.props.children.splice(index[2] + 1, 0, <Builder />);
+      if (parent) {
+        const index = parent.props.children.reduce<number[]>((acc, child, i) => {
+          if (
+            isElement(child) &&
+            getComponentNameFromType(child.type) === "UserProfileEditFormTextField"
+          ) acc.push(i);
+          return acc;
+        }, []);
+
+        if (index.length >= 3) {
+          parent.props.children.splice(index[2] + 1, 0, <Builder />);
+        }
       }
+    } catch {
+      // One broken edit-form render shouldn't crash the whole profile edit screen.
     }
 
     return tree;
   });
+};
