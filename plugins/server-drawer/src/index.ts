@@ -1,4 +1,3 @@
-import { logger } from "@vendetta";
 import { storage } from "@vendetta/plugin";
 import { patchFakeQuestDock } from "./patches/fakeQuestDock";
 import { patchQuestDockSlot, patchEmpty } from "./patches/contentPatch";
@@ -7,85 +6,31 @@ import { patchCreateElement } from "./lib/createElementIntercept";
 import { patchAutoCollapseFolders } from "./patches/autoCollapseFolders";
 import Settings from "./ui/Settings";
 
+const TAG = "[ServerDrawer]";
 let cleanups: (() => void)[] = [];
-let retryHandle: ReturnType<typeof setInterval> | undefined;
 
-// Each of these functions already checks its own lookup and returns false instead of patching
-// when it comes up empty - this wrapper adds one more layer so a lookup that throws outright
-// (e.g. calling a property off an undefined module) can't take the rest of onLoad's patches
-// down with it, same as every other plugin in this repo.
-function tryPatch(name: string, fn: () => boolean): boolean {
-    try {
-        return fn();
-    } catch (e) {
-        logger.error(`[ServerDrawer] "${name}" patch threw, skipping: ${e}`);
-        return false;
-    }
-}
-
-// The Quest Dock (and the internals it depends on) isn't guaranteed to be registered in Metro yet
-// at the exact moment onLoad runs - this is exactly why the original plugin needed a server
-// tapped before the drawer would show: every one of its lookups was a one-shot find() with no
-// retry, so a module that hadn't registered yet at that instant stayed unresolved for the rest of
-// the session. Retrying whatever hasn't landed yet on a fast interval until everything's applied
-// (or it gives up after ~10s) means the drawer shows up on its own instead of needing a tap to
-// nudge Discord into registering the modules this plugin is waiting on.
 function applyAll() {
-    const patchers: Record<string, () => boolean> = {
-        ...(storage.fakeQuestDock ? { fakeQuestDock: () => patchFakeQuestDock(cleanups) } : {}),
-        expanded: () => patchQuestDockSlot("QuestDockContentExpanded", cleanups),
-        collapsed: () => patchQuestDockSlot("QuestDockContentCollapsed", cleanups),
-        enrolledHeader: () => patchEmpty("QuestDockEnrolledHeader", cleanups),
-        unenrolledHeader: () => patchEmpty("QuestDockUnenrolledHeader", cleanups),
-        enrolledBody: () => patchEmpty("QuestDockEnrolledBody", cleanups),
-        unenrolledBody: () => patchEmpty("QuestDockUnenrolledBody", cleanups),
-        autoCollapseFolders: () => patchAutoCollapseFolders(cleanups),
-        ...(storage.hideGuildsBar ? { hideGuildsBar: () => patchHideGuildsBar(cleanups) } : {}),
-    };
+    console.log(TAG, "onLoad");
+
+    let patched = 0;
 
     patchCreateElement(cleanups);
+    patched++;
 
-    const pending = new Set(Object.keys(patchers));
-    const applied = new Set<string>();
+    if (storage.fakeQuestDock !== false && patchFakeQuestDock(cleanups)) patched++;
+    if (patchQuestDockSlot("QuestDockContentExpanded", cleanups)) patched++;
+    if (patchQuestDockSlot("QuestDockContentCollapsed", cleanups)) patched++;
+    if (patchEmpty("QuestDockEnrolledHeader", cleanups)) patched++;
+    if (patchEmpty("QuestDockUnenrolledHeader", cleanups)) patched++;
+    if (patchEmpty("QuestDockEnrolledBody", cleanups)) patched++;
+    if (patchEmpty("QuestDockUnenrolledBody", cleanups)) patched++;
+    if (patchAutoCollapseFolders(cleanups)) patched++;
+    if (storage.hideGuildsBar !== false && patchHideGuildsBar(cleanups)) patched++;
 
-    const attempt = () => {
-        for (const name of pending) {
-            if (tryPatch(name, patchers[name])) {
-                applied.add(name);
-                pending.delete(name);
-            }
-        }
-
-        if (pending.size === 0 && retryHandle) {
-            clearInterval(retryHandle);
-            retryHandle = undefined;
-        }
-    };
-
-    attempt();
-
-    if (pending.size > 0) {
-        let ticks = 0;
-        retryHandle = setInterval(() => {
-            attempt();
-            if (++ticks >= 50 && retryHandle) { // ~10s at 200ms
-                clearInterval(retryHandle);
-                retryHandle = undefined;
-                if (pending.size > 0) {
-                    logger.error(`[ServerDrawer] Gave up waiting on: ${[...pending].join(", ")}`);
-                }
-            }
-        }, 200);
-    }
-
-    logger.log(`[ServerDrawer] onLoad: applied immediately - ${[...applied].join(", ") || "none"}${pending.size ? `, still waiting on ${[...pending].join(", ")}` : ""}`);
+    console.log(TAG, `onLoad done - ${patched} patches applied, ${cleanups.length} cleanups`);
 }
 
 function unpatchAll() {
-    if (retryHandle) {
-        clearInterval(retryHandle);
-        retryHandle = undefined;
-    }
     for (const fn of cleanups) {
         try {
             fn();

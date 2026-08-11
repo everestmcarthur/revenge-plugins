@@ -1,23 +1,12 @@
 import React from "react";
 import { View, Text, Image, StyleSheet } from "react-native";
-import { lazy } from "../lib/lazy";
-import { rawFindByStoreName } from "../lib/rawFind";
-import { getFlux, getColorModule } from "../lib/commonModules";
+import { findByStoreName, findByProps } from "@vendetta/metro";
 
-// getFlux/getColorModule come from lib/commonModules.ts - see that file for the decoy-module
-// writeup. GuildStore switches from an eager, module-load-time findByStoreName (the caching
-// finder, permanently wrong if it runs before the store module has registered) to lazy +
-// rawFindByStoreName for the same timing reason established elsewhere in this plugin.
-const getGuildStore = lazy(() => rawFindByStoreName("GuildStore"));
+const GuildStore = findByStoreName("GuildStore");
+const colors = findByProps("colors", "unsafe_rawColors")?.colors;
 
 export default function GuildIcon({ id, size = 48 }: { id: string; size?: number }) {
-    const Flux = getFlux();
-    const GuildStore = getGuildStore();
-    const colors = getColorModule()?.colors;
-    // Guild data streams in progressively after connect, so a one-shot GuildStore.getGuild(id)
-    // taken at mount can miss it entirely and never recover - subscribing means the icon fills in
-    // as soon as its guild finishes loading instead of staying blank for the rest of the session.
-    const g = Flux?.useStateFromStores?.([GuildStore], () => GuildStore?.getGuild?.(id), [id]) ?? null;
+    const g = GuildStore?.getGuild(id);
     if (!g) return null;
     const rad = size >= 40 ? 16 : 8;
     if (g.icon) {

@@ -1,122 +1,43 @@
-import React from "react";
-import { View } from "react-native";
-import { registerPropsTransform, registerTypeDetector, registerIntercept } from "../lib/createElementIntercept";
-import { captureFiberRef } from "../lib/fiberCapture";
+import { find, findByName } from "@vendetta/metro";
+import { registerIntercept } from "../lib/createElementIntercept";
 
 const TAG = "[ServerDrawer]";
-const SD_NOTHING_TEST_ID = "ServerDrawerNothing";
 
-// Whether this capture point actually mounts depends entirely on whether the intercept below
-// fires (unverified independently of it - see lib/fiberCapture.ts for the primary, confirmed
-// capture point inside ServerDrawerSheet.tsx itself, which is guaranteed to mount whenever the
-// drawer is visibly showing). Kept here too as a second chance, harmless either way.
 function Nothing() {
-    // Use the same aggressive collapse style as createElementIntercept's COLLAPSE_STYLE so that
-    // the replaced element itself takes up zero space while still mounting a ref for fiber capture.
-    // Keeping a mounted element with zero size lets us capture the fiber without leaving a visible
-    // 1px gap on the left rail.
-    return React.createElement(View, {
-        ref: captureFiberRef,
-        style: {
-            display: "none",
-            width: 0,
-            minWidth: 0,
-            maxWidth: 0,
-            flexGrow: 0,
-            flexShrink: 0,
-            flexBasis: 0,
-            margin: 0,
-            padding: 0,
-            borderWidth: 0,
-            overflow: "hidden",
-        },
+    return null;
+}
+
+function findGuildsBar(): any {
+    const byName = findByName("GuildsBar");
+    if (byName) return { default: byName };
+
+    let mod = find((m) => {
+        try { return m?.default?.type?.name === "GuildsBar"; } catch { return false; }
     });
-}
+    if (mod?.default) return mod;
 
-// Confirmed live (Key Inspector's fiber capture): the parent creates GuildsBar via its OUTER
-// React.memo wrapper object ($$typeof: Symbol(react.memo)), which has no own .name/.displayName at
-// all - those only exist on the memo's inner function, at type.type.name/type.type.displayName.
-// Checking only the outer two (as the first version of this file did) never matches anything,
-// which is why the intercept never fired despite the underlying mechanism being sound.
-function isGuildsBar(type: any): boolean {
-    return type?.name === "GuildsBar" || type?.displayName === "GuildsBar" ||
-        type?.type?.name === "GuildsBar" || type?.type?.displayName === "GuildsBar";
-}
+    mod = find((m) => {
+        try { return m?.default?.displayName === "GuildsBar"; } catch { return false; }
+    });
+    if (mod?.default) return mod;
 
-/**
- * Reset after live, on-device verification (Key Inspector's fiber capture + Eval) disproved the
- * previous approach's own premise. That version assumed GuildsBar had no discoverable runtime name
- * and hid it via a literal nativeID prop instead - but a direct fiber-tree walk found the live,
- * currently-mounted component's name is genuinely "GuildsBar" (tag 15, SimpleMemoComponent, single
- * `enableHome` prop). The real bug: Metro-search-based lookups (rawFindByTypeName("GuildsBar")) DO
- * find *something* by that name, but it's a different, unrelated module - confirmed by comparing
- * the metro-search result against the live fiber's own `.type` by reference, which do not match.
- * That's exactly the kind of silent wrong-match this whole repo has been burned by before.
- *
- * Also confirmed live: GuildsBar genuinely re-renders on normal usage (switching servers - 2 calls
- * counted over a 15s window of real navigation), unlike YouBar's frozen-after-mount leaf. So unlike
- * that investigation, there's no structural reason a straightforward patch can't work here - the
- * only problem was ever finding the *correct* reference.
- *
- * registerTypeDetector sidesteps the module-registry name collision entirely: it inspects the
- * `type` argument passed directly to createElement/jsx at the moment something actually creates an
- * element with it, which is necessarily the real, live reference - there's nothing else it could be.
- * Once caught, registerIntercept registers that *exact* reference (matched by identity, not name)
- * so every future creation of it - which happens on every re-render of GuildsBar's parent, i.e.
- * whenever the rail would normally repaint - renders nothing instead.
- */
-function hasChildWithTestID(children: any, rest: any[], testID: string): boolean {
-    const inspect = (child: any) => child != null && typeof child === "object" && child.props?.testID === testID;
-    if (children != null) {
-        if (Array.isArray(children)) { if (children.some(inspect)) return true; }
-        else if (inspect(children)) return true;
-    }
-    for (const child of rest) if (inspect(child)) return true;
-    return false;
+    return null;
 }
 
 export function patchHideGuildsBar(cleanups: (() => void)[]): boolean {
-    // Hard-enforce the GuildsBar parent's visibility by detecting the hidden Nothing child and
-    // zeroing the rail wrapper itself. Confirmed live that the immediate parent carries an
-    // explicit width: 72 in its own style, so display: none alone left the space reserved -
-    // zeroing width/flex directly, the same way collapseAncestors does further up, actually
-    // reclaims it.
-    registerPropsTransform(
-        (props: any, _type: any, rest: any[]) =>
-            hasChildWithTestID(props?.children, rest, SD_NOTHING_TEST_ID),
-        (props: any) => ({
-            ...props,
-            style: [
-                props?.style,
-                {
-                    display: "none",
-                    width: 0,
-                    minWidth: 0,
-                    maxWidth: 0,
-                    flexGrow: 0,
-                    flexShrink: 0,
-                    flexBasis: 0,
-                    margin: 0,
-                    padding: 0,
-                    borderWidth: 0,
-                    overflow: "hidden",
-                },
-            ],
-        }),
-    );
+    const mod = findGuildsBar();
+    if (!mod?.default) {
+        console.log(TAG, "WARN: GuildsBar not found");
+        return false;
+    }
+    const orig = mod.default;
 
-    // Use a stable string key so duplicate registrations from retry loops are deduped correctly.
-    registerTypeDetector("ServerDrawer.HideGuildsBar", isGuildsBar, (realGuildsBar) => {
-        // Ask createElementIntercept to collapse a few ancestor levels as well so wrapper
-        // containers around the rail don't leave a leftover gap.
-        registerIntercept(realGuildsBar, Nothing, { testID: SD_NOTHING_TEST_ID }, { collapseAncestors: 6 });
-        console.log(TAG, "PATCH: found a real GuildsBar reference, now rendering nothing");
-    }, { persistent: true });
-    cleanups.push(() => {
-        // No per-call unregister needed - the whole detector/intercept state gets cleared when
-        // createElementIntercept's own patch unwinds, part of the same cleanup pass this plugin
-        // already runs on unload/restart.
-    });
-    console.log(TAG, "PATCH: watching for the real GuildsBar to appear");
+    registerIntercept(orig, Nothing);
+
+    mod.default = function HiddenGuildsBar() {
+        return null;
+    };
+    mod.default.displayName = "GuildsBar";
+    cleanups.push(() => { mod.default = orig; });
     return true;
 }

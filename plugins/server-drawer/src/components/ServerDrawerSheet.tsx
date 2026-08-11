@@ -1,25 +1,29 @@
 import React from "react";
 import { View, Text, Pressable, Animated, Dimensions, StyleSheet, BackHandler } from "react-native";
+import { find, findByProps, findByStoreName } from "@vendetta/metro";
 import { storage } from "@vendetta/plugin";
 import { useProxy } from "@vendetta/storage";
-import { lazy } from "../lib/lazy";
-import { rawFind, rawFindByFunctionProps } from "../lib/rawFind";
-import { getFlux, getHaptic, getColorModule } from "../lib/commonModules";
 import { GuildNode } from "../utils/theme";
 import GuildItem from "./GuildItem";
 import FolderItem from "./FolderItem";
 import DmTile from "./DmTile";
 
-// getFlux/getHaptic/getColorModule come from lib/commonModules.ts - see that file for the decoy
-// module writeup. These three below are specific to this file only.
-const getRootNav = lazy(() => rawFindByFunctionProps("getRootNavigationRef"));
-const getRouting = lazy(() => rawFindByFunctionProps("transitionToGuild"));
-const getCreateJoinGuildMod = lazy(() => rawFind((m: any) => typeof m?.handleCreateJoinGuildPress === "function"));
-const getCirclePlusIcon = lazy(() => rawFind((m: any) => m?.CirclePlusIcon)?.CirclePlusIcon);
+const Flux = findByProps("useStateFromStores");
+const SortedGuildStore = findByStoreName("SortedGuildStore");
+const RootNav = findByProps("getRootNavigationRef");
+const Haptic = findByProps("triggerHapticFeedback", "HapticFeedbackTypes");
+const Routing = findByProps("transitionToGuild");
 
-const getExternalContext = lazy(() => rawFind((m: any) => m?.QuestDockExternalCoordinationContext)?.QuestDockExternalCoordinationContext);
-const getQuestDockMode = lazy(() => rawFind((m: any) => m?.QuestDockMode?.COLLAPSED != null)?.QuestDockMode);
-const getSortedGuildStore = lazy(() => rawFind((m: any) => typeof m?.getName === "function" && m.getName.length === 0 && m.getName() === "SortedGuildStore"));
+const CreateJoinGuildMod = find((m: any) => typeof m?.handleCreateJoinGuildPress === "function");
+const CirclePlusIcon = find((m: any) => m?.CirclePlusIcon)?.CirclePlusIcon;
+const rawColors = findByProps("colors", "unsafe_rawColors")?.unsafe_rawColors;
+
+const createJoinBg = rawColors?.GREEN_360;
+const createJoinIconColor = rawColors?.WHITE;
+
+const ExternalCoordinationMod = find((m: any) => m?.QuestDockExternalCoordinationContext);
+const ExternalContext = ExternalCoordinationMod?.QuestDockExternalCoordinationContext;
+const QuestDockMode = find((m: any) => m?.QuestDockMode?.COLLAPSED != null)?.QuestDockMode;
 
 const ICON = 48;
 const GAP = 6;
@@ -35,21 +39,17 @@ function CreateJoinButton() {
     }, [scale]);
 
     const onPress = React.useCallback(() => {
-        const haptic = getHaptic();
-        haptic?.triggerHapticFeedback?.(haptic.HapticFeedbackTypes.SOFT);
-        getCreateJoinGuildMod()?.handleCreateJoinGuildPress?.();
+        Haptic?.triggerHapticFeedback?.(Haptic.HapticFeedbackTypes.SOFT);
+        CreateJoinGuildMod?.handleCreateJoinGuildPress?.();
     }, []);
-
-    const CirclePlusIcon = getCirclePlusIcon();
-    const rawColors = getColorModule()?.unsafe_rawColors;
 
     return (
         <Pressable onPress={onPress} onPressIn={scaleDown} onPressOut={scaleUp}>
-            <Animated.View style={[st.createJoin, { backgroundColor: rawColors?.GREEN_360, transform: [{ scale }] }]}>
+            <Animated.View style={[st.createJoin, { backgroundColor: createJoinBg, transform: [{ scale }] }]}>
                 {CirclePlusIcon ? (
-                    <CirclePlusIcon size="md" color={rawColors?.WHITE} />
+                    <CirclePlusIcon size="md" color={createJoinIconColor} />
                 ) : (
-                    <Text style={[st.createJoinFallback, { color: rawColors?.WHITE }]}>{"+"}</Text>
+                    <Text style={[st.createJoinFallback, { color: createJoinIconColor }]}>{"+"}</Text>
                 )}
             </Animated.View>
         </Pressable>
@@ -60,19 +60,13 @@ export default function ServerDrawerSheet({ gestureContext }: { gestureContext: 
     useProxy(storage);
 
     const pick = React.useCallback((id: string) => {
-        const haptic = getHaptic();
-        haptic?.triggerHapticFeedback?.(haptic.HapticFeedbackTypes.SOFT);
-
-        const routing = getRouting();
-        if (routing?.transitionToGuild) {
-            routing.transitionToGuild(id);
+        Haptic?.triggerHapticFeedback(Haptic.HapticFeedbackTypes.SOFT);
+        if (Routing?.transitionToGuild) {
+            Routing.transitionToGuild(id, null);
         } else {
-            getRootNav()?.getRootNavigationRef?.()?.navigate("guilds", { guildId: id });
+            RootNav?.getRootNavigationRef()?.navigate("guilds", { guildId: id });
         }
     }, []);
-
-    const Flux = getFlux();
-    const SortedGuildStore = getSortedGuildStore();
 
     const nodes: GuildNode[] = Flux?.useStateFromStores?.(
         [SortedGuildStore],
@@ -91,14 +85,12 @@ export default function ServerDrawerSheet({ gestureContext }: { gestureContext: 
         if (minH.get() !== h) minH.set(h);
     }, [minH]);
 
-    const ExternalContext = getExternalContext();
     const extCtx = ExternalContext ? React.useContext(ExternalContext) as any : null;
     const setMode = extCtx?.setRestingQuestDockMode;
 
     const specs = ctx?.questDockWrapperSpecs;
 
     React.useEffect(() => {
-        const QuestDockMode = getQuestDockMode();
         if (!setMode || !QuestDockMode || !specs) return;
         const sub = BackHandler.addEventListener("hardwareBackPress", () => {
             const h = specs.get()?.height ?? 56;
