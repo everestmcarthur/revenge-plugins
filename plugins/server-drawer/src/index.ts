@@ -1,6 +1,6 @@
 import { logger } from "@vendetta";
 import { storage } from "@vendetta/plugin";
-import { patchQuestDockContext } from "./patches/questDockContext";
+import { patchFakeQuestDock } from "./patches/fakeQuestDock";
 import { patchExpanded, patchEmpty } from "./patches/contentPatch";
 import { patchHideGuildsBar } from "./patches/hideGuildsBar";
 import { patchCreateElement } from "./lib/createElementIntercept";
@@ -32,7 +32,7 @@ function tryPatch(name: string, fn: () => boolean): boolean {
 // missing rather than just not loaded yet).
 function applyAll() {
     const patchers: Record<string, () => boolean> = {
-        questDockContext: () => patchQuestDockContext(cleanups),
+        ...(storage.fakeQuestDock ? { fakeQuestDock: () => patchFakeQuestDock(cleanups) } : {}),
         expanded: () => patchExpanded(cleanups),
         collapsed: () => patchEmpty("QuestDockContentCollapsed", cleanups),
         enrolledHeader: () => patchEmpty("QuestDockEnrolledHeader", cleanups),
@@ -107,6 +107,7 @@ export default {
         storage.showUnreadBadges ??= true;
         storage.autoCollapseFolders ??= false;
         storage.hideFolderIcons ??= false;
+        storage.fakeQuestDock ??= true;
 
         applyAll();
     },

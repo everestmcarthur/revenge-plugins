@@ -46,6 +46,15 @@ export default function Settings() {
                     value={!!storage.hideDmTile}
                     onValueChange={(v: boolean) => { storage.hideDmTile = v; }}
                 />
+                <TableSwitchRow
+                    label="Show drawer with no active quest"
+                    subLabel="Discord only mounts the Quest Dock (and this drawer along with it) when a real quest is active - this feeds it a placeholder so the drawer still shows up otherwise"
+                    value={storage.fakeQuestDock !== false}
+                    onValueChange={(v: boolean) => {
+                        storage.fakeQuestDock = v;
+                        restart();
+                    }}
+                />
             </TableRowGroup>
             <TableRowGroup title="Folders">
                 <TableSwitchRow
