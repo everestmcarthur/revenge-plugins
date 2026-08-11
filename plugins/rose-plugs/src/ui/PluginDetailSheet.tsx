@@ -6,21 +6,28 @@ import { NexusPlugin } from "../lib/nexusApi";
 
 const { ScrollView, Text } = ReactNative;
 
+// Confirmed live: this could get stuck on "Installing..." forever - the timeout below is a safety
+// net so a hung installPlugin() call can't leave the button stuck indefinitely.
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error("Timed out")), ms);
+        promise.then(
+            (v) => { clearTimeout(timer); resolve(v); },
+            (e) => { clearTimeout(timer); reject(e); },
+        );
+    });
+}
+
 export default function PluginDetailSheet({ plugin }: { plugin: NexusPlugin }) {
     const [installing, setInstalling] = React.useState(false);
     const alreadyInstalled = plugin.installUrl in installedPlugins;
 
     const onInstall = React.useCallback(() => {
         setInstalling(true);
-        installPlugin(plugin.installUrl)
-            .then(() => {
-                setInstalling(false);
-                showToast(`${plugin.name} installed`);
-            })
-            .catch((e: any) => {
-                setInstalling(false);
-                showToast(`Install failed: ${e?.message ?? e}`);
-            });
+        withTimeout(installPlugin(plugin.installUrl), 20000)
+            .then(() => showToast(`${plugin.name} installed`))
+            .catch((e: any) => showToast(`Install failed: ${e?.message ?? e}`))
+            .finally(() => setInstalling(false));
     }, [plugin.installUrl]);
 
     return (
