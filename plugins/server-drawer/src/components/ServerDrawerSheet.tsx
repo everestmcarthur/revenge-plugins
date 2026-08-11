@@ -29,6 +29,25 @@ const ICON = 48;
 const GAP = 6;
 const PAD = 12;
 
+// Confirmed live: an account with folders showed no drawer at all - not even the DM tile, other
+// servers, or the create/join button, which have nothing to do with folders. That points at an
+// uncaught throw somewhere in FolderItem's render taking the whole grid down with it, not just the
+// one folder - React unmounts the nearest parent when a child throws during render unless
+// something catches it, and nothing here did. A class component is the only way to actually catch
+// a render-time throw (a try/catch around JSX doesn't do anything - the exception happens during
+// React's own render pass, not synchronously in this function's body). Wrapping each folder
+// individually means one broken folder disappears instead of every other server in the drawer.
+class FolderErrorBoundary extends React.Component<{ children: React.ReactNode }, { errored: boolean }> {
+    state = { errored: false };
+    static getDerivedStateFromError() {
+        return { errored: true };
+    }
+    render() {
+        if (this.state.errored) return null;
+        return this.props.children;
+    }
+}
+
 function CreateJoinButton() {
     const scale = React.useRef(new Animated.Value(1)).current;
     const scaleDown = React.useCallback(() => {
@@ -118,7 +137,11 @@ export default function ServerDrawerSheet({ gestureContext }: { gestureContext: 
                 {!storage.hideDmTile && <DmTile />}
                 {nodes.map((node) =>
                     node.type === "folder"
-                        ? <FolderItem key={node.id} node={node} onPick={pick} />
+                        ? (
+                            <FolderErrorBoundary key={node.id}>
+                                <FolderItem node={node} onPick={pick} />
+                            </FolderErrorBoundary>
+                        )
                         : <GuildItem key={node.id} node={node} onPick={pick} />
                 )}
                 <CreateJoinButton />
