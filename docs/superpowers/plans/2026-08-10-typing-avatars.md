@@ -28,7 +28,7 @@
 **Interfaces:**
 - Produces: a default-exported plugin object (`{ onLoad, onUnload }`) that later tasks wire their patch functions into.
 
-- [ ] **Step 1: Create the manifest**
+- [x] **Step 1: Create the manifest**
 
 ```json
 {
@@ -46,7 +46,7 @@
 
 `ic_group` is a confirmed-existing bundled icon name — already used by another plugin in this repo (`grep -h '"icon"' plugins/*/manifest.json`).
 
-- [ ] **Step 2: Create the plugin entry point with no patches wired yet**
+- [x] **Step 2: Create the plugin entry point with no patches wired yet**
 
 ```ts
 import { logger } from "@vendetta";
@@ -62,12 +62,12 @@ export default {
 };
 ```
 
-- [ ] **Step 3: Build and verify**
+- [x] **Step 3: Build and verify**
 
 Run: `cd /root/revenge-plugins && node build.mjs`
 Expected: output includes `Successfully built TypingAvatars!` with no errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add plugins/typing-avatars/manifest.json plugins/typing-avatars/src/index.ts
@@ -85,7 +85,7 @@ git commit -m "typing-avatars: scaffold new plugin"
 - Consumes: nothing from other tasks.
 - Produces: `getTypingAvatarURL(guildId: string | undefined, userId: string, size?: number): string | null`, used by Task 3's `AvatarStack` component.
 
-- [ ] **Step 1: Write the resolution helper**
+- [x] **Step 1: Write the resolution helper**
 
 ```ts
 import { findByStoreName } from "@vendetta/metro";
@@ -124,12 +124,12 @@ export function getTypingAvatarURL(guildId: string | undefined, userId: string, 
 }
 ```
 
-- [ ] **Step 2: Build and verify**
+- [x] **Step 2: Build and verify**
 
 Run: `cd /root/revenge-plugins && node build.mjs`
 Expected: `Successfully built TypingAvatars!`, no type/syntax errors.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add plugins/typing-avatars/src/lib/avatarUrl.ts
@@ -149,7 +149,7 @@ git commit -m "typing-avatars: add avatar URL resolution helper"
 - Consumes: `getTypingAvatarURL` from Task 2 (`../lib/avatarUrl`).
 - Produces: `AvatarStack` (default export, props `{ typingUserIds: string[]; guildId: string | undefined }`) and `patchTypingIndicator` (default export, `() => () => void`, same shape as every other patch function in this repo).
 
-- [ ] **Step 1: Write the AvatarStack component**
+- [x] **Step 1: Write the AvatarStack component**
 
 ```tsx
 import React from "react";
@@ -189,7 +189,7 @@ const st = StyleSheet.create({
 });
 ```
 
-- [ ] **Step 2: Write the typing-indicator patch**
+- [x] **Step 2: Write the typing-indicator patch**
 
 This mirrors `role-color-everywhere/src/patches/typingWrapper.ts` exactly for the detection/wrapping part (already proven live in this repo), but replaces the label's content with `AvatarStack` instead of recoloring the existing per-user text nodes. Unlike the color-matching version, this doesn't need to zip `typingUserIds` against per-user text elements at all - it only needs `props.typingUserIds` directly, so it isn't affected by the "several people are typing..." collapsed-string case that made the color patch bail out.
 
@@ -242,7 +242,7 @@ export default function patchTypingIndicator(): () => void {
 }
 ```
 
-- [ ] **Step 3: Wire the patch into the plugin entry point**
+- [x] **Step 3: Wire the patch into the plugin entry point**
 
 Replace the contents of `plugins/typing-avatars/src/index.ts` with:
 
@@ -263,12 +263,12 @@ export default {
 };
 ```
 
-- [ ] **Step 4: Build and verify**
+- [x] **Step 4: Build and verify**
 
 Run: `cd /root/revenge-plugins && node build.mjs`
 Expected: `Successfully built TypingAvatars!`, no type/syntax errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add plugins/typing-avatars/src/components/AvatarStack.tsx plugins/typing-avatars/src/patches/typingIndicator.tsx plugins/typing-avatars/src/index.ts
@@ -283,7 +283,7 @@ git commit -m "typing-avatars: add AvatarStack component and typing-indicator pa
 
 **Interfaces:** none — this task confirms Tasks 1-3's assumptions against a real device and fixes anything wrong in place.
 
-- [ ] **Step 1: Push to deploy**
+- [x] **Step 1: Push to deploy**
 
 ```bash
 cd /root/revenge-plugins && git push
@@ -291,19 +291,19 @@ cd /root/revenge-plugins && git push
 
 Confirms the auto-deploy pipeline (GitHub Actions → `rp.jarviscli.dev`) picks up the new plugin. Wait for the user to enable it on their device.
 
-- [ ] **Step 2: Confirm `TypingIndicatorInner` interception fires**
+- [x] **Step 2: Confirm `TypingIndicatorInner` interception fires**
 
 Via `revenge-devtools` `eval`, install a one-off probe patching `TypingIndicatorInner`'s call count (same technique used earlier this session for `useIsMobileQuestDockRendered`), then have the user start typing in a channel with someone else. Confirm the patch's `console.log`/counter actually fires - if it doesn't, the type-name check (`type.name === "TypingIndicatorInner"`) needs re-verification against the current Discord build, the same way this session discovered `QuestDockContentExpanded` had silently drifted.
 
-- [ ] **Step 3: Confirm the avatar hash field names**
+- [x] **Step 3: Confirm the avatar hash field names**
 
 Via `eval`, call `GuildMemberStore.getMember(guildId, userId)` and `UserStore.getUser(userId)` for a real user who is currently typing, and inspect the returned object's keys directly (`Object.keys(member)`) rather than assuming `.avatar` is correct. Fix `avatarUrl.ts` if the real field name differs, per the Global Constraints note above.
 
-- [ ] **Step 4: Confirm the rendered layout on-device**
+- [x] **Step 4: Confirm the rendered layout on-device**
 
 Have the user get 1, 2, and 3+ people typing simultaneously in a test channel (or DM group) and screenshot each state. Confirm: avatars render (not broken images), the overlap direction looks right, and 3+ typers wrap to a second row rather than clipping off-screen.
 
-- [ ] **Step 5: Fix and re-deploy anything found wrong in Steps 2-4, then commit**
+- [x] **Step 5: Fix and re-deploy anything found wrong in Steps 2-4, then commit**
 
 ```bash
 git add -A

@@ -1,19 +1,27 @@
 import { logger } from "@vendetta";
-import { find } from "@vendetta/metro";
 import { after } from "@vendetta/patcher";
 import { findInReactTree } from "@vendetta/utils";
+import { rawFindByTypeName } from "@shared/lib/rawFind";
 import PronounSection from "./ui/PronounSection";
 import Settings from "./ui/Settings";
 
+// @vendetta/metro's find() caches a negative result forever, including one that only missed
+// because this plugin's onLoad ran before UserProfileContent's module had registered yet - once
+// cached, no amount of retrying with find() would ever see the real module. rawFindByTypeName
+// scans window.modules directly instead, so retrying it actually works. Confirmed live: this
+// exact search + the findInReactTree logic below both work correctly once given a real reference
+// - the only thing broken was find()'s one-shot, permanently-cached lookup.
+//
 // Discord renamed the top-level profile component from "UserProfile" to "UserProfileContent" at
 // some point (confirmed against decompiled current-build source) - checking both names covers
 // whichever one a given Discord build actually uses.
-const UserProfile =
-    find((m: any) => m?.type?.name === "UserProfileContent") ??
-    find((m: any) => m?.type?.name === "UserProfile");
+function getUserProfile(): any {
+    return rawFindByTypeName("UserProfileContent") ?? rawFindByTypeName("UserProfile");
+}
 
-function patchProfile(): () => void {
-    if (!UserProfile) return () => {};
+function patchProfile(): (() => void) | false {
+    const UserProfile = getUserProfile();
+    if (!UserProfile) return false;
 
     return after("type", UserProfile, (_: any, res: any) => {
         try {
@@ -43,15 +51,44 @@ function patchProfile(): () => void {
 }
 
 let unpatch: () => void = () => {};
+let patched = false;
+let retryHandle: ReturnType<typeof setInterval> | undefined;
+
+function stopRetrying() {
+    if (retryHandle) {
+        clearInterval(retryHandle);
+        retryHandle = undefined;
+    }
+}
+
+function attempt() {
+    try {
+        const result = patchProfile();
+        if (result) {
+            unpatch = result;
+            patched = true;
+            stopRetrying();
+        }
+    } catch (e) {
+        logger.error(`[PronounDB] Failed to apply the profile patch: ${e}`);
+        stopRetrying();
+    }
+}
 
 export default {
     onLoad: () => {
-        try {
-            unpatch = patchProfile();
-        } catch (e) {
-            logger.error(`[PronounDB] Failed to apply the profile patch: ${e}`);
+        attempt();
+        if (!patched) {
+            let ticks = 0;
+            retryHandle = setInterval(() => {
+                attempt();
+                if (++ticks >= 30) stopRetrying(); // ~9s at 300ms, then give up
+            }, 300);
         }
     },
-    onUnload: () => unpatch(),
+    onUnload: () => {
+        stopRetrying();
+        unpatch();
+    },
     settings: Settings
 };
