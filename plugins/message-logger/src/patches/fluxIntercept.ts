@@ -20,6 +20,11 @@ const UserStore = findByStoreName("UserStore");
 // forever if the plugin gets disabled.
 export const fakedMessages = new Map<string, string>();
 
+// Every past content version for a message, oldest first, current content NOT included (rowStyling
+// appends that itself from the live record). Same id-in-external-map pattern as fakedMessages -
+// row.message.id survives into the row JSON, a custom property doesn't (confirmed live).
+export const editHistory = new Map<string, string[]>();
+
 function currentUserId(): string | undefined {
     return UserStore?.getCurrentUser?.()?.id;
 }
@@ -162,6 +167,10 @@ function handleUpdate(event: any): void {
     if (!storage.options?.logEdited) return;
     if (ignoredFor(original, true)) return;
 
+    const history = editHistory.get(updated.id) ?? [];
+    history.push(original.content ?? "");
+    editHistory.set(updated.id, history);
+
     addLogEntry(snapshotMessage(original, "edited", newContent, false), limitsFromStorage());
 }
 
@@ -205,4 +214,5 @@ export function revertFakedMessages(): void {
         }
     }
     fakedMessages.clear();
+    editHistory.clear();
 }

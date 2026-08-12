@@ -2,18 +2,45 @@ import { ReactNative } from "@vendetta/metro/common";
 import { after, before } from "@vendetta/patcher";
 import { waitFor } from "@shared/lib/waitFor";
 import { rawFind, rawFindByName } from "@shared/lib/rawFind";
-import { fakedMessages } from "./fluxIntercept";
+import { editHistory, fakedMessages } from "./fluxIntercept";
 
 const TAG = "[MessageLogger]";
+
+function textNode(text: string) {
+    return { content: text, type: "text" };
+}
+
+// Confirmed live: message.content in the row JSON is an array of {content, type} rich-text nodes,
+// not a plain string. Old versions get an inline "(edited)" tag of their own here, stacked above
+// the current content - the current version keeps Discord's own native "(edited)" tag rather than
+// getting a second one from here, since that already renders correctly on a genuinely-edited
+// message with no help needed.
+function applyEditHistory(message: any) {
+    const history = editHistory.get(message.id);
+    if (!history?.length) return;
+
+    const currentContent: any[] = Array.isArray(message.content) ? message.content : [textNode(String(message.content ?? ""))];
+    const nodes: any[] = [];
+    for (const oldContent of history) {
+        nodes.push(textNode(oldContent || "(empty)"));
+        nodes.push(textNode(" (edited)\n"));
+    }
+    nodes.push(...currentContent);
+    message.content = nodes;
+}
 
 // Confirmed live: whatever builds the row JSON sent across the native bridge only carries known
 // schema fields through - a custom property set directly on the MessageRecord (confirmed present
 // there via eval) never survives into row.message here. message.id does survive, though, so
-// checking membership in fluxIntercept's own fakedMessages map (already tracked there for onUnload
-// cleanup) works where a custom flag on the row itself can't.
+// checking membership in fluxIntercept's own fakedMessages/editHistory maps (already tracked there
+// for onUnload cleanup / log capture) works where a custom flag on the row itself can't.
 function handleRow(row: any) {
     const message = row?.message;
-    if (!message?.id || !fakedMessages.has(message.id)) return;
+    if (!message?.id) return;
+
+    applyEditHistory(message);
+
+    if (!fakedMessages.has(message.id)) return;
 
     message.edited = "deleted";
     message.textColor = ReactNative.processColor("#E4404380");
