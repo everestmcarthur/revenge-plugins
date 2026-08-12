@@ -1,7 +1,7 @@
 import { ReactNative } from "@vendetta/metro/common";
 import { after, before } from "@vendetta/patcher";
 import { waitFor } from "@shared/lib/waitFor";
-import { rawFindByName } from "@shared/lib/rawFind";
+import { rawFind, rawFindByName } from "@shared/lib/rawFind";
 
 const TAG = "[MessageLogger]";
 const FAKE_DELETE_FLAG = "__msgLoggerDeleted";
@@ -17,51 +17,66 @@ function handleRow(row: any) {
     row.backgroundHighlight.gutterColor = ReactNative.processColor("#da373cff");
 }
 
-// Confirmed live: shared/lib/patchRows.ts's one-shot RowManager.prototype.generate lookup missed
-// entirely - the method doesn't exist yet at plugin onLoad time (not registered until Discord's own
-// code naturally requires that module), and a one-shot findByName never gets a second chance. Same
-// class of bug RoleColorEverywhere's own patches/rows.ts already had to work around with a raw,
-// uncached, retrying lookup instead of relying on the shared helper.
+function patchJsonRows(target: any, cleanups: (() => void)[]): boolean {
+    cleanups.push(
+        before("updateRows", target, (args: any[]) => {
+            try {
+                const rows = JSON.parse(args[1]);
+                for (const row of rows) handleRow(row);
+                args[1] = JSON.stringify(rows);
+            } catch {
+                // Leave args untouched - better to show unstyled rows than break message loading.
+            }
+        }),
+    );
+    return true;
+}
+
+// Confirmed live via a raw scan of window.modules: on this build, NativeModules.DCDChatManager
+// doesn't exist at all, and the legacy RowManager.prototype.generate this repo's shared patchRows
+// helper falls back to is a real, patchable method that simply never receives calls for the
+// screens that matter here - the actual native row-update bridge is instead exposed through an
+// ordinary Metro module (found by its exact updateRows([native code]) signature, not by name,
+// since its module id isn't stable across builds/sessions) that a richer "chat list controller"
+// module (scrollTo/scrollToBottom/updateRows/clearRows/...) wraps and calls into. Verified by a
+// live monkey-patch: real message JSON flowed through it on every send/delete.
+function isNativeUpdateRows(m: any): boolean {
+    return typeof m?.updateRows === "function" && m.updateRows.toString().includes("[native code]");
+}
+
 export function patchRowStyling(cleanups: (() => void)[]): boolean {
     const { NativeModules } = ReactNative;
     const DCDChatManager = NativeModules?.DCDChatManager;
-
     if (DCDChatManager?.updateRows) {
-        cleanups.push(
-            before("updateRows", DCDChatManager, (args: any[]) => {
-                try {
-                    const rows = JSON.parse(args[1]);
-                    for (const row of rows) handleRow(row);
-                    args[1] = JSON.stringify(rows);
-                } catch {
-                    // Leave args untouched - better to show unstyled rows than break message loading.
-                }
-            }),
-        );
-        return true;
+        return patchJsonRows(DCDChatManager, cleanups);
+    }
+
+    const immediate = rawFind<any>(isNativeUpdateRows);
+    if (immediate) {
+        return patchJsonRows(immediate, cleanups);
     }
 
     const handle = waitFor(
+        () => rawFind<any>(isNativeUpdateRows),
+        (target) => patchJsonRows(target, cleanups),
+    );
+    cleanups.push(() => handle.cancel());
+
+    // Legacy fallback, kept in case a future build removes the native-bridge module entirely and
+    // goes back to a real, callable RowManager.prototype.generate - harmless to attach alongside
+    // the primary path above since handleRow is idempotent per row.
+    const legacyHandle = waitFor(
         () => {
             const RowManager = rawFindByName<any>("RowManager");
             return RowManager?.prototype?.generate ? RowManager : undefined;
         },
         (RowManager) => {
-            console.log(TAG, "DIAG: RowManager found, attempting patch");
-            try {
-                cleanups.push(after("generate", RowManager.prototype, (_args: any[], row: any) => {
-                    try {
-                        if (row?.message?.[FAKE_DELETE_FLAG]) console.log(TAG, "DIAG: handleRow saw flagged message", row.message.id);
-                        handleRow(row);
-                    } catch (e: any) { console.warn(TAG, "Row styling failed:", e?.message ?? e); }
-                }));
-                console.log(TAG, "DIAG: patch call completed without throwing");
-            } catch (e: any) {
-                console.warn(TAG, "DIAG: after() threw:", e?.message ?? e);
-            }
+            cleanups.push(after("generate", RowManager.prototype, (_args: any[], row: any) => {
+                try { handleRow(row); } catch (e: any) { console.warn(TAG, "Row styling failed:", e?.message ?? e); }
+            }));
         },
     );
-    cleanups.push(() => handle.cancel());
+    cleanups.push(() => legacyHandle.cancel());
 
     return true;
 }
