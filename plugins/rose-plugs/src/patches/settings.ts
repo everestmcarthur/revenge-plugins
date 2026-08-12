@@ -128,17 +128,38 @@ function patchTabsUI(getRows: () => SectionRow[], patches: (() => void)[]) {
         return;
     }
 
-    let rendererConfigValue = settingConstants.SETTING_RENDERER_CONFIG;
+    // Raiden's Themes installs this exact same Object.defineProperty-override pattern on this same
+    // property. Confirmed live: whichever plugin's override installs LAST completely replaces the
+    // other's getter (defineProperty doesn't chain, it overwrites the whole descriptor) - freezing
+    // the first plugin's rows as a one-time snapshot baked into the second plugin's closure. Any
+    // plugin RosePlugs discovers afterward (installed mid-session, like a freshly-added plugin)
+    // then never reaches SETTING_RENDERER_CONFIG again, even though the section still correctly
+    // lists its key - the exact row-key/config mismatch that crashes Settings. Re-asserting this
+    // override right before every read RosePlugs itself needs (not just once at setup) guarantees
+    // RosePlugs' getter is always the most-recently-installed one when it actually matters, no
+    // matter what order plugins load in or what either one does afterward.
+    let baseConfigValue: any = settingConstants.SETTING_RENDERER_CONFIG;
 
-    Object.defineProperty(settingConstants, "SETTING_RENDERER_CONFIG", {
-        enumerable: true,
-        configurable: true,
-        get: () => {
-            cacheRows(getRows());
-            return { ...rendererConfigValue, ...rendererRowCache };
-        },
-        set(v: any) { rendererConfigValue = v; },
-    });
+    const configGetter = () => {
+        cacheRows(getRows());
+        return { ...baseConfigValue, ...rendererRowCache };
+    };
+
+    function ensureConfigOverride() {
+        const current = Object.getOwnPropertyDescriptor(settingConstants, "SETTING_RENDERER_CONFIG");
+        if (current?.get === configGetter) return;
+
+        baseConfigValue = current?.get ? current.get.call(settingConstants) : (current?.value ?? baseConfigValue);
+
+        Object.defineProperty(settingConstants, "SETTING_RENDERER_CONFIG", {
+            enumerable: true,
+            configurable: true,
+            get: configGetter,
+            set(v: any) { baseConfigValue = v; },
+        });
+    }
+
+    ensureConfigOverride();
 
     const firstRender = Symbol("roseplugs-first-render");
 
@@ -146,6 +167,7 @@ function patchTabsUI(getRows: () => SectionRow[], patches: (() => void)[]) {
         if (!createListModule) return;
         patches.push(
             after("createList", createListModule, function (args: any) {
+                ensureConfigOverride();
                 if (args[0][firstRender]) return;
                 args[0][firstRender] = true;
 
@@ -172,6 +194,7 @@ function patchTabsUI(getRows: () => SectionRow[], patches: (() => void)[]) {
         if (!SettingsOverviewScreen) return;
         patches.push(
             after("default", SettingsOverviewScreen, (args: any, ret: any) => {
+                ensureConfigOverride();
                 if (args[0][firstRender]) return;
                 args[0][firstRender] = true;
 
