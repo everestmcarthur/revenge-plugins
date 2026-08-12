@@ -263,9 +263,10 @@ function handleThreadMembersUpdate(payload: any) {
 
 // Friends only, no bots - a status update from a random server member or a bot's "Playing" state
 // isn't the kind of thing worth an inbox entry for.
-function handlePresenceUpdate(payload: any) {
+function handlePresenceUpdate(update: any) {
     try {
-        const userId = payload?.user?.id ?? payload?.userId;
+        const user = update?.user;
+        const userId = user?.id;
         if (!userId) return;
 
         const currentUser = UserStore?.getCurrentUser?.();
@@ -273,11 +274,9 @@ function handlePresenceUpdate(payload: any) {
 
         const friendIds: string[] = RelationshipStore?.getFriendIDs?.() ?? [];
         if (!friendIds.includes(userId)) return;
+        if (user.bot) return;
 
-        const user = UserStore?.getUser?.(userId);
-        if (user?.bot) return;
-
-        const activities = payload?.activities;
+        const activities = update?.activities;
         const activity = Array.isArray(activities) ? activities.find((a: any) => a?.type !== 4) : undefined;
 
         const signature = activity ? `${activity.type}:${activity.name}` : "";
@@ -287,7 +286,7 @@ function handlePresenceUpdate(payload: any) {
         if (!activity) return; // cleared their activity - nothing to notify about
 
         const verb = ACTIVITY_VERBS[activity.type] ?? "Playing";
-        const displayName = user?.globalName || user?.username || payload?.user?.globalName || payload?.user?.username || "A friend";
+        const displayName = user.globalName || user.username || "A friend";
 
         pushNotification({
             id: `presence-${userId}-${Date.now()}`,
@@ -297,14 +296,24 @@ function handlePresenceUpdate(payload: any) {
             guildName: "",
             channelName: "",
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            author: user ?? payload?.user,
+            author: user,
         });
     } catch (err) {
         console.error("[YouBar+] Inbox presence error:", err);
     }
 }
 
-export function startTrackingNotifications(): () => void {
+// The raw gateway op is singular PRESENCE_UPDATE, but Discord's own socket layer batches them
+// before they ever reach Flux - confirmed against the decompiled bundle's handlePresenceUpdates,
+// which reads payload.updates (an array of {guildId, user, status, activities}). Subscribing to
+// the singular name means this handler simply never fires.
+function handlePresenceUpdates(payload: any) {
+    const updates = payload?.updates;
+    if (!Array.isArray(updates)) return;
+    for (const update of updates) handlePresenceUpdate(update);
+}
+
+function startTrackingNotifications(): () => void {
     memoryNotifications = Array.isArray(storage.notifications) ? [...storage.notifications] : [];
 
     const unsubMessage = fluxSubscribe("MESSAGE_CREATE", handleIncomingMessage);
@@ -312,7 +321,7 @@ export function startTrackingNotifications(): () => void {
     const unsubRelationship = fluxSubscribe("RELATIONSHIP_ADD", handleRelationshipAdd);
     const unsubFriendAccepted = fluxSubscribe("FRIEND_REQUEST_ACCEPTED", handleFriendRequestAccepted);
     const unsubThreadMembers = fluxSubscribe("THREAD_MEMBERS_UPDATE", handleThreadMembersUpdate);
-    const unsubPresence = fluxSubscribe("PRESENCE_UPDATE", handlePresenceUpdate);
+    const unsubPresence = fluxSubscribe("PRESENCE_UPDATES", handlePresenceUpdates);
 
     return () => {
         if (saveTimeout) clearTimeout(saveTimeout);
@@ -325,4 +334,19 @@ export function startTrackingNotifications(): () => void {
         unsubPresence();
         lastActivitySignature.clear();
     };
+}
+
+let stopTracking: () => void = () => {};
+let tracking = false;
+
+// Lets the settings toggle flip tracking on/off live instead of requiring a restart to take effect.
+export function setInboxTracking(enabled: boolean) {
+    if (enabled === tracking) return;
+    tracking = enabled;
+    if (enabled) {
+        stopTracking = startTrackingNotifications();
+    } else {
+        stopTracking();
+        stopTracking = () => {};
+    }
 }

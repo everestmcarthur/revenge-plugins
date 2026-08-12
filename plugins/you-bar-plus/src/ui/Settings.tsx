@@ -5,6 +5,7 @@ import { TableRowGroup, TableSwitchRow } from "@shared/ui/table";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import NoteBox from "@shared/ui/NoteBox";
 import { updateYouBar } from "../patches/youBarButtons";
+import { setInboxTracking } from "../lib/notifications";
 
 
 export default function Settings() {
@@ -34,10 +35,11 @@ export default function Settings() {
                 />
                 <TableSwitchRow
                     label="Inbox button"
-                    subLabel="Show a categorized mentions/replies/reactions inbox in the YouBar - requires a restart to take effect"
+                    subLabel="Show a categorized mentions/replies/reactions inbox in the YouBar"
                     value={!!storage.showInboxButton}
                     onValueChange={(v: boolean) => {
                         storage.showInboxButton = v;
+                        setInboxTracking(v);
                         updateYouBar();
                     }}
                 />
