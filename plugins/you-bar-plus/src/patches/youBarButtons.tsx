@@ -3,6 +3,7 @@ import { React } from "@vendetta/metro/common";
 import { instead } from "@vendetta/patcher";
 import { storage } from "@vendetta/plugin";
 import { getAssetIDByName } from "@vendetta/ui/assets";
+import { registerPropsTransform, patchCreateElement } from "@shared/lib/createElementIntercept";
 import NotificationCenter from "../ui/NotificationCenter";
 
 // Retry logic lives one level up in index.ts, calling this repeatedly until it succeeds - keep
@@ -23,7 +24,6 @@ export default function patchYouBarButtons(): (() => void) | null {
 
     const SettingsIcon = getAssetIDByName("SettingsIcon");
     const ChatIcon = getAssetIDByName("ChatIcon");
-    const BellIcon = getAssetIDByName("BellIcon") ?? getAssetIDByName("NotificationBellIcon");
 
     if (!YouBarNotificationsButton) return null;
 
@@ -47,7 +47,19 @@ export default function patchYouBarButtons(): (() => void) | null {
         ));
     };
 
-    return instead("type", YouBarNotificationsButton, (args: any[], OriginalRender: (...a: any[]) => any) => {
+    // The native bell is one of four sibling buttons YouBarNotificationsButton renders - the
+    // other three are unrelated icon buttons with raw numeric asset ids. accessibilityLabel is
+    // the only reliable way to pick the real bell out (confirmed live via the fiber tree), so
+    // this rewrites its onPress in place at element-creation time instead of guessing at res's
+    // shape - keeps the same native icon/styling, just repoints the tap when Inbox is enabled.
+    const elementCleanups: (() => void)[] = [];
+    patchCreateElement(elementCleanups);
+    registerPropsTransform(
+        (props) => !!storage.showInboxButton && props?.accessibilityLabel === "Notifications",
+        (props) => ({ ...props, onPress: openInbox }),
+    );
+
+    const unpatchType = instead("type", YouBarNotificationsButton, (args: any[], OriginalRender: (...a: any[]) => any) => {
         const [, forceUpdate] = React.useReducer((x: number) => ~x, 0);
 
         updateYouBar = () => forceUpdate();
@@ -72,15 +84,6 @@ export default function patchYouBarButtons(): (() => void) | null {
                     />
                 )}
 
-                {storage.showInboxButton && BellIcon && (
-                    <IconButton
-                        variant={originalProps?.variant || "tertiary"}
-                        size={originalProps?.size || "sm"}
-                        icon={BellIcon}
-                        onPress={openInbox}
-                    />
-                )}
-
                 {storage.showSettingsButton && (
                     <IconButton
                         variant={originalProps?.variant || "tertiary"}
@@ -91,8 +94,14 @@ export default function patchYouBarButtons(): (() => void) | null {
                         }}
                     />
                 )}
+
                 {res}
             </React.Fragment>
         );
     });
+
+    return () => {
+        unpatchType();
+        elementCleanups.forEach((fn) => fn());
+    };
 }
