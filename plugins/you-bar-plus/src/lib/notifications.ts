@@ -14,18 +14,13 @@ const MessageStore = findByStoreName("MessageStore");
 const GuildMemberStore = findByStoreName("GuildMemberStore");
 const RelationshipStore = findByStoreName("RelationshipStore");
 
-// 0 Playing, 1 Streaming, 2 Listening, 3 Watching, 4 Custom, 5 Competing - Discord's public
-// Gateway ActivityType enum, stable across clients/builds.
-const ACTIVITY_VERBS: Record<number, string> = {
-    0: "Playing",
-    1: "Streaming",
-    2: "Listening to",
-    3: "Watching",
-    5: "Competing in",
-};
+// ActivityTypes.CUSTOM_STATUS - confirmed against the decompiled bundle's getActivityFromCustomStatus,
+// which builds {name: "Custom Status", type: 4, state: <the actual text>, emoji}. name is always the
+// literal label "Custom Status", never the user's text - state is what actually holds it.
+const ACTIVITY_TYPE_CUSTOM_STATUS = 4;
 
-// Last-seen activity signature per user, so PRESENCE_UPDATE's frequent re-fires for the same
-// ongoing activity (elapsed time ticking, etc.) don't spam a fresh notification every time.
+// Last-seen custom status per user, so PRESENCE_UPDATES' frequent re-fires don't spam a fresh
+// notification for the same still-active status.
 const lastActivitySignature = new Map<string, string>();
 
 // RelationshipTypes.PENDING_INCOMING - confirmed against the decompiled Discord bundle
@@ -279,22 +274,26 @@ function handlePresenceUpdate(update: any) {
         if (user.bot) return;
 
         const activities = update?.activities;
-        const activity = Array.isArray(activities) ? activities.find((a: any) => a?.type !== 4) : undefined;
+        const customStatus = Array.isArray(activities)
+            ? activities.find((a: any) => a?.type === ACTIVITY_TYPE_CUSTOM_STATUS)
+            : undefined;
+        const statusText: string = customStatus?.state || "";
+        const emojiName: string | undefined = customStatus?.emoji?.name;
 
-        const signature = activity ? `${activity.type}:${activity.name}` : "";
+        const signature = statusText || emojiName || "";
         if (lastActivitySignature.get(userId) === signature) return;
         lastActivitySignature.set(userId, signature);
 
-        if (!activity) return; // cleared their activity - nothing to notify about
+        if (!signature) return; // cleared their status - nothing to notify about
 
-        const verb = ACTIVITY_VERBS[activity.type] ?? "Playing";
         const displayName = user.globalName || user.username || "A friend";
+        const shownText = statusText || (emojiName ? `:${emojiName}:` : "");
 
         pushNotification({
             id: `presence-${userId}-${Date.now()}`,
             category: "other",
-            title: `${displayName} started ${verb} ${activity.name}`,
-            content: "",
+            title: `${displayName} updated their status`,
+            content: shownText,
             guildName: "",
             channelName: "",
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
