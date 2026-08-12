@@ -47,9 +47,18 @@ export function patchRowStyling(cleanups: (() => void)[]): boolean {
             return RowManager?.prototype?.generate ? RowManager : undefined;
         },
         (RowManager) => {
-            cleanups.push(after("generate", RowManager.prototype, (_args: any[], row: any) => {
-                try { handleRow(row); } catch (e: any) { console.warn(TAG, "Row styling failed:", e?.message ?? e); }
-            }));
+            console.log(TAG, "DIAG: RowManager found, attempting patch");
+            try {
+                cleanups.push(after("generate", RowManager.prototype, (_args: any[], row: any) => {
+                    try {
+                        if (row?.message?.[FAKE_DELETE_FLAG]) console.log(TAG, "DIAG: handleRow saw flagged message", row.message.id);
+                        handleRow(row);
+                    } catch (e: any) { console.warn(TAG, "Row styling failed:", e?.message ?? e); }
+                }));
+                console.log(TAG, "DIAG: patch call completed without throwing");
+            } catch (e: any) {
+                console.warn(TAG, "DIAG: after() threw:", e?.message ?? e);
+            }
         },
     );
     cleanups.push(() => handle.cancel());
