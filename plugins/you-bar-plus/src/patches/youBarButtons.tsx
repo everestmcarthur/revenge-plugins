@@ -1,8 +1,9 @@
-import { findByProps, findByTypeName } from "@vendetta/metro";
+import { findByProps, findByTypeName, findByName } from "@vendetta/metro";
 import { React } from "@vendetta/metro/common";
 import { instead } from "@vendetta/patcher";
 import { storage } from "@vendetta/plugin";
 import { getAssetIDByName } from "@vendetta/ui/assets";
+import NotificationCenter from "../ui/NotificationCenter";
 
 // Retry logic lives one level up in index.ts, calling this repeatedly until it succeeds - keep
 // this function itself simple.
@@ -14,10 +15,37 @@ export default function patchYouBarButtons(): (() => void) | null {
     const userSettingsAction = findByProps("openUserSettings");
     const transitionModule = findByProps("transitionToGuild");
 
+    const Navigation = findByProps("push", "pushLazy", "pop");
+    const Navigator = findByName("Navigator") ?? findByProps("Navigator")?.Navigator;
+    const modalCloseButton =
+        findByProps("getRenderCloseButton")?.getRenderCloseButton ??
+        findByProps("getHeaderCloseButton")?.getHeaderCloseButton;
+
     const SettingsIcon = getAssetIDByName("SettingsIcon");
     const ChatIcon = getAssetIDByName("ChatIcon");
+    const BellIcon = getAssetIDByName("BellIcon") ?? getAssetIDByName("NotificationBellIcon");
 
     if (!YouBarNotificationsButton) return null;
+
+    const openInbox = () => {
+        if (!Navigator || !Navigation?.push) {
+            console.error("[YouBar+] Inbox: Navigator not available");
+            return;
+        }
+        Navigation.push(() => (
+            <Navigator
+                initialRouteName="YouBarInbox"
+                goBackOnBackPress
+                screens={{
+                    YouBarInbox: {
+                        title: "Inbox",
+                        headerLeft: modalCloseButton?.(() => Navigation.pop()),
+                        render: () => <NotificationCenter />,
+                    },
+                }}
+            />
+        ));
+    };
 
     return instead("type", YouBarNotificationsButton, (args: any[], OriginalRender: (...a: any[]) => any) => {
         const [, forceUpdate] = React.useReducer((x: number) => ~x, 0);
@@ -41,6 +69,15 @@ export default function patchYouBarButtons(): (() => void) | null {
                         onPress={() => {
                             transitionModule?.transitionToGuild?.("@me");
                         }}
+                    />
+                )}
+
+                {storage.showInboxButton && BellIcon && (
+                    <IconButton
+                        variant={originalProps?.variant || "tertiary"}
+                        size={originalProps?.size || "sm"}
+                        icon={BellIcon}
+                        onPress={openInbox}
                     />
                 )}
 

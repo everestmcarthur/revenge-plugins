@@ -19,6 +19,8 @@ export default function Settings() {
                 Fork of Purple-EyeZ's YouBar+, ported to Revenge's Vendetta-compat API. Like the
                 original, this patches the YouBar the moment it loads - if you enable it while
                 Discord's already running, you may need to restart once for the buttons to appear.
+                Inbox categorization is merged in from shin's BetterInbox (fshinz/Revenge-Plugins),
+                with permission, so both features share one patch instead of two conflicting ones.
             </NoteBox>
             <TableRowGroup title="Buttons">
                 <TableSwitchRow
@@ -27,6 +29,15 @@ export default function Settings() {
                     value={!!storage.showDMButton}
                     onValueChange={(v: boolean) => {
                         storage.showDMButton = v;
+                        updateYouBar();
+                    }}
+                />
+                <TableSwitchRow
+                    label="Inbox button"
+                    subLabel="Show a categorized mentions/replies/reactions inbox in the YouBar - requires a restart to take effect"
+                    value={!!storage.showInboxButton}
+                    onValueChange={(v: boolean) => {
+                        storage.showInboxButton = v;
                         updateYouBar();
                     }}
                 />

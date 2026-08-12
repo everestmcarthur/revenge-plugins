@@ -1,9 +1,10 @@
 {
     "name": "YouBar+",
-    "description": "Adds Settings and DM buttons to the YouBar. (May require a restart after enabling.)",
+    "description": "Adds Settings, DM, and categorized Inbox buttons to the YouBar. (May require a restart after enabling.)",
     "authors": [
         { "name": "Rosie" },
-        { "name": "Purple_Ξye™" }
+        { "name": "Purple_Ξye™" },
+        { "name": "shin" }
     ],
     "main": "src/index.ts"
 }
