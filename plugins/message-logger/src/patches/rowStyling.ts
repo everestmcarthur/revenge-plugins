@@ -14,8 +14,12 @@ function textNode(text: string) {
 // Discord's own "(edited)" tag is colored via a dedicated `editedColor` row field that only applies
 // once per row - no good for multiple per-history tags. Text nodes have no color field of their
 // own, so this wraps the tag in the same `link`/`linkColor` trick role-color-everywhere uses.
-function editedTagNode() {
-    const color = resolveSemanticColorSafe(["TEXT_MUTED"], "#949BA4");
+// Takes the already-resolved processColor value instead of resolving it itself - resolving a
+// semantic color is real work (walks the theme's token table), and a busy channel can call this
+// hundreds of times per updateRows batch (once per history entry per edited row currently on
+// screen) - resolving once per batch instead of once per node is the difference between that being
+// free and it being a measurable chunk of every single row update.
+function editedTagNode(processedColor: any) {
     return {
         type: "link",
         target: "usernameOnClick",
@@ -24,7 +28,7 @@ function editedTagNode() {
             usernameOnClick: {
                 action: "0",
                 userId: "0",
-                linkColor: ReactNative.processColor(color),
+                linkColor: processedColor,
                 messageChannelId: "0",
             },
             medium: true,
@@ -36,7 +40,7 @@ function editedTagNode() {
 // message.content in the row JSON is an array of {content, type} rich-text nodes, not a plain
 // string. Old versions get their own muted "(edited)" tag stacked above the current content, which
 // keeps Discord's native tag since that already renders correctly on its own.
-function applyEditHistory(message: any) {
+function applyEditHistory(message: any, editedColor: any) {
     const history = editHistory.get(message.id);
     if (!history?.length) return;
 
@@ -44,7 +48,7 @@ function applyEditHistory(message: any) {
     const nodes: any[] = [];
     for (const oldContent of history) {
         nodes.push(textNode(oldContent || "(empty)"));
-        nodes.push(editedTagNode());
+        nodes.push(editedTagNode(editedColor));
         nodes.push(textNode("\n"));
     }
     nodes.push(...currentContent);
@@ -54,27 +58,36 @@ function applyEditHistory(message: any) {
 // The row JSON sent across the native bridge only carries known schema fields - a custom property
 // on the message never survives, but message.id does, so we check membership in fluxIntercept's
 // own maps instead of a flag on the row itself.
-function handleRow(row: any) {
+function handleRow(row: any, editedColor: any, deletedTextColor: any, deletedBgColor: any, deletedGutterColor: any) {
     const message = row?.message;
     if (!message?.id) return;
 
-    applyEditHistory(message);
+    if (editHistory.size) applyEditHistory(message, editedColor);
 
-    if (!fakedMessages.has(message.id)) return;
+    if (!fakedMessages.size || !fakedMessages.has(message.id)) return;
 
     message.edited = "deleted";
-    message.textColor = ReactNative.processColor("#E4404380");
+    message.textColor = deletedTextColor;
     row.backgroundHighlight ??= {};
-    row.backgroundHighlight.backgroundColor = ReactNative.processColor("#da373c22");
-    row.backgroundHighlight.gutterColor = ReactNative.processColor("#da373cff");
+    row.backgroundHighlight.backgroundColor = deletedBgColor;
+    row.backgroundHighlight.gutterColor = deletedGutterColor;
 }
 
 function patchJsonRows(target: any, cleanups: (() => void)[]): boolean {
     cleanups.push(
         before("updateRows", target, (args: any[]) => {
+            // Nothing tracked at all - skip the parse/stringify round-trip entirely rather than
+            // paying for it on every single row update in every channel, faded or not.
+            if (!editHistory.size && !fakedMessages.size) return;
+
             try {
+                const editedColor = ReactNative.processColor(resolveSemanticColorSafe(["TEXT_MUTED"], "#949BA4"));
+                const deletedTextColor = ReactNative.processColor("#E4404380");
+                const deletedBgColor = ReactNative.processColor("#da373c22");
+                const deletedGutterColor = ReactNative.processColor("#da373cff");
+
                 const rows = JSON.parse(args[1]);
-                for (const row of rows) handleRow(row);
+                for (const row of rows) handleRow(row, editedColor, deletedTextColor, deletedBgColor, deletedGutterColor);
                 args[1] = JSON.stringify(rows);
             } catch {
                 // Leave args untouched - better to show unstyled rows than break message loading.
