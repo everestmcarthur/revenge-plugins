@@ -3,14 +3,9 @@ import { before } from "@vendetta/patcher";
 
 const MAX_DISTINCT_TYPES = 500;
 
-/**
- * Captures every FluxDispatcher action type dispatched over `durationMs`, with an optional
- * substring filter, and returns a count-sorted report. Built for the everyday plugin-dev question
- * "what actually fires when I do X" - patches FluxDispatcher.dispatch itself (the same `before`
- * technique every other patch in this repo uses) rather than any internal interceptor API, so it
- * observes without ever altering or swallowing a single dispatch. Auto-unpatches when the window
- * ends or the distinct-type cap is hit, so a runaway capture can't leak a patch or grow unbounded.
- */
+// Captures every FluxDispatcher action type dispatched over durationMs and returns a count-sorted
+// report. Patches dispatch itself, observing without altering it, and auto-unpatches when the
+// window ends or the distinct-type cap is hit.
 export function captureFluxEvents(durationMs: number, filter?: string): Promise<string> {
     return new Promise((resolve) => {
         const counts = new Map<string, number>();

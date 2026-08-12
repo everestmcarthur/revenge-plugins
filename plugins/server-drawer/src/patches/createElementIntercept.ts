@@ -4,11 +4,7 @@ import { after } from "@vendetta/patcher";
 interface Intercept {
     replacement: React.ComponentType<any>;
     extraProps?: Record<string, any>;
-    /**
-     * How many ancestor levels above this element are allowed to be collapsed to zero size along
-     * with it (0 = none). See `COLLAPSE_STYLE` below for why replacing a component with one that
-     * renders nothing is, on its own, not enough to reclaim its space.
-     */
+    /** How many collapsed-to-zero-size ancestor levels above this element are also allowed to collapse (0 = none). */
     collapseAncestors?: number;
 }
 
@@ -36,21 +32,12 @@ let typeDetectors: TypeDetector[] = [];
 const detectorKeys = new Set<string>();
 let isPatched = false;
 
-/**
- * A React element created for something we're hiding, mapped to how many more ancestor levels may
- * still be collapsed with it. Elements are plain objects and are created child-first (a parent's
- * jsx() call can only run once its children exist), so a mark placed on a child is always already
- * present by the time the parent's own call is intercepted - which is what makes walking the
- * collapse *upward* possible at element-creation time at all.
- */
+// Elements are created child-first, so a collapse mark on a child is already present by the time
+// the parent's own call is intercepted - that's what makes walking the collapse upward possible.
 const collapseMarks = new WeakMap<object, number>();
 
-/**
- * Zeroes an element out in every direction a parent could have sized it. `display: "none"` alone
- * is enough on Yoga, but the explicit width/flex zeroes also cover a container that sets its
- * child's size through a style array further up, and `overflow: hidden` stops anything absolutely
- * positioned inside from still painting.
- */
+// display: none alone doesn't reclaim space on every layout, so this also zeroes width/flex/margin
+// and hides overflow.
 const COLLAPSE_STYLE = {
     display: "none" as const,
     width: 0,
@@ -74,31 +61,20 @@ export function registerIntercept(
     intercepts.set(original, { replacement, extraProps, collapseAncestors: options?.collapseAncestors });
 }
 
-// Same idea as registerIntercept, but matches on a predicate over the element's props instead of
-// an exact type reference - useful when the component has no reliable name to find it by, but
-// always passes some distinguishing prop. Pass replacement: null to render nothing instead.
+// Matches on a props predicate instead of an exact type reference, for components with no
+// reliable name. Pass replacement: null to render nothing.
 export function registerPropsIntercept(predicate: (props: any) => boolean, replacement: React.ComponentType<any> | null) {
     propsIntercepts.push({ predicate, replacement });
 }
 
-// Rewrites an element's props in place, keeping the same type - unlike registerPropsIntercept,
-// this doesn't swap in a different component, it just lets the real one render with different
-// input.
+// Rewrites props in place, keeping the same type.
 export function registerPropsTransform(predicate: (props: any) => boolean, transform: (props: any) => any) {
     propsTransforms.push({ predicate, transform });
 }
 
-// Purely observational: the first time an element is created whose type matches predicate, calls
-// onDetected(type) with the live reference. Doesn't touch rendering - pair it with
-// registerIntercept/registerPropsIntercept in the callback for that. Exists for components that
-// aren't findable by searching Metro's registry after the fact (races against first mount).
-//
-// key dedupes registrations - retrying registration every 200ms used to pile up duplicate
-// detectors, each re-tested against every element created anywhere in the app.
-//
-// persistent keeps the detector alive for every future match instead of firing once. Some type
-// references change across navigation (switching servers via this plugin's own drawer), so a
-// one-shot detector would only ever catch the first, now-abandoned reference.
+// Fires onDetected(type) the first time a matching element is created. For components with no
+// stable module export to search for after the fact. persistent keeps firing on every match
+// instead of once, for references that change across navigation.
 export function registerTypeDetector(
     key: string,
     predicate: (type: any) => boolean,
@@ -123,14 +99,14 @@ function runTypeDetectors(type: any) {
         try {
             matched = detector.predicate(type);
         } catch {
-            // A bad predicate shouldn't block every other detector or every element from rendering.
+            // Ignore
         }
         if (!matched) continue;
 
         try {
             detector.onDetected(type);
         } catch {
-            // Same - a detector's own handler throwing shouldn't take anything else down.
+            // Ignore
         }
         if (!detector.persistent) {
             detector.justFired = true;
@@ -138,9 +114,6 @@ function runTypeDetectors(type: any) {
         }
     }
 
-    // Only rebuild the list when a one-shot detector actually fired. The previous version rebuilt
-    // it on every single element creation app-wide, forever, because a persistent detector keeps
-    // the list from ever being empty - an allocation per element on the hottest path in the app.
     if (consumed) {
         typeDetectors = typeDetectors.filter((d) => d.persistent || !d.justFired);
     }
@@ -149,12 +122,7 @@ function runTypeDetectors(type: any) {
 declare module "./createElementIntercept" {}
 interface TypeDetector { justFired?: boolean }
 
-/**
- * Returns the collapse depth a parent element should inherit from its children, or 0 for "leave
- * this element alone."
- *
- * Returns the *maximum* collapse budget among real children.
- */
+/** Returns the collapse depth a parent should inherit from its children (max of any real child, 0 if none). */
 function inspectCollapseChild(child: any): number {
     if (child == null || child === false || typeof child !== "object") return 0;
     return collapseMarks.get(child) ?? 0;
@@ -188,7 +156,7 @@ function resolveReplacement(type: any, props: any, rest: any[]): { type: any; pr
                     effectiveProps = transform(effectiveProps);
                 }
             } catch {
-                // A bad transform shouldn't block every other element from rendering.
+                // Ignore
             }
         }
     }
@@ -200,7 +168,7 @@ function resolveReplacement(type: any, props: any, rest: any[]): { type: any; pr
                     return replacement ? { type: replacement, props: effectiveProps } : null;
                 }
             } catch {
-                // A bad predicate shouldn't block every other element from rendering.
+                // Ignore
             }
         }
     }
@@ -214,9 +182,7 @@ function resolveReplacement(type: any, props: any, rest: any[]): { type: any; pr
         };
     }
 
-    // Nothing to swap here, but if this element's only child is one we've already collapsed, this
-    // element is a wrapper that exists purely to hold it - zero it out too and pass the remaining
-    // budget further up.
+    // A wrapper whose only child was already collapsed - zero it out too and pass the remaining budget up.
     const inherited = inheritedCollapseDepth(effectiveProps, rest);
     if (inherited > 0) {
         return {
@@ -233,9 +199,8 @@ function resolveReplacement(type: any, props: any, rest: any[]): { type: any; pr
     return undefined;
 }
 
-// Mutates the already-created element in place rather than substituting args before creation -
-// after() only sees the return value, not the call itself. A raw property reassignment on the
-// jsx-runtime object doesn't reliably reach real render calls; after() does.
+// after() only sees the return value, not the call itself, so we mutate the element in place
+// rather than substituting args beforehand.
 function applyResolved(res: any, type: any, props: any, rest: any[]) {
     if (!res || typeof res !== "object") return res;
     const resolved = resolveReplacement(type, props, rest);
@@ -265,11 +230,8 @@ export function patchCreateElement(cleanups: (() => void)[]) {
         console.warn("[ServerDrawer] React.createElement is null, skipping patch");
     }
 
-    // Discord's bundle compiles JSX through the automatic runtime (jsx/jsxs/jsxDEV) instead of
-    // React.createElement, so patching createElement alone misses nearly everything. We scan for
-    // the runtime by shape rather than name since names get mangled, patch every copy we find (a
-    // bundle can have more than one), and keep scanning on an interval since Metro registers
-    // modules lazily - a copy that hasn't been required yet at boot just isn't there to find.
+    // Discord compiles JSX through jsx/jsxs/jsxDEV, not React.createElement - scan for those
+    // runtimes by shape (names are mangled) and keep scanning since Metro registers lazily.
     const patchedJsxRuntimes = new WeakSet<any>();
 
     function isJsxRuntime(m: any): boolean {
@@ -297,7 +259,7 @@ export function patchCreateElement(cleanups: (() => void)[]) {
             const dflt = exports.default;
             if (dflt != null && isJsxRuntime(dflt)) patchJsxObject(dflt);
         } catch {
-            // Ignore one module's bad shape and continue scanning.
+            // Ignore
         }
     }
 
@@ -311,13 +273,9 @@ export function patchCreateElement(cleanups: (() => void)[]) {
         }
     }
 
-    // Patch any jsx runtimes already loaded before Discord's first render pass starts, synchronously
-    // - an async scan would complete too late for the very first render of an early-mounting target.
     scanAndPatchJsxRuntimes();
 
-    // Fast while the app is still booting and chunks are being pulled in, then slow, then stop -
-    // a full window.modules walk is not free and there's nothing left to catch once the UI has
-    // settled.
+    // Fast while the app boots, then slow, then stop.
     let ticks = 0;
     let timer: ReturnType<typeof setInterval> | undefined = setInterval(() => {
         scanAndPatchJsxRuntimes();

@@ -14,9 +14,8 @@ function stopRetrying() {
     }
 }
 
-// YouBarNotificationsButton isn't registered in Metro until the YouBar itself has rendered at
-// least once, which hasn't necessarily happened yet by the time a plugin's onLoad runs - a single
-// attempt just misses it some of the time. Retries on an interval until it lands, then stops.
+// YouBarNotificationsButton isn't registered until YouBar itself has rendered at least once -
+// retries on an interval until it lands.
 function attempt() {
     try {
         const unpatch = patchYouBarButtons();

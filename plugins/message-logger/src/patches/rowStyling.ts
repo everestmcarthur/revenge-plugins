@@ -11,14 +11,9 @@ function textNode(text: string) {
     return { content: text, type: "text" };
 }
 
-// Confirmed live via the decompiled Discord bundle: Discord's own "(edited)" tag isn't a plain text
-// node - it's colored through a dedicated `editedColor` field on the row that only applies to ONE
-// tag per row, which our per-history-entry tags can't use (there can be several, one per past
-// version). role-color-everywhere already found the workaround for coloring arbitrary text nodes on
-// this bridge: wrap the node in a `{type: "link", target: "usernameOnClick", ...}` shell and set a
-// `linkColor` inside it - text nodes themselves don't support a color field, but this wrapper does.
-// TEXT_MUTED is the same semantic token Discord's own muted/secondary text (timestamps, the real
-// edited tag) uses, confirmed live: resolves to #8a8a9a on this build's theme.
+// Discord's own "(edited)" tag is colored via a dedicated `editedColor` row field that only applies
+// once per row - no good for multiple per-history tags. Text nodes have no color field of their
+// own, so this wraps the tag in the same `link`/`linkColor` trick role-color-everywhere uses.
 function editedTagNode() {
     const color = resolveSemanticColorSafe(["TEXT_MUTED"], "#949BA4");
     return {
@@ -39,10 +34,8 @@ function editedTagNode() {
 }
 
 // message.content in the row JSON is an array of {content, type} rich-text nodes, not a plain
-// string (confirmed live). Old versions get their own muted-colored "(edited)" tag stacked above
-// the current content - the current version keeps Discord's own native tag rather than getting a
-// second one from here, since that already renders correctly on a genuinely-edited message with no
-// help needed.
+// string. Old versions get their own muted "(edited)" tag stacked above the current content, which
+// keeps Discord's native tag since that already renders correctly on its own.
 function applyEditHistory(message: any) {
     const history = editHistory.get(message.id);
     if (!history?.length) return;
@@ -58,11 +51,9 @@ function applyEditHistory(message: any) {
     message.content = nodes;
 }
 
-// Confirmed live: whatever builds the row JSON sent across the native bridge only carries known
-// schema fields through - a custom property set directly on the MessageRecord (confirmed present
-// there via eval) never survives into row.message here. message.id does survive, though, so
-// checking membership in fluxIntercept's own fakedMessages/editHistory maps (already tracked there
-// for onUnload cleanup / log capture) works where a custom flag on the row itself can't.
+// The row JSON sent across the native bridge only carries known schema fields - a custom property
+// on the message never survives, but message.id does, so we check membership in fluxIntercept's
+// own maps instead of a flag on the row itself.
 function handleRow(row: any) {
     const message = row?.message;
     if (!message?.id) return;

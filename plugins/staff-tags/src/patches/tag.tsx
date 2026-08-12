@@ -7,12 +7,8 @@ import Icon from "../ui/Icon";
 const Tag = findByProps("getBotLabel");
 const { View, Text } = ReactNative;
 
-/**
- * Discord's own Tag component ignores custom text/color props unless we push them into the
- * already-rendered tree ourselves - this is what actually makes our overrides visible. Now also
- * supports an `icon` prop (an IconDef from our icon library) and `iconColor` so tags can render
- * with or without text.
- */
+// Discord's Tag component ignores custom text/color props unless pushed into the already-rendered
+// tree directly.
 export default () => {
     if (!Tag) return () => {};
 

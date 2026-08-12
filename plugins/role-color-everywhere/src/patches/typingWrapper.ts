@@ -6,10 +6,9 @@ import { defaultTextColor } from "../lib/color";
 
 const GuildMemberStore = findByStoreName("GuildMemberStore");
 
-// Colors usernames in the "X is typing..." indicator. TYPING_WRAPPER_HEIGHT (what this used to
-// look up) doesn't exist anymore - the actual component is TypingIndicatorInner, which isn't a
-// top-level export, and it hands us channel + typingUserIds directly as props. Each typing user
-// gets their own inner <Text> element in the same order as typingUserIds, so we just zip them up.
+// Colors usernames in the "X is typing..." indicator. The component is TypingIndicatorInner, not
+// a top-level export, hands us channel + typingUserIds as props - zipped against each user's own
+// inner <Text> element in the same order.
 export default function patchTypingWrapper(): () => void {
     const cleanups: (() => void)[] = [];
     patchCreateElement(cleanups);

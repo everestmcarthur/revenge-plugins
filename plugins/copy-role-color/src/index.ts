@@ -48,9 +48,7 @@ function copyRoleColor(colorStrings: any, fallbackColor?: string | null) {
 }
 
 function patchRolePill(): () => void {
-    // Confirmed against decompiled current-build Discord source: the component is now just
-    // "RolePill" (at app/components_native/common/RolePill.tsx) - "ThemedRolePill" doesn't exist
-    // anywhere in it. Checking both names covers older builds that might still use the old one.
+    // "RolePill" on current builds, "ThemedRolePill" on older ones.
     const RolePillComponent = findByName("RolePill", false) ?? findByName("ThemedRolePill", false);
     if (!RolePillComponent) return () => {};
 
@@ -81,11 +79,8 @@ function patchRolePill(): () => void {
     });
 }
 
-// Covers the role pills in a full profile's Roles section - a different render path from
-// patchRolePill above (that one's for role mentions in message text). This section renders
-// UserProfileRolesCard -> RolesList -> RoleItem, none of which are top-level exports, so we need
-// createElementIntercept to catch RoleItem's reference. It hands us the role object directly, with
-// both colorStrings and colorString on it already, so no need to guess at it from rendered styles.
+// Covers role pills in a full profile's Roles section (UserProfileRolesCard -> RolesList ->
+// RoleItem, none of which are top-level exports, hence createElementIntercept).
 function patchProfileRoleItem(): () => void {
     const cleanups: (() => void)[] = [];
     patchCreateElement(cleanups);

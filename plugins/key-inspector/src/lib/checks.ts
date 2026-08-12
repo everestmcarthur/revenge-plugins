@@ -12,9 +12,8 @@ interface Check {
     run: () => any;
 }
 
-// Every internal lookup this repo's plugins (plus in-progress ports like FPTE) actually depend on.
-// Add to this list whenever a new plugin introduces a new lookup - that's what makes "run a full
-// scan" useful instead of checking one thing at a time.
+// Every internal lookup this repo's plugins depend on - add to this list whenever a new plugin
+// introduces one.
 const CHECKS: Check[] = [
     // Staff Tags
     { label: 'findByProps("computePermissions", "canEveryoneRole")', run: () => findByProps("computePermissions", "canEveryoneRole") },

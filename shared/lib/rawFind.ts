@@ -1,21 +1,6 @@
-// Revenge's own metro finders (findByProps/findByName/findByTypeName/findByStoreName, and even
-// the bare `find`) cache their result per search - including a NEGATIVE result. Once a search
-// comes up empty, it's marked "not found" and every later call with the same search never
-// rescans window.modules again, even after the real module registers (confirmed by reading
-// Revenge's own source: metro/internals/modules.ts's getModules() returns early on a cached
-// NOT_FOUND flag). That makes retry loops pointless for any search whose first attempt happens
-// to run before the target is registered - every retry after that first miss hits the same
-// poisoned cache instead of actually looking again.
-//
-// This walks window.modules directly to bypass that cache - but critically, it never forces a
-// module to initialize (never calls window.__r on something that hasn't run yet). An earlier
-// version of this file did force-require everything on every scan, which is genuinely dangerous:
-// Metro only ever runs a module's factory once and caches whatever it produced forever, so
-// force-evaluating a module before whatever it depends on on is actually ready can permanently
-// wedge it into a broken state for the rest of the session - no amount of retrying fixes that,
-// since the factory never runs again. This only inspects modules Metro's own isInitialized flag
-// says have ALREADY been required by something else, which is entirely passive and safe to poll
-// repeatedly - it just waits for Discord's own code to naturally reach the module we want.
+// Revenge's own finders cache a negative result forever, so retry loops never see a module that
+// registers after the first miss. This walks window.modules directly instead, and only inspects
+// modules already marked isInitialized - never force-requires one, which can wedge Metro.
 declare const window: any;
 
 export function rawFind<T = any>(predicate: (exports: any) => boolean): T | undefined {

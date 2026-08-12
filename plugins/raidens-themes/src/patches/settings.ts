@@ -7,10 +7,8 @@ import { findInReactTree } from "@vendetta/utils";
 const { FormSection, FormRow } = Forms;
 
 // Pins a settings entry into Discord's own App Settings screen instead of leaving it buried under
-// Revenge's Plugins list - ported from Commands (kmmiio99o/vd-plugins), which calls through
-// window.bunny. This client only has vendetta, not bunny, so those lookups always came back
-// undefined and it silently fell back to copying the theme URL. Swapped to Vendetta's
-// findByProps/findByName, same as every other plugin in this repo.
+// Revenge's Plugins list - ported from Commands (kmmiio99o/vd-plugins), swapped from bunny to
+// Vendetta's findByProps/findByName.
 const tabsNavigationRef = findByProps("getRootNavigationRef");
 const settingConstants = findByProps("SETTING_RENDERER_CONFIG");
 const createListModule = findByProps("createList");
@@ -73,9 +71,7 @@ function patchPanelUI(tabs: any, patches: any[]) {
             }, true)
         );
     } catch {
-        // This surface (the tablet/desktop-style settings panel) may not exist on this build at
-        // all - patchTabsUI below covers the mobile settings list, which is what actually matters
-        // here. A miss on this one shouldn't block that one.
+        // This surface may not exist on this build - patchTabsUI below covers the mobile list.
     }
 }
 

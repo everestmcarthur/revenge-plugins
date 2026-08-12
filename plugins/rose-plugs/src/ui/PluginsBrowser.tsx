@@ -15,9 +15,8 @@ interface BrowserState {
     plugins: NexusPlugin[];
 }
 
-// Confirmed live: installing from the detail sheet could get stuck on "Installing..." forever -
-// the promise from installPlugin wasn't reliably settling. This timeout is a safety net so a hung
-// call can't leave a row stuck indefinitely, on top of moving the action to an inline button.
+// installPlugin's promise doesn't always reliably settle - this timeout is a safety net so a hung
+// call can't leave a row stuck on "Installing..." forever.
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
     return new Promise((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error("Timed out")), ms);

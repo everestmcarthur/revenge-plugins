@@ -18,12 +18,9 @@ function isNamed(name: string) {
         type?.type?.name === name || type?.type?.displayName === name;
 }
 
-// Confirmed live (Key Inspector): find()'s own module-registry search can land on a different copy
-// of QuestDockContentExpanded than the one actually mounted in the live tree - the eager mutation
-// below silently patches the wrong reference while the real one keeps rendering Discord's own
-// (mostly empty) quest content. registerTypeDetector doesn't search the registry at all - it
-// inspects the exact `type` value passed to createElement/jsx the moment something actually
-// creates an element with it, so there's no "which copy" ambiguity to land on wrong.
+// find()'s module-registry search can land on a different copy of QuestDockContentExpanded than
+// the one actually mounted - registerTypeDetector instead inspects the exact `type` value passed
+// to createElement/jsx as it's used, so there's no "which copy" ambiguity.
 export function patchExpanded(
     cleanups: (() => void)[]
 ): boolean {

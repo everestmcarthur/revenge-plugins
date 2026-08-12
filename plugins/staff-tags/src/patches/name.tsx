@@ -4,13 +4,9 @@ import { findInReactTree } from "@vendetta/utils";
 import getTag from "../lib/getTag";
 import GradientTag from "../ui/GradientTag";
 
-// Covers the name row shown in chat messages (next to the display name + timestamp) and channel headers.
-// findByName("DisplayName", false) stopped matching - confirmed live (Key Inspector's Eval console,
-// a full module-key scan) that the module still exports a property literally named DisplayName, but
-// findByName matches by the component's own runtime .name/.displayName, which doesn't survive
-// production minification the way the export's property key does. findByProps looks at property
-// keys instead, so the patch target changes from DisplayName.default to DisplayNameModule.DisplayName.
-// HeaderName's current name isn't confirmed yet - still guarded, just not fixed.
+// Covers the name row in chat messages and channel headers. findByName("DisplayName") stopped
+// matching under minification since it matches runtime .name, not the export's property key -
+// findByProps looks at the property key instead, so the target is DisplayNameModule.DisplayName.
 const DisplayNameModule = findByProps("DisplayName") as any;
 const HeaderName = findByName("HeaderName", false);
 const TagModule = findByProps("getBotLabel");

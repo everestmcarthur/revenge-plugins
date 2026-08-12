@@ -11,12 +11,8 @@ export const resolveSemanticColor: (theme: Theme, semanticColor: EmptyObject) =>
     ?? find(m => m.meta?.resolveSemanticColor)?.meta.resolveSemanticColor
     ?? (() => undefined);
 
-/**
- * Discord renames semantic color tokens across versions - confirmed via live on-device diagnostics
- * that HEADER_SECONDARY, BACKGROUND_PRIMARY, BACKGROUND_FLOATING, and TEXT_NORMAL have all been
- * removed on at least one current build, which is exactly what crashed this plugin's profile editor
- * every time it rendered. This tries each candidate token name in order and never throws.
- */
+// Discord renames semantic color tokens across versions - tries each candidate name in order and
+// never throws.
 export function resolveSemanticColorSafe(theme: Theme, tokenNames: string[], fallbackHex: string): string {
     for (const name of tokenNames) {
         const token = semanticColors?.[name];
@@ -41,10 +37,8 @@ export const useAvatarColors: (
 
 export type Theme = "dark" | "light" | "midnight" | "darker";
 
-// The unguarded version of this line (`findByProps("getProfileTheme").getProfileTheme`) is what was
-// crashing the whole plugin bundle at load time on at least one Discord build - accessing a property
-// on the result of a failed findByProps throws immediately, outside any of this plugin's own
-// try/catch, since it runs while the module is being evaluated, before onLoad is ever reached.
+// Unguarded, this crashed the whole plugin bundle at load time - a property access on a failed
+// findByProps throws while the module is being evaluated, before onLoad is ever reached.
 export const getProfileTheme: <T extends number | null | undefined>(primaryColor: T) => T extends number ? Theme : null
     = (findByProps("getProfileTheme") as Record<string, any> | undefined)?.getProfileTheme
     ?? ((primaryColor: any) => (primaryColor == null ? null : "dark")) as any;

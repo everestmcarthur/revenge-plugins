@@ -6,10 +6,8 @@ import { findInReactTree } from "@vendetta/utils";
 
 const { FormSection, FormRow } = Forms;
 
-// The mobile settings list renders a section's `label` field directly as its header text - `title`
-// goes unused there (confirmed live: an internal-looking label like "ROSES_PLUGS" rendered verbatim
-// instead of a real title). Raiden's Themes' own working section lookup relies on the same thing
-// (label === title === "Revenge"), so both fields just carry the same human-readable string.
+// The mobile settings list renders a section's `label` as its header text, not `title` - both
+// fields just carry the same string.
 const SECTION_LABEL = "Rosie's Plugs";
 const SECTION_TITLE = "Rosie's Plugs";
 
@@ -26,14 +24,10 @@ export interface SectionRow {
     page: React.ComponentType<any>;
 }
 
-// A section's own row-key list is a one-time snapshot (see patchTabsUI below), but SETTING_RENDERER_
-// CONFIG used to rebuild fresh from getRows() on every access - confirmed live, those two calls can
-// observe different results (discovery is live, plugin state can shift between them), leaving a key
-// the snapshot still references missing from the config. Discord's own settings code assumes every
-// referenced key always resolves and crashes ("Cannot read property 'parent' of undefined") the
-// moment it doesn't. Accumulating here instead of rebuilding means any key ever referenced by a
-// section stays resolvable for good - populated both eagerly (right when a section snapshot is
-// built) and lazily (on every config read), so there's no window where one is ahead of the other.
+// A section's row-key list is a one-time snapshot, but the live config used to rebuild fresh on
+// every access - the two could disagree and leave a key the snapshot references missing from the
+// config, which crashes Discord's settings code. Accumulating instead of rebuilding keeps any
+// key ever referenced resolvable for good.
 const rendererRowCache: Record<string, any> = {};
 
 function cacheRows(rows: SectionRow[]) {
@@ -117,8 +111,7 @@ function patchPanelUI(getRows: () => SectionRow[], patches: (() => void)[]) {
             }, true)
         );
     } catch {
-        // This surface (the tablet/desktop-style settings panel) may not exist on this build at
-        // all - patchTabsUI below covers the mobile settings list, which is what actually matters.
+        // This surface may not exist on this build - patchTabsUI below covers the mobile list.
     }
 }
 
@@ -128,16 +121,10 @@ function patchTabsUI(getRows: () => SectionRow[], patches: (() => void)[]) {
         return;
     }
 
-    // Raiden's Themes installs this exact same Object.defineProperty-override pattern on this same
-    // property. Confirmed live: whichever plugin's override installs LAST completely replaces the
-    // other's getter (defineProperty doesn't chain, it overwrites the whole descriptor) - freezing
-    // the first plugin's rows as a one-time snapshot baked into the second plugin's closure. Any
-    // plugin RosePlugs discovers afterward (installed mid-session, like a freshly-added plugin)
-    // then never reaches SETTING_RENDERER_CONFIG again, even though the section still correctly
-    // lists its key - the exact row-key/config mismatch that crashes Settings. Re-asserting this
-    // override right before every read RosePlugs itself needs (not just once at setup) guarantees
-    // RosePlugs' getter is always the most-recently-installed one when it actually matters, no
-    // matter what order plugins load in or what either one does afterward.
+    // Raiden's Themes installs this same Object.defineProperty override on the same property -
+    // whichever installs last wins outright (defineProperty overwrites, it doesn't chain). Re-
+    // asserting ours before every read we need keeps it the most-recently-installed one regardless
+    // of plugin load order.
     let baseConfigValue: any = settingConstants.SETTING_RENDERER_CONFIG;
 
     const configGetter = () => {

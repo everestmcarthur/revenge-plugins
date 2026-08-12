@@ -7,15 +7,9 @@ function avatarExtension(hash: string): string {
     return hash.startsWith("a_") ? "gif" : "png";
 }
 
-// member.avatar / user.avatar confirmed live via devtools eval: UserStore.getCurrentUser().avatar
-// returned a real hash, and GuildMemberStore.getMember(guildId, userId).avatar exists as a field
-// and is correctly null for a user with no server-specific avatar set (the fallback-to-global
-// path is real and was exercised, not just theorized).
-//
-// The whole body is wrapped so a single bad input (e.g. a malformed userId reaching BigInt())
-// degrades to "this one avatar doesn't render" instead of throwing during the message list's
-// render pass - that render happens outside typingIndicator.tsx's own try/catch, which only
-// guards element creation, not AvatarStack's actual render.
+// Wrapped so a bad input (e.g. a malformed userId reaching BigInt()) degrades to "this one avatar
+// doesn't render" instead of throwing during the message list's render pass, which happens outside
+// typingIndicator.tsx's own try/catch.
 export function getTypingAvatarURL(guildId: string | undefined, userId: string, size = 32): string | null {
     try {
         if (!userId) return null;

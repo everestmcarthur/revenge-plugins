@@ -4,12 +4,8 @@ import { React } from "@vendetta/metro/common";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 import { findInReactTree } from "@vendetta/utils";
 
-// Injection technique ported from this repo's ViewRaw plugin (view-raw/src/index.tsx) - confirmed
-// working there for adding a row to the message long-press action sheet. Generalized here so more
-// than one RoseUtils module can each contribute their own rows through a single shared patch,
-// instead of every module that wants this hook patching openLazy separately (which would stack
-// duplicate patches, and duplicate "instance.__patched" bookkeeping, the moment more than one such
-// module is enabled at once).
+// Injection technique ported from this repo's ViewRaw plugin. Generalized so multiple RoseUtils
+// modules can share one openLazy patch instead of each patching it separately.
 export interface MessageActionRow {
     key: string;
     label: string;
@@ -64,9 +60,8 @@ function patchOpenLazy(): () => void {
         if (key !== "MessageLongPressActionSheet" || !msg?.message) return;
 
         component.then((instance: any) => {
-            // Discord appears to reuse the same lazy-loaded instance across every action sheet
-            // open - only patch it once, and track the active message on the instance itself so
-            // re-opening on a different message doesn't need a fresh patch.
+            // Discord reuses the same lazy-loaded instance across opens - patch once, track the
+            // active message on the instance itself.
             instance.__roseUtilsActiveMessage = msg.message;
             if (instance.__roseUtilsPatched) return;
             instance.__roseUtilsPatched = true;

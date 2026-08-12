@@ -6,13 +6,9 @@ import GradientTag from "../ui/GradientTag";
 
 const GuildStore = findByStoreName("GuildStore");
 
-// The full profile doesn't render through UserRow at all - it's PrimaryInfo -> UserProfilePrimaryInfo,
-// and PrimaryInfo only shows up unrendered inside UserProfileContent's own output (no children to
-// search). UserProfilePrimaryInfo is the one that actually builds the name row, and it's not a
-// top-level export, so we grab its reference via createElementIntercept the first time it renders.
-// The row it builds is [DisplayName, [UserTagAndPronouns, GuildTag, ProfileBadgeRows]] - none of
-// those read custom text/color (UserTagAndPronouns is just the @handle, GuildTag is Discord's own
-// server-tag feature), so we push our GradientTag in as a sibling instead of trying to reuse one.
+// The full profile renders via PrimaryInfo -> UserProfilePrimaryInfo, which builds the name row
+// but isn't a top-level export - grabbed via createElementIntercept on first render instead, and
+// our GradientTag pushed in as a sibling of the row's existing children.
 export default function patchProfile(): () => void {
     const cleanups: (() => void)[] = [];
     patchCreateElement(cleanups);

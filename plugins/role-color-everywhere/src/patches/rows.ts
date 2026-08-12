@@ -100,9 +100,8 @@ function handleRow(row: any) {
     }
 }
 
-// Discord's Android client renders the message list natively - message data is passed across the JS/native
-// bridge as JSON, so this is patched at that boundary rather than in a React tree, with a fallback to the
-// older `RowManager.generate` path for builds where the native bridge doesn't exist.
+// Discord's Android client renders the message list natively - patched at the JS/native JSON
+// bridge rather than in a React tree, with a fallback to RowManager.generate for older builds.
 export default function patchRows(): () => void {
     const { NativeModules } = ReactNative;
     const DCDChatManager = NativeModules?.DCDChatManager;
@@ -119,12 +118,8 @@ export default function patchRows(): () => void {
         });
     }
 
-    // RowManager used to be looked up eagerly at module-import time with the cached findByName - a
-    // plugin's top-level code can run before Discord's own code has required RowManager itself, and
-    // Revenge's findByName permanently caches a negative result. Confirmed live via Key Inspector's
-    // Eval console: a raw, uncached scan found RowManager.prototype.generate present once the module
-    // had actually initialized - waitFor + a raw lookup retries until that happens instead of giving
-    // up on the first (possibly premature) miss.
+    // findByName caches a negative result permanently if it runs before RowManager registers -
+    // waitFor + a raw lookup retries until it's actually there.
     const patches: (() => void)[] = [];
     const handle = waitFor(
         () => {

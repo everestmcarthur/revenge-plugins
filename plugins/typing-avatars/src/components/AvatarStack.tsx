@@ -5,9 +5,8 @@ import { getTypingAvatarURL } from "../lib/avatarUrl";
 const SIZE = 20;
 const OVERLAP = 8;
 
-// No text label and no tap handler by design - purely decorative avatars replacing the
-// "X is typing..." text entirely. If a lot of people are typing, this wraps to a second
-// overlapping row rather than clipping or capping with a "+N" badge.
+// Purely decorative, replacing the "X is typing..." text entirely - wraps to a second row instead
+// of capping with a "+N" badge.
 export default function AvatarStack({ typingUserIds, guildId }: { typingUserIds: string[]; guildId: string | undefined }) {
     if (!typingUserIds?.length) return null;
 

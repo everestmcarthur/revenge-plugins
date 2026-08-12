@@ -1,8 +1,7 @@
 import type { LoggedAttachment, LoggedMessage } from "./types";
 
-// Every field read below is part of Discord's own public message object schema - checked in both
-// camelCase and snake_case since MessageStore's cached objects don't consistently normalize every
-// field the same way across message sources (gateway vs. REST-backfilled history).
+// Checked in both camelCase and snake_case since MessageStore's cached objects don't consistently
+// normalize every field across message sources.
 function attachmentsOf(message: any): LoggedAttachment[] {
     const attachments = message?.attachments;
     if (!Array.isArray(attachments)) return [];

@@ -40,10 +40,8 @@ function safeStringify(value: any): string {
     }
 }
 
-// Android/iOS keyboards commonly have "smart punctuation" that silently swaps straight quotes for
-// curly ones as you type - that turns "foo" into “foo”, a different character to the JS parser.
-// Harmless to keep normalizing even though it turned out not to be the actual cause of the errors
-// seen while building this (see below) - cheap, and still a real footgun on its own.
+// Mobile keyboards commonly swap straight quotes for curly ones while typing, which is a
+// different character to the JS parser.
 function normalizeSmartPunctuation(code: string): string {
     return code
         .replace(/[‘’]/g, "'")
@@ -51,22 +49,10 @@ function normalizeSmartPunctuation(code: string): string {
         .replace(/[–—]/g, "-");
 }
 
-/**
- * Runs arbitrary code typed into the Eval box, with this repo's own lookup helpers already in
- * scope - built so an on-device assumption behind a fix (does this property exist, does this call
- * behave the way decompiled source suggested) can be checked in seconds instead of a full
- * build/push/update/test cycle.
- *
- * The dynamically-compiled function body is deliberately NOT `async`. Hermes (RN's JS engine)
- * precompiles the whole app bundle to bytecode ahead of time, and its runtime `eval`/`new Function`
- * path only supports a reduced subset of the language - confirmed on-device that it rejects `async`
- * functions outright ("async functions are unsupported"), even though normal precompiled code
- * (including this very function) uses async/await freely. So the user's code runs as a plain
- * synchronous function; if it needs to do something timed/async, it returns a Promise itself
- * (`return new Promise(resolve => setTimeout(() => resolve(x), 1000))` works fine - only the
- * `async`/`await` *keywords* are the problem, not Promises as a runtime object) and this function
- * awaits that result out here, in precompiled code where await is fully supported.
- */
+// Runs arbitrary code typed into the Eval box, with this repo's own lookup helpers in scope. The
+// compiled function body is deliberately NOT async - Hermes's runtime eval/new Function path
+// rejects the async keyword outright, so the code runs as a plain sync function and returns a
+// Promise itself if it needs to do something timed, which this function awaits out here instead.
 export async function runEval(rawCode: string): Promise<string> {
     const code = normalizeSmartPunctuation(rawCode);
     try {

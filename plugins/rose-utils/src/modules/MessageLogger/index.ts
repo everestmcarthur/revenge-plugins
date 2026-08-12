@@ -9,15 +9,9 @@ import { shouldIgnore, type FilterOptions } from "./lib/filters";
 import { addLogEntry, clearLog, getLog } from "./lib/store";
 import openLogViewer from "./ui/LogViewerPage";
 
-// Same core stores this plugin already relies on elsewhere (GuildStore/UserStore/etc. in
-// server-info-tools.ts) - MessageStore is equally fundamental, the client's own cache of every
-// message it currently has loaded. The whole capture mechanism depends on reading a message from
-// here *before* Discord's own MESSAGE_DELETE/MESSAGE_UPDATE handling removes/overwrites it - which
-// is exactly why this patches FluxDispatcher.dispatch itself (the same technique Key Inspector's own
-// flux event logger already proved out in this repo) instead of subscribing normally: a normal
-// FluxDispatcher.subscribe callback fires in registration order alongside every other listener,
-// including MessageStore's own, with no guarantee this one runs first - patching dispatch runs
-// before any listener at all, while the store's cache still holds the pre-delete/pre-edit message.
+// Patches FluxDispatcher.dispatch itself rather than subscribing normally, since a subscribe
+// callback has no guarantee of running before MessageStore's own - dispatch runs before any
+// listener, while the cache still holds the pre-delete/pre-edit message.
 const MessageStore = findByStoreName("MessageStore");
 const UserStore = findByStoreName("UserStore");
 

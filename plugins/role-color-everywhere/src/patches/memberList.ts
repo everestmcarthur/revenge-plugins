@@ -7,11 +7,9 @@ const { Text } = ReactNative;
 const SelectedGuildStore = findByStoreName("SelectedGuildStore");
 const GuildRoleStore = findByStoreName("GuildRoleStore");
 
-// Colors the role section headers in the member list ("MODERATORS", "ADMINS", etc). The old
-// version patched View.prototype.render looking for a roleId prop - View isn't a class component
-// anymore and roleId doesn't exist by the time this reaches React. All we get is a pre-formatted
-// title string like "🚨 Moderator — 1" on a memo'd component called UserSectionInner, so we parse
-// the role name back out of that and match it against the guild's roles by name.
+// Colors the role section headers in the member list ("MODERATORS", "ADMINS", etc). Only a
+// pre-formatted title string like "🚨 Moderator — 1" is available on UserSectionInner, so the role
+// name is parsed back out of it and matched against the guild's roles by name.
 export default function patchMemberList(): () => void {
     const cleanups: (() => void)[] = [];
     patchCreateElement(cleanups);

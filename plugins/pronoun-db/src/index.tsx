@@ -5,16 +5,9 @@ import { rawFindByTypeName } from "@shared/lib/rawFind";
 import PronounSection from "./ui/PronounSection";
 import Settings from "./ui/Settings";
 
-// @vendetta/metro's find() caches a negative result forever, including one that only missed
-// because this plugin's onLoad ran before UserProfileContent's module had registered yet - once
-// cached, no amount of retrying with find() would ever see the real module. rawFindByTypeName
-// scans window.modules directly instead, so retrying it actually works. Confirmed live: this
-// exact search + the findInReactTree logic below both work correctly once given a real reference
-// - the only thing broken was find()'s one-shot, permanently-cached lookup.
-//
-// Discord renamed the top-level profile component from "UserProfile" to "UserProfileContent" at
-// some point (confirmed against decompiled current-build source) - checking both names covers
-// whichever one a given Discord build actually uses.
+// find() caches a negative result forever, so retrying it after onLoad races module registration
+// never works - rawFindByTypeName scans window.modules directly instead. Checks both names since
+// Discord renamed the top-level profile component from "UserProfile" to "UserProfileContent".
 function getUserProfile(): any {
     return rawFindByTypeName("UserProfileContent") ?? rawFindByTypeName("UserProfile");
 }
@@ -25,8 +18,7 @@ function patchProfile(): (() => void) | false {
 
     return after("type", UserProfile, (_: any, res: any) => {
         try {
-            // Same story here - the bio card component is now named "UserProfileAboutMeCard",
-            // was "UserProfileBio" in older builds.
+            // "UserProfileAboutMeCard" now, "UserProfileBio" in older builds.
             const bioSection = findInReactTree(res, (r) =>
                 Array.isArray(r?.props?.children) &&
                 r.props.children.some((c: any) => c?.type?.name === "UserProfileAboutMeCard" || c?.type?.name === "UserProfileBio")
@@ -35,8 +27,7 @@ function patchProfile(): (() => void) | false {
             const children = bioSection?.props?.children;
             if (!Array.isArray(children)) return;
 
-            // userId is a direct prop on these cards now, not nested under displayProfile.userId
-            // - keeping the old path as a fallback in case another build still shapes it that way.
+            // userId is a direct prop on these cards now, falling back to the older nested path.
             const withProfile = children.find(
                 (c: any) => typeof c?.props?.userId === "string" || typeof c?.props?.displayProfile?.userId === "string"
             );

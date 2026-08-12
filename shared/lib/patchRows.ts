@@ -4,12 +4,9 @@ import { after, before } from "@vendetta/patcher";
 
 export type RowHandler = (rows: any[]) => void;
 
-/**
- * Chat rows are rendered natively - message data crosses the JS/native bridge as JSON via
- * DCDChatManager.updateRows on newer builds, or via RowManager.generate (one row per call) on
- * older ones. This runs `handler` against the row array either way, so callers don't have to
- * reimplement the bridge-vs-RowManager fallback themselves.
- */
+// Chat rows are rendered natively - message data crosses the JS/native bridge as JSON via
+// DCDChatManager.updateRows on newer builds, or RowManager.generate on older ones. Runs `handler`
+// against the row array either way.
 export function patchRows(handler: RowHandler): () => void {
     const { NativeModules } = ReactNative;
     const DCDChatManager = NativeModules?.DCDChatManager;

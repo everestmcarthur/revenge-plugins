@@ -1,17 +1,10 @@
 import { findByProps } from "@vendetta/metro";
 import { Forms } from "@vendetta/ui/components";
 
-/**
- * Discord's redesigned "Table" row family (TableRow/TableRowGroup/TableSwitchRow/...) replaced
- * the old Forms.Form* components in the app itself a while ago - Forms.* still works (Vendetta's
- * compat layer maps it to the legacy components, see metro/common/components.ts in the loader),
- * but it's the deprecated skin. These are found the same way ViewRaw finds ActionSheetRow: a
- * direct findByProps lookup for the real component, since the vendetta.ui.components compat
- * object never exposed the Table family at all. Falls back to the matching legacy Form
- * component if a lookup ever comes back empty, same "isolate the failure" approach as the rest
- * of this repo - the fallback's prop names don't perfectly match (e.g. `icon` vs `leading`), so a
- * few things would render without an icon/arrow in that fallback path, but nothing crashes.
- */
+// Discord's redesigned "Table" row family replaced Forms.Form* in the app itself, but the
+// vendetta.ui.components compat object never exposed it - found via direct findByProps instead,
+// falling back to the legacy Form component (whose prop names don't perfectly match) if a lookup
+// ever comes back empty.
 const find = (prop: string): any => findByProps(prop)?.[prop];
 
 const RealTableRow: any = find("TableRow");

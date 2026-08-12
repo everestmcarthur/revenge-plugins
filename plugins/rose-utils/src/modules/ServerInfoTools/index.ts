@@ -6,11 +6,6 @@ import { Module, ModuleCategory } from "../../lib/Module";
 import { registerMessageAction, type MessageActionRow } from "../../lib/messageActionSheet";
 import { decodeSnowflakeTimestamp } from "../../lib/snowflake";
 
-// Confirmed live via Key Inspector Eval (/root/eval-for-revenge/ru/all-checks.txt) against a real
-// server: GuildStore.getGuild() returns name/ownerId/features/premiumTier/premiumSubscriberCount/
-// verificationLevel/vanityURLCode exactly as read below. RelationshipStore.getFriendIDs() and
-// GuildMemberStore.getMember(guildId, userId) are confirmed working too - a real friend showed up
-// as a cached member of the test server, cross-checked against UserStore.getUser().username.
 const GuildStore = findByStoreName("GuildStore");
 const RelationshipStore = findByStoreName("RelationshipStore");
 const GuildMemberStore = findByStoreName("GuildMemberStore");

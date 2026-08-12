@@ -6,32 +6,14 @@ import { fluxSubscribe } from "@shared/lib/flux";
 import { Module, ModuleCategory } from "../../lib/Module";
 import { registerMessageAction, type MessageActionRow } from "../../lib/messageActionSheet";
 
-// Confirmed against decompiled current-build Discord source: Developer Mode is a proto-backed
-// setting exposed as DeveloperMode.getSetting()/updateSetting(bool), part of the same
-// modules/user_settings/UserSettings.tsx module that exports every other appearance/advanced
-// setting (DarkSidebar, MessageDisplayCompact, etc - all built the same way via defineProtoSetting).
-// It resets itself more than it should on Revenge - rather than guess at why, this just re-asserts
-// it every time the user's settings proto changes, which is the same event Discord's own settings
-// UI reacts to.
+// Developer Mode resets itself more than it should on Revenge - this re-asserts it every time the
+// user's settings proto changes rather than guessing why.
 const UserSettingsModule = findByProps("DeveloperMode", "DarkSidebar");
 
-// Confirmed live via Key Inspector Eval (/root/eval-for-revenge/ru/activity-payload-capture.txt):
-// caught a real LOCAL_ACTIVITY_UPDATE payload while Watch Together was running - the activity
-// object is exactly {type, name, application_id, platform, party, secrets, flags, metadata}, snake
-// case, matching the primary branch checked below. That capture was for the local user specifically
-// (own activities dispatch through a local-first path, which is why PresenceStore.getActivities on
-// your own ID came back empty even mid-session) - but it's the same public Gateway Activity object
-// schema Discord broadcasts for everyone, which is what PresenceStore caches for *other* users -
-// the actual case this code needs, since it looks up the message author, not the local user. Not
-// yet caught a live PresenceStore.getActivities(otherUserId) call directly, but the shape match
-// leaves nothing left to guess at.
 const PresenceStore = findByStoreName("PresenceStore");
 
-// Confirmed live via Key Inspector Eval (/root/eval-for-revenge/ru/all-checks.txt) against real
-// slash-command messages: message.interaction is populated with {id, name, type, user,
-// displayName} exactly as read below (message.type 20 = CHAT_INPUT_COMMAND on these).
-// interactionMetadata/interaction_metadata are checked as a fallback for whichever build doesn't
-// populate the legacy .interaction field.
+// message.interaction/interactionMetadata/interaction_metadata - checked in that order to cover
+// whichever field a given build populates.
 function getCommandInteraction(message: any): { id: string; name?: string } | null {
     const interaction = message?.interaction ?? message?.interactionMetadata ?? message?.interaction_metadata;
     if (!interaction?.id) return null;
@@ -124,16 +106,14 @@ export default new Module({
                         try {
                             if (!DeveloperMode.getSetting()) DeveloperMode.updateSetting(true);
                         } catch {
-                            // Best-effort - if this particular check throws, the next settings change retries it.
+                            // Next settings change retries it.
                         }
                     };
 
                     enforce();
                     this.patches.add(fluxSubscribe("USER_SETTINGS_PROTO_UPDATE", enforce));
 
-                    // Belt and suspenders: if whatever resets this doesn't go through
-                    // USER_SETTINGS_PROTO_UPDATE for some reason, this still catches it within 5s
-                    // instead of staying off for the rest of the session.
+                    // Fallback poll in case something resets it without that event firing.
                     const interval = setInterval(enforce, 5000);
                     this.patches.add(() => clearInterval(interval));
                 }

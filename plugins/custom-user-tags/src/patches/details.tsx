@@ -6,9 +6,8 @@ import openTagEditor from "../ui/TagEditorAlert";
 
 const TagModule = findByProps("getBotLabel");
 
-// Covers member list rows and the profile popout, same target Staff Tags already confirmed works
-// (findByTypeNameAll("UserRow")) - and the long-press hook for assigning a tag, since this repo has
-// no confirmed way to hook Discord's own user context menu.
+// Covers member list rows and the profile popout, plus the long-press hook for assigning a tag
+// (no confirmed way to hook Discord's own user context menu).
 const rowPatch = ([{ user }]: any[], res: any) => {
     try {
         if (user?.id && res?.props) {

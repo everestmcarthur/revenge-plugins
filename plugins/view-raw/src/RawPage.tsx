@@ -11,9 +11,6 @@ const { View, ScrollView, TextInput, Text } = ReactNative;
 export default function RawPage({ message }: { message: any }) {
     const [query, setQuery] = React.useState("");
     const stringMessage = React.useMemo(() => JSON.stringify(cleanMessage(message), null, 4), [message.id]);
-    // The search box previously hardcoded white text (illegible on a light theme) and the two
-    // section labels below had no color at all (illegible black-on-black on a dark theme, RN's
-    // Text default with no theming of its own).
     const textColor = resolveSemanticColorSafe(["TEXT_NORMAL", "TEXT_DEFAULT"], "#dbdee1");
 
     return (

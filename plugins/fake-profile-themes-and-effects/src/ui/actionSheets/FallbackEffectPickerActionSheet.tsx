@@ -11,12 +11,8 @@ import { Radius, SafeAreaContext, Spacing, useWindowDimensions } from "@fpte/ui/
 
 const ROW_SIZE = 3;
 
-// lodash isn't a dependency of this repo (no node_modules/lodash, nothing in package.json) - the
-// build's Rollup config only marks react/react-native external, so an unresolved "lodash" import
-// got emitted as a bare, undefined global reference in the compiled bundle. That threw
-// "ReferenceError: lodash is not defined" the instant Revenge evaluated this plugin's bundle,
-// before onLoad ever ran - which is why enabling the plugin silently reverted with no visible
-// error anywhere. Only one function was ever used from it, so it's inlined here instead.
+// lodash isn't a dependency here - an unresolved import threw "lodash is not defined" before
+// onLoad ever ran. Only one function was used from it, so it's inlined here instead.
 function chunk<T>(arr: T[], size: number): T[][] {
     const result: T[][] = [];
     for (let i = 0; i < arr.length; i += size) result.push(arr.slice(i, i + size));

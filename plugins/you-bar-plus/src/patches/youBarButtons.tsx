@@ -4,9 +4,8 @@ import { instead } from "@vendetta/patcher";
 import { storage } from "@vendetta/plugin";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 
-// Keep the actual patch logic here dead simple - a previous attempt to fix the load-order race
-// by adding retry/re-render logic directly into this function made buttons stop appearing at all.
-// The retry now lives one level up in index.ts instead, calling this repeatedly until it succeeds.
+// Retry logic lives one level up in index.ts, calling this repeatedly until it succeeds - keep
+// this function itself simple.
 export let updateYouBar = () => {};
 
 /** Returns null (not undefined) when YouBarNotificationsButton isn't registered in Metro yet, so a caller can tell "not ready" apart from "patched, here's the unpatch fn". */

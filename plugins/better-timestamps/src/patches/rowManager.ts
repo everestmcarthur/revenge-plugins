@@ -24,12 +24,8 @@ function parseTimestamp(value: any): any {
     return moment(value);
 }
 
-// RowManager used to be looked up eagerly at module-import time with the cached findByName - a
-// plugin's top-level code runs as soon as Discord requires its bundle, which can be before Discord's
-// own code has required RowManager itself, and Revenge's findByName permanently caches a negative
-// result. Confirmed live via Key Inspector's Eval console: a raw, uncached scan found
-// RowManager.prototype.generate present and correct once the module had actually initialized - the
-// class itself was never the problem, just the timing of a one-shot lookup racing it.
+// findByName caches a negative result permanently if it runs before RowManager registers -
+// waitFor + a raw lookup retries until it's actually there.
 export default function patchRowManager(): () => void {
     const patches: (() => void)[] = [];
 

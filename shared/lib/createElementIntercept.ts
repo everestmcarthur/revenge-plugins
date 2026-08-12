@@ -39,30 +39,20 @@ export function registerIntercept(
     intercepts.set(original, { replacement, extraProps });
 }
 
-// Same idea as registerIntercept, but matches on a predicate over the element's props instead of
-// an exact type reference - useful when the component has no reliable name to find it by, but
-// always passes some distinguishing prop. Pass replacement: null to render nothing instead.
+// Matches on a props predicate instead of an exact type reference, for components with no
+// reliable name. Pass replacement: null to render nothing.
 export function registerPropsIntercept(predicate: (props: any) => boolean, replacement: React.ComponentType<any> | null) {
     propsIntercepts.push({ predicate, replacement });
 }
 
-// Rewrites an element's props in place, keeping the same type - unlike registerPropsIntercept,
-// this doesn't swap in a different component, it just lets the real one render with different
-// input. Useful where patching a hook's exported property wouldn't work (same-chunk closures
-// often bypass the export entirely); every element creation goes through this one shared path
-// regardless of which chunk it came from, so there's no equivalent staleness problem here.
+// Rewrites props in place, keeping the same type.
 export function registerPropsTransform(predicate: (props: any) => boolean, transform: (props: any) => any) {
     propsTransforms.push({ predicate, transform });
 }
 
-// Purely observational: the first time an element is created whose type matches predicate, calls
-// onDetected(type) with the live reference. Doesn't touch rendering itself - pair it with
-// registerIntercept/registerPropsIntercept in the callback for that. This is how you find a
-// component that isn't a top-level module export and can't be searched for after the fact.
-//
-// key dedupes registrations (matters if the call site can run more than once, e.g. a retry loop).
-// persistent keeps the detector alive for every future match instead of firing once and dropping
-// - needed for components whose reference isn't stable for the whole session.
+// Fires onDetected(type) the first time a matching element is created. For components with no
+// stable module export to search for after the fact. persistent keeps firing on every match
+// instead of once, for references that change across navigation.
 export function registerTypeDetector(
     key: string,
     predicate: (type: any) => boolean,
@@ -87,14 +77,14 @@ function runTypeDetectors(type: any) {
         try {
             matched = detector.predicate(type);
         } catch {
-            // A bad predicate shouldn't block every other detector or every element from rendering.
+            // Ignore
         }
         if (!matched) continue;
 
         try {
             detector.onDetected(type);
         } catch {
-            // Same - a detector's own handler throwing shouldn't take anything else down.
+            // Ignore
         }
         if (!detector.persistent) {
             detector.justFired = true;
@@ -102,9 +92,6 @@ function runTypeDetectors(type: any) {
         }
     }
 
-    // Only rebuild the list when a one-shot detector actually fired - rebuilding on every single
-    // element creation app-wide would be an allocation per element on the hottest path in the app
-    // whenever any persistent detector is registered (the list is then never empty).
     if (consumed) {
         typeDetectors = typeDetectors.filter((d) => d.persistent || !d.justFired);
     }
@@ -122,7 +109,7 @@ function resolveReplacement(type: any, props: any, rest: any[]): { type: any; pr
                     effectiveProps = transform(effectiveProps);
                 }
             } catch {
-                // A bad transform shouldn't block every other element from rendering.
+                // Ignore
             }
         }
     }
@@ -134,7 +121,7 @@ function resolveReplacement(type: any, props: any, rest: any[]): { type: any; pr
                     return replacement ? { type: replacement, props: effectiveProps } : null;
                 }
             } catch {
-                // A bad predicate shouldn't block every other element from rendering.
+                // Ignore
             }
         }
     }
@@ -151,12 +138,8 @@ function resolveReplacement(type: any, props: any, rest: any[]): { type: any; pr
     return undefined;
 }
 
-// Mutates the already-created element in place rather than substituting args before creation.
-// This has to go through @vendetta/patcher's after() instead of a raw property reassignment on
-// the jsx-runtime object - a plain reassignment (what this file and server-drawer's copy used to
-// do) just doesn't reach real render calls here, after() does. Since after() only sees the return
-// value, not the original call, we mutate res.type/res.props after the fact instead of swapping
-// the type beforehand - same result, React just reads whatever's on the object it gets handed.
+// after() only sees the return value, not the call itself, so we mutate the element in place
+// rather than substituting args beforehand.
 function applyResolved(res: any, type: any, props: any, rest: any[]) {
     if (!res || typeof res !== "object") return res;
     const resolved = resolveReplacement(type, props, rest);
@@ -183,11 +166,8 @@ export function patchCreateElement(cleanups: (() => void)[]) {
         console.warn("[createElementIntercept] React.createElement is null, skipping patch");
     }
 
-    // Discord's bundle compiles JSX through the automatic runtime (jsx/jsxs/jsxDEV) instead of
-    // React.createElement, so patching createElement alone misses nearly everything. We scan for
-    // the runtime by shape rather than name since names get mangled, patch every copy we find (a
-    // bundle can have more than one), and keep scanning on an interval since Metro registers
-    // modules lazily - a copy that hasn't been required yet at boot just isn't there to find.
+    // Discord compiles JSX through jsx/jsxs/jsxDEV, not React.createElement - scan for those
+    // runtimes by shape (names are mangled) and keep scanning since Metro registers lazily.
     const patchedJsxRuntimes = new WeakSet<any>();
 
     function isJsxRuntime(m: any): boolean {
@@ -215,7 +195,7 @@ export function patchCreateElement(cleanups: (() => void)[]) {
             const dflt = exports.default;
             if (dflt != null && isJsxRuntime(dflt)) patchJsxObject(dflt);
         } catch {
-            // Ignore one module's bad shape and continue scanning.
+            // Ignore
         }
     }
 
@@ -229,12 +209,9 @@ export function patchCreateElement(cleanups: (() => void)[]) {
         }
     }
 
-    // Patch any jsx runtimes already loaded before Discord's first render pass starts, synchronously
-    // - an async scan would complete too late for the very first render of an early-mounting target.
     scanAndPatchJsxRuntimes();
 
-    // Fast while the app is still booting and chunks are being pulled in, then slow, then stop - a
-    // full window.modules walk is not free and there's nothing left to catch once the UI has settled.
+    // Fast while the app boots, then slow, then stop.
     let ticks = 0;
     let timer: ReturnType<typeof setInterval> | undefined = setInterval(() => {
         scanAndPatchJsxRuntimes();

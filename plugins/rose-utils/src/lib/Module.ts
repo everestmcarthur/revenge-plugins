@@ -3,9 +3,8 @@ import { React } from "@vendetta/metro/common";
 import { storage } from "@vendetta/plugin";
 import { showToast } from "@vendetta/ui/toasts";
 
-// Simplified from nexpid's original Module class (nexxutils) - same shape (id/label/settings/
-// handlers, per-module enable storage, error tracking), with the fancier UI-kit bits (custom
-// error viewer modal, choose-sheets, table rows) traded for this repo's plain @shared components.
+// Simplified from nexpid's original Module class (nexxutils), using this repo's plain @shared
+// components instead of the original's custom UI kit.
 export const vstorage = storage as {
     modules: Record<string, { enabled: boolean; options: Record<string, any> }>;
 };
@@ -70,14 +69,9 @@ export class Module<Settings extends Record<string, ModuleSetting>> {
     private started: boolean;
     private listeners: Set<() => void>;
 
-    // Assigned in the constructor body rather than as class-field initializers - this repo's
-    // SWC build config lowers `class` to an ES5-style function for compatibility, and that pass
-    // doesn't also handle the separate (newer) class-fields proposal, so field initializers like
-    // `errors: Record<string, string> = {};` were silently getting dropped from the compiled
-    // output entirely. Confirmed by reading the built bundle directly: the compiled constructor
-    // only set id/label/meta/settings/handlers, nothing else - every Module instance was missing
-    // errors/patches/started/listeners, which crashed the settings screen on `Object.entries
-    // (module.errors)` and made every module's own patches silently no-op.
+    // Assigned in the constructor body, not as class-field initializers - this repo's SWC build
+    // config lowers class syntax without handling class-fields, so field initializers were
+    // silently dropped from the compiled output.
     constructor({ id, label, meta, settings, handlers }: {
         id: string;
         label: string;

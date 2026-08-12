@@ -8,12 +8,8 @@ import light from "./light.png";
 import { Module, ModuleCategory } from "../../lib/Module";
 import ClassicListenButton from "./components/ClassicListenButton";
 
-// Confirmed against decompiled current-build Discord source (app/modules/now_playing/native/
-// UserActivitySpotify.tsx): SpotifyPlayButton is a plain function component now, not a class -
-// `after("render", SpotifyPlayButton.prototype, ...)` is why this threw "render is not a
-// function" on every activity render. Patching the exported property directly works for both
-// function and class components, and the function's own first argument already carries
-// { activity, style } directly - no need to dig through fiber internals for it anymore.
+// SpotifyPlayButton is a plain function component, not a class - patching the exported property
+// directly works for both, and its first argument already carries {activity, style}.
 const SpotifyModule = findByProps("SpotifyPlayButton");
 
 export default new Module({

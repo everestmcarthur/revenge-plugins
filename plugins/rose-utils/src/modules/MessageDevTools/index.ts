@@ -11,12 +11,6 @@ function copy(value: string, toastLabel: string) {
     showToast(toastLabel, getAssetIDByName(COPY_ICON));
 }
 
-// Every field read below (webhookId, nonce, attachments, messageReference, type/flags/timestamps)
-// is part of Discord's own public message object schema - the same shape the client already
-// deserializes the gateway/REST payload into before handing it to the action sheet - not
-// internal-UI guesswork, unlike the activity-ID lookup in the Developer Mode module. webhookId,
-// nonce, and messageReference are confirmed live via Key Inspector Eval
-// (/root/eval-for-revenge/ru/all-checks.txt) against real interaction-response and reply messages.
 function webhookIdRow(message: any): MessageActionRow[] {
     const webhookId = message?.webhookId ?? message?.webhook_id;
     if (!webhookId) return [];

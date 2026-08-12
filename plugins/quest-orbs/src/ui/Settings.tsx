@@ -12,13 +12,8 @@ const { View, Text } = ReactNative;
 const textColor = () => resolveSemanticColorSafe(["TEXT_NORMAL", "TEXT_DEFAULT"], "#dbdee1");
 const warningColor = () => resolveSemanticColorSafe(["TEXT_DANGER", "TEXT_NORMAL"], "#f0b232");
 
-/**
- * Deliberately the first thing on this screen, not folded into the smaller NoteBox below it -
- * automating quest completion is a form of client modification, and Discord's Terms of Service
- * prohibit exactly that. This isn't a theoretical/fine-print risk: it can get the account
- * suspended or banned, same as any other unofficial client automation. Nothing about running this
- * plugin is guaranteed safe just because the requests themselves mirror real client traffic.
- */
+// Deliberately the first thing on this screen, not folded into the NoteBox below it - this is a
+// real ban risk, not fine print.
 function BanWarning() {
     return (
         <View

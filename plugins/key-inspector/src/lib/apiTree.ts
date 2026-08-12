@@ -11,11 +11,8 @@ function kindOf(value: any): string {
     return typeof value;
 }
 
-/**
- * Recursively walks the stable `window.vendetta` API surface exposed to every plugin and lists
- * every key path found, bounded so it stays useful instead of dumping megabytes of Discord internals.
- * This is the actual compat API plugins are built against - not Discord's full module registry.
- */
+// Walks the stable window.vendetta API surface and lists every key path found, bounded so it
+// stays useful instead of dumping Discord's full internals.
 export function dumpVendettaApiTree(maxDepth = 3): string {
     const seen = new WeakSet<object>();
     const lines: string[] = [];

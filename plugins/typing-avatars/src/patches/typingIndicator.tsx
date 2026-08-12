@@ -3,11 +3,8 @@ import { findInReactTree } from "@vendetta/utils";
 import { registerTypeDetector, registerIntercept, patchCreateElement } from "@shared/lib/createElementIntercept";
 import AvatarStack from "../components/AvatarStack";
 
-// Mirrors role-color-everywhere/src/patches/typingWrapper.ts for the detection/wrapping part
-// (already proven live in this repo), but replaces the label's content with AvatarStack instead
-// of recoloring the existing per-user text nodes. This only needs props.typingUserIds directly,
-// so unlike the color-matching version it isn't affected by the "several people are typing..."
-// collapsed-string case.
+// Mirrors role-color-everywhere's typingWrapper.ts for detection/wrapping, but replaces the
+// label's content with AvatarStack instead of recoloring the existing text nodes.
 export default function patchTypingIndicator(): () => void {
     const cleanups: (() => void)[] = [];
     patchCreateElement(cleanups);

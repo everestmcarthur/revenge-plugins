@@ -25,9 +25,6 @@ export default new Module({
     },
     handlers: {
         onStart() {
-            // getCommunicationDisabledUserMap doesn't exist anymore (confirmed against decompiled
-            // current-build Discord source) - GuildMemberStore only exposes per-member lookups now,
-            // via getMember(guildId, userId).communicationDisabledUntil.
             if (!this.storage.options.showTimeouts || !GuildMemberStore?.getMember) return;
 
             this.patches.add(

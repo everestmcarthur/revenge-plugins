@@ -14,15 +14,11 @@ const CLEANUP_FLAG = "__msgLoggerCleanup";
 const ChannelMessages = findByProps("_channelMessages");
 const UserStore = findByStoreName("UserStore");
 
-// Ids currently kept "alive" as a faked MESSAGE_UPDATE instead of a real delete, mapped to the
-// channel they belong to - tracked so onUnload can put them back the way it found them (dispatch a
-// real delete for each) rather than leaving the client's own message cache holding fake state
-// forever if the plugin gets disabled.
+// Ids currently kept "alive" as a faked MESSAGE_UPDATE instead of a real delete, mapped to their
+// channel - tracked so onUnload can dispatch a real delete for each on unload.
 export const fakedMessages = new Map<string, string>();
 
-// Every past content version for a message, oldest first, current content NOT included (rowStyling
-// appends that itself from the live record). Same id-in-external-map pattern as fakedMessages -
-// row.message.id survives into the row JSON, a custom property doesn't (confirmed live).
+// Past content versions per message, oldest first, current content not included.
 export const editHistory = new Map<string, string[]>();
 
 function currentUserId(): string | undefined {
@@ -130,9 +126,8 @@ function handleBulkDelete(event: any): any {
 
     if (!kept.length) return undefined; // nothing kept inline - let the real bulk delete proceed as-is
 
-    // Dispatching more actions from inside a dispatch-in-progress is a real re-entrancy risk (Flux
-    // implementations commonly disallow it) - deferred to a microtask, one dispatch per kept message,
-    // running after this bulk-delete's own dispatch has fully finished.
+    // Dispatching from inside a dispatch-in-progress risks Flux's re-entrancy guard - deferred to
+    // a microtask, after this bulk-delete's own dispatch has finished.
     queueMicrotask(() => {
         for (const id of kept) {
             const original = ChannelMessages?.get?.(channelId)?.get?.(id);

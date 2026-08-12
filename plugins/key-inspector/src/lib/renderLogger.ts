@@ -13,16 +13,9 @@ function safeStringify(value: any): string {
     }
 }
 
-/**
- * Captures the props a component actually receives, for up to `maxCalls` renders or `durationMs`
- * (whichever comes first) - built for the everyday "what shape are these props really" question
- * that normally means digging through decompiled source. Only works for components exported as a
- * React.memo/forwardRef wrapper (i.e. they have a `.type` property React calls through) - that
- * covers most of what findByTypeName/findByName actually return, but a bare unwrapped function
- * component can't be patched this way (there's no property to intercept a plain function's own
- * call through; you'd need the module object it's exported from instead - grab that with the Eval
- * tool and `before("default", thatModule, ...)` the same way this file does).
- */
+// Captures the props a component actually receives, for up to maxCalls renders or durationMs.
+// Only works for React.memo/forwardRef-wrapped components (they have a .type property to patch) -
+// a bare function component has no property to intercept its own calls through.
 export function captureComponentRenders(componentName: string, maxCalls: number, durationMs: number): Promise<string> {
     return new Promise((resolve) => {
         const name = componentName.trim();

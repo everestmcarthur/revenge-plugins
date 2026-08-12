@@ -11,10 +11,8 @@ export function showEffectPicker(
     onSelect: (effect: ProfileEffectConfig | null) => void,
     currentEffectId?: string | undefined
 ) {
-    // Called directly from a native onPress with nothing else between it and the touch dispatch -
-    // an uncaught throw here is fatal to the whole app (confirmed live via adb logcat: a plain
-    // TypeError here surfaced as AndroidRuntime FATAL EXCEPTION, not a recoverable React error
-    // screen), so this needs its own try/catch rather than relying on React's own error handling.
+    // Called directly from a native onPress - an uncaught throw here is fatal to the whole app
+    // (surfaces as AndroidRuntime FATAL EXCEPTION, not a recoverable React error screen).
     try {
         const user = UserStore.getCurrentUser();
         const profileEffectStore = getProfileEffectStore();

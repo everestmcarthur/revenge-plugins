@@ -2,11 +2,8 @@ export interface PluginLogger {
     error(message: string): void;
 }
 
-/**
- * Wraps a patch-application function so a single broken lookup only disables that one surface
- * instead of crashing the whole plugin's onLoad and taking every other patch down with it -
- * this is the root-cause fix for why Staff Tags and RoleColorEverywhere used to break completely.
- */
+// Wraps a patch-application function so a single broken lookup only disables that one surface,
+// instead of crashing the whole plugin's onLoad and taking every other patch down with it.
 export function safePatch(pluginName: string, patchName: string, apply: () => () => void, logger: PluginLogger): () => void {
     try {
         return apply();

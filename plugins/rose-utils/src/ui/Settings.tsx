@@ -10,9 +10,7 @@ import { ModuleCategory, vstorage, type AnyModule, type ModuleSetting } from "..
 
 const { View, Text, TouchableOpacity } = ReactNative;
 
-// Raw Text below this point (the category header and bulk-action links) had no explicit color at
-// all - illegible black-on-black on Discord's dark theme, since RN's Text defaults to black with no
-// theming of its own. Same resolveSemanticColorSafe fallback-chain pattern used everywhere else.
+// RN's Text defaults to black with no theming - illegible on Discord's dark theme otherwise.
 const textColor = () => resolveSemanticColorSafe(["TEXT_NORMAL", "TEXT_DEFAULT"], "#dbdee1");
 
 function resolveSubLabel(setting: ModuleSetting, value: any): string | undefined {
@@ -104,12 +102,8 @@ function ModuleSettingRow({ module, settingKey }: { module: AnyModule; settingKe
 
 function ModuleSection({ module }: { module: AnyModule }) {
     module.useRefresh();
-    // Belt and suspenders alongside the custom refresh() pub-sub above: module.storage.enabled is
-    // read for the switch's `value` prop right below, and useProxy is the same storage-reactivity
-    // mechanism every other plugin's settings screen in this repo already relies on for a toggle to
-    // visually update immediately - this repo's own custom listeners system covers module.errors
-    // too (plain in-memory state, not part of storage, so useProxy alone can't see it), which is
-    // why that mechanism exists at all rather than being replaceable by useProxy outright.
+    // useProxy covers storage reactivity for the toggle below; the custom refresh() above also
+    // covers module.errors, which is plain in-memory state useProxy can't see.
     useProxy(module.storage);
 
     const errorEntries = Object.entries(module.errors);
@@ -183,11 +177,7 @@ function CategoryHeader({
 const CATEGORY_ORDER: ModuleCategory[] = [ModuleCategory.Useful, ModuleCategory.Fixes, ModuleCategory.Fun];
 
 export default function Settings() {
-    // Every module's own toggle already re-renders its own ModuleSection via module.useRefresh()
-    // inside ModuleSection - but the category headers here (enabled counts) live in this parent
-    // component, which isn't otherwise subscribed to anything. Subscribing every module here too,
-    // in this same fixed order every render, keeps those counts in sync with both individual
-    // toggles and the bulk All/None actions below.
+    // Subscribes so the category headers' enabled counts stay in sync with toggles/bulk actions.
     for (const module of modules) module.useRefresh();
 
     const [query, setQuery] = React.useState("");

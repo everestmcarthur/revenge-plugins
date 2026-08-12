@@ -2,13 +2,10 @@ import { registerPropsTransform, registerPropsIntercept } from "./createElementI
 
 const TAG = "[ServerDrawer]";
 
-// Confirmed live: the quest dock's outer "island" wrapper - a ReanimatedView ten levels above the
-// drawer's own grid - carries an opaque card background (borderRadius: 24) via useAnimatedStyle.
-// It's not anything our own code renders, so there's no component reference to intercept - matching
-// the static part of its computed style is the only way to reach it. The color itself showed up as
-// two different string formats (rgba(...) vs hex) across two live reads of the same element, so
-// matching on the exact color string is unreliable - borderRadius plus "has some background color
-// at all" is the stable signal.
+// The quest dock's outer wrapper carries an opaque card background (borderRadius: 24) via
+// useAnimatedStyle - no component reference to intercept, so match on the computed style instead.
+// The color itself varies in format (rgba vs hex), so borderRadius + "has a background color" is
+// the stable signal, not the color string.
 function flatten(style: any): Record<string, any> {
     if (!style) return {};
     if (Array.isArray(style)) return Object.assign({}, ...style.map(flatten));
@@ -20,11 +17,9 @@ function isQuestDockCard(props: any): boolean {
     return s.borderRadius === 24 && typeof s.backgroundColor === "string";
 }
 
-// Removing the card's own color only revealed a second, separate layer underneath: the quest's own
-// promotional hero photo, rendered as a real <FastImageAndroid> pointed at a discordapp.com/quests/
-// URL - confirmed live (an actual promo image showed through once the color was gone). Matching by
-// URL shape, not by component, since the same image component renders ordinary guild/folder icons
-// everywhere else in the app too.
+// Removing the card color reveals a second layer underneath: the quest's promotional hero photo.
+// Matched by URL shape, not component, since the same image component renders ordinary guild/
+// folder icons everywhere else too.
 function getSourceUri(props: any): string | undefined {
     const source = props?.source;
     if (!source) return undefined;

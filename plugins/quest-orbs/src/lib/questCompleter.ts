@@ -6,10 +6,7 @@ import { getRestClient, getQuestStore, getQuestActions } from "./modules";
 
 const TAG = "[QuestOrbs]";
 
-// Live-verified against a real WATCH_VIDEO_ON_MOBILE completion: Discord's own client sends a
-// video-progress heartbeat roughly every 7-8s while the video is actually playing. Matching that
-// cadence keeps this real-time paced (timestamps reflect genuinely elapsed time, never faked/sped
-// up), per the explicit "real-time paced, safer" design choice.
+// Matches Discord's own ~7-8s video-progress heartbeat cadence - real-time paced, never sped up.
 const HEARTBEAT_INTERVAL_MS = 8000;
 
 export interface QuestRunResult {
@@ -35,11 +32,7 @@ function questName(quest: any): string {
     return quest?.config?.messages?.questName ?? quest?.id ?? "unknown quest";
 }
 
-/**
- * Request bodies are live-verified exact shapes from a captured real enroll/claim call - Discord's
- * wire format is snake_case (distinct from QuestStore's client-normalized camelCase quest
- * objects). traffic_metadata_sealed is copied verbatim from the quest object, not generated.
- */
+// Discord's wire format is snake_case, distinct from QuestStore's camelCase quest objects.
 function questActionBody(quest: any, extra?: Record<string, unknown>) {
     return {
         location: 12,
@@ -57,12 +50,7 @@ async function enroll(rest: ReturnType<typeof getRestClient>, quest: any): Promi
     });
 }
 
-/**
- * Sends real-time-paced heartbeats until the response reports completion. Response bodies here are
- * raw server wire format (snake_case) since this calls the REST client directly, not Discord's own
- * action creators - live-verified: completed_at (top-level) flips non-null exactly when the target
- * duration is reached.
- */
+// Sends real-time-paced heartbeats until completed_at flips non-null.
 async function watchVideo(rest: ReturnType<typeof getRestClient>, quest: any): Promise<boolean> {
     const target: number = quest.config.taskConfigV2.tasks.WATCH_VIDEO_ON_MOBILE.target;
     let elapsed = 0;
@@ -84,13 +72,9 @@ async function watchVideo(rest: ReturnType<typeof getRestClient>, quest: any): P
 
 type ClaimOutcome = "claimed" | "captcha" | "error";
 
-/**
- * A first real claim attempt during discovery came back HTTP 400 with a captcha_key/captcha_sitekey
- * body (hCaptcha) - this function detects that shape and stops, it never attempts to solve or
- * bypass it. Whether Discord's REST client rejects the promise or resolves with ok:false on a
- * non-2xx wasn't pinned down live (both code paths are handled defensively here), so this checks
- * both a thrown error and a resolved-but-not-ok response for the captcha shape.
- */
+// Detects a captcha_key response and stops - never attempts to solve or bypass it. Checks both a
+// thrown error and a resolved-but-not-ok response, since which path the REST client takes on a
+// non-2xx isn't pinned down.
 async function claim(rest: ReturnType<typeof getRestClient>, quest: any): Promise<ClaimOutcome> {
     try {
         const res = await rest!.post({
@@ -108,11 +92,8 @@ async function claim(rest: ReturnType<typeof getRestClient>, quest: any): Promis
     }
 }
 
-/** Best-effort refresh so Discord's own UI (Quest Dock, Quests screen) doesn't show stale data
- * after this plugin completes quests via direct REST calls instead of Discord's own action
- * creators/dispatcher. Calling this function directly (not patching it) is a normal external call
- * through the exports object, unaffected by the same-chunk-closure limitation that blocks
- * PATCHING it - see modules.ts. Purely cosmetic: never blocks the real completion flow. */
+// Best-effort refresh so Discord's UI doesn't show stale data after completing quests via direct
+// REST calls instead of Discord's own action creators. Purely cosmetic.
 function refreshQuestStore(): void {
     try {
         getQuestActions()?.fetchCurrentQuests?.();

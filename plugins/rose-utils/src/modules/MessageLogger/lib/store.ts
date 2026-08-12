@@ -1,9 +1,8 @@
 import { storage } from "@vendetta/plugin";
 import type { LoggedMessage } from "./types";
 
-// Its own top-level storage key, deliberately separate from Module.ts's vstorage.modules[id].options
-// bag (which the generic settings UI treats as a flat map of small config values) - this can grow to
-// thousands of entries, which doesn't belong mixed into that.
+// Its own top-level storage key, separate from Module.ts's vstorage.modules[id].options bag - this
+// can grow to thousands of entries, which doesn't belong mixed into that.
 const logStorage = storage as { messageLoggerLog?: LoggedMessage[] };
 
 export function getLog(): LoggedMessage[] {

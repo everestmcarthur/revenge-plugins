@@ -1,18 +1,5 @@
 // Forked from bwlok/revenge-plugins (plugins/ViewRaw), GPLv3. Original authors: sapphire, Vendicated, Bwlok.
 // https://github.com/bwlok/revenge-plugins/tree/master/plugins/ViewRaw
-//
-// Changes in this fork:
-// - Fixed a crash on every message long-press ("Cannot read property 'type' of undefined") caused
-//   by assuming Discord's ActionSheetRow icon shape without checking it first.
-// - RawPage rebuilt with a search box, syntax-highlighted JSON, and clearer copy actions.
-// - Action-sheet insertion rewritten using the technique from fshinz/Revenge-Plugins'
-//   MoveForwardButton/FastCopyUserID: build the button from the real ActionSheetRow component
-//   (via findByProps("ActionSheetRow"), with its own .Icon/.Group) instead of fabricating a fake
-//   icon element by copying $$typeof/type off a sibling - and fall back to creating a brand new
-//   group if no existing group can be found, rather than giving up.
-// - Guards against re-patching the same action sheet instance twice (Discord appears to reuse the
-//   same lazy-loaded instance across opens), and against a missing Navigator lookup.
-// - Diagnostics (visible in Settings) record which strategy matched, or why none did.
 import { before, after } from "@vendetta/patcher";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 import { findInReactTree } from "@vendetta/utils";
@@ -83,9 +70,8 @@ const unpatchOpenLazy = before("openLazy", LazyActionSheet, ([component, key, ms
   if (key !== "MessageLongPressActionSheet" || !msg?.message) return;
 
   component.then((instance: any) => {
-    // Discord appears to reuse the same lazy-loaded instance across every action sheet open, so
-    // this only patches it once and tracks the active message on the instance itself - patching on
-    // every open would stack duplicate buttons (and duplicate patches) after enough long-presses.
+    // Discord reuses the same lazy-loaded instance across opens - patch once, track the active
+    // message on the instance itself.
     instance.__viewRawActiveMessage = msg.message;
     if (instance.__viewRawPatched) return;
     instance.__viewRawPatched = true;
@@ -100,7 +86,7 @@ const unpatchOpenLazy = before("openLazy", LazyActionSheet, ([component, key, ms
 
         const navigator = buildNavigator(() => instance.__viewRawActiveMessage);
 
-        // Strategy 1: a plain list of buttons (older/simpler action sheet layouts).
+        // Strategy 1: a plain list of buttons (older/simpler layouts).
         const buttons = findInReactTree(component, (x) => x?.[0]?.type?.name === "ButtonRow");
         if (buttons) {
           buttons.push(formRowButton(navigator));
@@ -108,9 +94,7 @@ const unpatchOpenLazy = before("openLazy", LazyActionSheet, ([component, key, ms
           return;
         }
 
-        // Strategy 2: real ActionSheetRow groups. Search every group for one that already has
-        // ActionSheetRow-shaped children, insert there - and if none match, create a brand new
-        // group at the top rather than giving up (this is the actual difference from before).
+        // Strategy 2: real ActionSheetRow groups, falling back to a new group if none match.
         const groups = findInReactTree(
           component,
           (x) => Array.isArray(x) && x[0]?.type?.name === "ActionSheetRowGroup",
@@ -143,9 +127,7 @@ const unpatchOpenLazy = before("openLazy", LazyActionSheet, ([component, key, ms
           }
         }
 
-        // Strategy 3: name-independent fallback. Look for any array where every element already
-        // looks like an action sheet row (has both a label and an onPress) - a shape signature
-        // rather than a name, so it survives renames that break strategies 1 and 2.
+        // Strategy 3: name-independent fallback matching on shape (label + onPress) instead.
         const genericRowGroup = findInReactTree(
           component,
           (x) =>

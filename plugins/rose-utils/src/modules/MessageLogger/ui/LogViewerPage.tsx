@@ -7,9 +7,7 @@ import { resolveSemanticColorSafe } from "@shared/lib/color";
 import { getLog, removeLogEntry } from "../lib/store";
 import type { LoggedMessage } from "../lib/types";
 
-// Same Navigation/Navigator/close-button lookup pattern already proven working in this repo's
-// ViewRaw plugin - reused verbatim rather than re-derived, including its fallback chain (findByName
-// misses Navigator on current builds, findByProps("Navigator") is the confirmed-working fallback).
+// Same Navigation/Navigator/close-button lookup pattern as this repo's ViewRaw plugin.
 const Navigation = findByProps("push", "pushLazy", "pop");
 const modalCloseButton =
     findByProps("getRenderCloseButton")?.getRenderCloseButton ??
@@ -20,9 +18,7 @@ const { View, Text, ScrollView, TouchableOpacity } = ReactNative;
 
 const PAGE_SIZE = 100;
 
-// Every raw Text below used to have no explicit color at all - illegible black-on-black on
-// Discord's dark theme, since RN's Text defaults to black with no theming of its own. Same
-// resolveSemanticColorSafe fallback-chain pattern used everywhere else in this repo.
+// RN's Text defaults to black with no theming - illegible on Discord's dark theme otherwise.
 function textColor(): string {
     return resolveSemanticColorSafe(["TEXT_NORMAL", "TEXT_DEFAULT"], "#dbdee1");
 }

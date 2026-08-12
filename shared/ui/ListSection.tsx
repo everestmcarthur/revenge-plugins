@@ -11,11 +11,9 @@ export interface ListItem {
     onPress?: () => void;
 }
 
-/**
- * A titled section listing tap-able rows, with a friendly note shown in place of an empty list.
- * Always pairs onPress with a visible trailing indicator - rows without one have been unreliable
- * about actually registering taps in testing.
- */
+// A titled section listing tap-able rows, with a friendly note shown in place of an empty list.
+// Always pairs onPress with a visible trailing indicator - rows without one have been unreliable
+// about registering taps.
 export default function ListSection({ title, items, emptyText }: { title: string; items: ListItem[]; emptyText: string }) {
     return (
         <TableRowGroup title={title}>

@@ -4,11 +4,8 @@ import { after, instead } from "@vendetta/patcher";
 const TAG = "[MessageLogger]";
 const FAKE_DELETE_FLAG = "__msgLoggerDeleted";
 
-// Discord wraps raw message JSON into a "MessageRecord" class before it ever reaches row
-// generation - a plain custom field set directly on the raw object doesn't reliably survive that
-// wrap. Confirmed against three independent existing plugins doing the same delete-as-update trick
-// (all thread a custom flag through this exact layer) - without this, the flag rowStyling.ts looks
-// for is gone by the time a row actually gets built.
+// Discord wraps raw message JSON into a MessageRecord class before it reaches row generation - a
+// plain custom field on the raw object doesn't reliably survive that wrap without this.
 export function patchMessageRecord(cleanups: (() => void)[]): boolean {
     const MessageRecordUtils = findByProps("updateMessageRecord", "createMessageRecord");
     const MessageRecord = findByName("MessageRecord", false);

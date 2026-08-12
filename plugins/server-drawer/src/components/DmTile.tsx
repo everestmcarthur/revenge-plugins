@@ -21,9 +21,8 @@ function openDms() {
     }
 }
 
-// Was previously only reachable via the native left server rail's own DM shortcut icon - moved
-// into the drawer's own grid instead, as the first tile, so DMs live in the same place as every
-// other server rather than in a spot that only exists on the rail this plugin otherwise hides.
+// Moved into the drawer's own grid as the first tile, since this plugin otherwise hides the
+// native rail DMs used to live on.
 export default function DmTile() {
     const selected = Flux?.useStateFromStores?.(
         [NavContext],

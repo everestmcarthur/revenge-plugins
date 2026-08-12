@@ -16,16 +16,12 @@ interface ColorInputProps {
     onChange: (value: string) => void;
 }
 
-/**
- * Hex color field with a live swatch preview and tap-to-pick presets. Built entirely from RN
- * primitives (no Discord-internal component reuse), so it doesn't carry the same "might silently
- * stop rendering after a Discord update" risk as the plugins' UI patches do.
- */
+// Hex color field with a live swatch preview and tap-to-pick presets. Built entirely from RN
+// primitives, so it doesn't carry the same "might silently stop rendering after a Discord update"
+// risk as the plugins' UI patches do.
 export default function ColorInput({ title, value, placeholder, onChange }: ColorInputProps) {
     const valid = !value || isValidHex(value);
     const swatchColor = isValidHex(value) ? value : (isValidHex(placeholder) ? placeholder : "#5865F2");
-    // Same missing-color bug as NoteBox - Text with no explicit color defaults to black, illegible
-    // on Discord's dark theme.
     const textColor = resolveSemanticColorSafe(["TEXT_NORMAL", "TEXT_DEFAULT"], "#dbdee1");
 
     return (

@@ -13,8 +13,7 @@ export default function PronounSection({ userId }: { userId: string }) {
 
     if (!pronouns || !UserProfileSection) return null;
 
-    // Had no explicit color at all - illegible black-on-black on Discord's dark theme, since RN's
-    // Text defaults to black with no theming of its own.
+    // RN's Text defaults to black with no theming - illegible on Discord's dark theme otherwise.
     const textColor = resolveSemanticColorSafe(["TEXT_NORMAL", "TEXT_DEFAULT"], "#dbdee1");
 
     return (

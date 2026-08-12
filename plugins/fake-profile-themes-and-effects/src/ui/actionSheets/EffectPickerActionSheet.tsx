@@ -24,14 +24,9 @@ let lastGoodTree: RN.Node;
 function PatchedEffectPickerActionSheet(props: EffectPickerActionSheetProps) {
     const { currentEffectId, effects, onSelect, user } = props;
 
-    // This has to be the very first thing checked, before EffectPicker is ever called below -
-    // that call runs Discord's own EditProfileEffectActionSheet as a plain function from inside
-    // this component's own render, which chains its internal hooks onto this fiber. Checking the
-    // setting only *after* that call (as this used to) still paid that cost on every render
-    // regardless of the setting - the crash it exists to avoid had already happened by the time
-    // the fallback kicked in. forceFallbackEffectPicker doesn't change while this component is
-    // mounted, so returning early here before any hooks run is safe across this component's own
-    // re-renders.
+    // Must be checked before EffectPicker is called below - that call chains Discord's own hooks
+    // onto this fiber, so checking the setting after the call still pays the crash it's meant to
+    // avoid. forceFallbackEffectPicker doesn't change while mounted, so this early return is safe.
     if (storage.forceFallbackEffectPicker)
         return <FallbackEffectPickerActionSheet {...props} />;
 
@@ -39,10 +34,8 @@ function PatchedEffectPickerActionSheet(props: EffectPickerActionSheetProps) {
 
     const themeContext = useThemeContext();
 
-    // ProfileEffectRecord's fields mirror the raw shop config (skuId, title, thumbnailPreviewSrc,
-    // effects, ...) - confirmed live that constructing it from our {id, skuId, config} wrapper
-    // instead of effect.config leaves everything but skuId/type undefined, which is why the picker
-    // used to open with a fully empty effect list.
+    // Must be built from effect.config, not our {id, skuId, config} wrapper - the wrapper leaves
+    // everything but skuId/type undefined.
     const effectRecords = useMemo(() => effects.map(effect => ({ items: new ProfileEffectRecord(effect.config) })), [effects]);
 
     let isLegacyEffectPicker = false;
@@ -105,8 +98,7 @@ function PatchedEffectPickerActionSheet(props: EffectPickerActionSheetProps) {
     setPreviewUserId(user.id);
     applyButton.props.onPress = () => {
         setPreviewUserId(undefined);
-        // selectedProfileEffect is a ProfileEffectRecord - confirmed live it has no .id field, only
-        // .skuId, so comparing against effect.id here always missed and onSelect got null every time.
+        // selectedProfileEffect has no .id field, only .skuId.
         onSelect(effects.find(effect => effect.skuId === effectPickerInner.props.selectedProfileEffect?.skuId)?.config ?? null);
     };
 

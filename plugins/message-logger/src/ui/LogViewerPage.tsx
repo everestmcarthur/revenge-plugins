@@ -7,8 +7,7 @@ import { resolveSemanticColorSafe } from "@shared/lib/color";
 import { getLog, removeLogEntry } from "../lib/store";
 import type { LoggedMessage } from "../lib/types";
 
-// Same Navigation/Navigator/close-button lookup already proven working elsewhere in this repo
-// (ViewRaw, RoseUtils' own log viewer) - reused verbatim including the fallback chain.
+// Same Navigation/Navigator/close-button lookup as this repo's ViewRaw plugin.
 const Navigation = findByProps("push", "pushLazy", "pop");
 const modalCloseButton =
     findByProps("getRenderCloseButton")?.getRenderCloseButton ??

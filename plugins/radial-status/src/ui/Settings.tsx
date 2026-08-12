@@ -6,10 +6,7 @@ import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import ColorInput from "@shared/ui/ColorInput";
 import NoteBox from "@shared/ui/NoteBox";
 
-// The ring patch itself does a generic colors[status] lookup, not one hardcoded to three statuses -
-// offline just needed its own configurable entry here to work the same way the other three already
-// do. Discord doesn't show a colored dot for offline at all normally, so this is opt-in (blank by
-// default) rather than given a default color like the other three.
+// Offline is opt-in (blank by default) since Discord doesn't show a colored dot for it normally.
 const STATUSES: { key: string; label: string; defaultColor?: string }[] = [
     { key: "online", label: "Online", defaultColor: "#23A55A" },
     { key: "idle", label: "Idle", defaultColor: "#F0B232" },

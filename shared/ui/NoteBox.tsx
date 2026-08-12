@@ -3,12 +3,7 @@ import { resolveSemanticColorSafe } from "../lib/color";
 
 const { View, Text } = ReactNative;
 
-/**
- * Small bordered callout for explanatory text in a settings screen. Text color used to be
- * unset entirely - React Native's Text defaults to black with no explicit color, which is
- * illegible on Discord's dark theme (the default for most users). Explicit theme-aware color now,
- * same resolveSemanticColorSafe fallback-chain pattern used everywhere else in this repo.
- */
+/** Small bordered callout for explanatory text in a settings screen. */
 export default function NoteBox({ children, style }: { children: any; style?: any }) {
     const textColor = resolveSemanticColorSafe(["TEXT_NORMAL", "TEXT_DEFAULT", "TEXT_MUTED"], "#96989d");
 
