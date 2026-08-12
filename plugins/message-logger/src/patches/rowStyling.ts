@@ -2,13 +2,18 @@ import { ReactNative } from "@vendetta/metro/common";
 import { after, before } from "@vendetta/patcher";
 import { waitFor } from "@shared/lib/waitFor";
 import { rawFind, rawFindByName } from "@shared/lib/rawFind";
+import { fakedMessages } from "./fluxIntercept";
 
 const TAG = "[MessageLogger]";
-const FAKE_DELETE_FLAG = "__msgLoggerDeleted";
 
+// Confirmed live: whatever builds the row JSON sent across the native bridge only carries known
+// schema fields through - a custom property set directly on the MessageRecord (confirmed present
+// there via eval) never survives into row.message here. message.id does survive, though, so
+// checking membership in fluxIntercept's own fakedMessages map (already tracked there for onUnload
+// cleanup) works where a custom flag on the row itself can't.
 function handleRow(row: any) {
     const message = row?.message;
-    if (!message?.[FAKE_DELETE_FLAG]) return;
+    if (!message?.id || !fakedMessages.has(message.id)) return;
 
     message.edited = "deleted";
     message.textColor = ReactNative.processColor("#E4404380");
