@@ -1,18 +1,21 @@
-import { findByProps, findByTypeName, findByName } from "@vendetta/metro";
+import { findByProps, findByName } from "@vendetta/metro";
 import { React } from "@vendetta/metro/common";
-import { instead } from "@vendetta/patcher";
 import { storage } from "@vendetta/plugin";
 import { getAssetIDByName } from "@vendetta/ui/assets";
-import { registerPropsTransform, patchCreateElement } from "@shared/lib/createElementIntercept";
+import { registerTypeDetector, registerIntercept, registerPropsTransform, patchCreateElement } from "@shared/lib/createElementIntercept";
 import NotificationCenter from "../ui/NotificationCenter";
 
 // Retry logic lives one level up in index.ts, calling this repeatedly until it succeeds - keep
 // this function itself simple.
 export let updateYouBar = () => {};
 
-/** Returns null (not undefined) when YouBarNotificationsButton isn't registered in Metro yet, so a caller can tell "not ready" apart from "patched, here's the unpatch fn". */
-export default function patchYouBarButtons(): (() => void) | null {
-    const YouBarNotificationsButton = findByTypeName("YouBarNotificationsButton");
+// findByTypeName + instead("type", ...) used to patch this, but that mutates whatever object
+// Metro's search hands back - which isn't reliably the same reference Discord's own render call
+// site reads from in this bundle (confirmed live: the property write didn't stick, and a fresh
+// findByTypeName call moments later returned undefined). registerTypeDetector instead captures
+// the exact type value at the actual createElement/jsx call site, so there's no reference
+// mismatch to go stale.
+export default function patchYouBarButtons(): () => void {
     const userSettingsAction = findByProps("openUserSettings");
     const transitionModule = findByProps("transitionToGuild");
 
@@ -24,8 +27,6 @@ export default function patchYouBarButtons(): (() => void) | null {
 
     const SettingsIcon = getAssetIDByName("SettingsIcon");
     const ChatIcon = getAssetIDByName("ChatIcon");
-
-    if (!YouBarNotificationsButton) return null;
 
     const openInbox = () => {
         if (!Navigator || !Navigation?.push) {
@@ -47,61 +48,65 @@ export default function patchYouBarButtons(): (() => void) | null {
         ));
     };
 
+    const cleanups: (() => void)[] = [];
+    patchCreateElement(cleanups);
+
     // The native bell is one of four sibling buttons YouBarNotificationsButton renders - the
     // other three are unrelated icon buttons with raw numeric asset ids. accessibilityLabel is
-    // the only reliable way to pick the real bell out (confirmed live via the fiber tree), so
-    // this rewrites its onPress in place at element-creation time instead of guessing at res's
-    // shape - keeps the same native icon/styling, just repoints the tap when Inbox is enabled.
-    const elementCleanups: (() => void)[] = [];
-    patchCreateElement(elementCleanups);
+    // the only reliable way to pick the real bell out (confirmed live via the fiber tree).
     registerPropsTransform(
         (props) => !!storage.showInboxButton && props?.accessibilityLabel === "Notifications",
         (props) => ({ ...props, onPress: openInbox }),
     );
 
-    const unpatchType = instead("type", YouBarNotificationsButton, (args: any[], OriginalRender: (...a: any[]) => any) => {
-        const [, forceUpdate] = React.useReducer((x: number) => ~x, 0);
+    registerTypeDetector(
+        "you-bar-plus-notifications-button",
+        (type) => typeof type === "function" && type.name === "YouBarNotificationsButton",
+        (YouBarNotificationsButton: any) => {
+            const PatchedYouBarNotificationsButton = (props: any) => {
+                const [, forceUpdate] = React.useReducer((x: number) => ~x, 0);
+                updateYouBar = () => forceUpdate();
 
-        updateYouBar = () => forceUpdate();
+                const res = YouBarNotificationsButton(props);
 
-        const res = OriginalRender(...args);
+                if (!res?.props?.children) return res;
 
-        if (!res?.props?.children) return res;
+                const IconButton = res.props.children.type;
+                const originalProps = res.props.children.props;
 
-        const IconButton = res.props.children.type;
-        const originalProps = res.props.children.props;
+                return (
+                    <React.Fragment>
+                        {storage.showDMButton && (
+                            <IconButton
+                                variant={originalProps?.variant || "tertiary"}
+                                size={originalProps?.size || "sm"}
+                                icon={ChatIcon}
+                                onPress={() => {
+                                    transitionModule?.transitionToGuild?.("@me");
+                                }}
+                            />
+                        )}
 
-        return (
-            <React.Fragment>
-                {storage.showDMButton && (
-                    <IconButton
-                        variant={originalProps?.variant || "tertiary"}
-                        size={originalProps?.size || "sm"}
-                        icon={ChatIcon}
-                        onPress={() => {
-                            transitionModule?.transitionToGuild?.("@me");
-                        }}
-                    />
-                )}
+                        {storage.showSettingsButton && (
+                            <IconButton
+                                variant={originalProps?.variant || "tertiary"}
+                                size={originalProps?.size || "sm"}
+                                icon={SettingsIcon}
+                                onPress={() => {
+                                    userSettingsAction?.openUserSettings?.();
+                                }}
+                            />
+                        )}
 
-                {storage.showSettingsButton && (
-                    <IconButton
-                        variant={originalProps?.variant || "tertiary"}
-                        size={originalProps?.size || "sm"}
-                        icon={SettingsIcon}
-                        onPress={() => {
-                            userSettingsAction?.openUserSettings?.();
-                        }}
-                    />
-                )}
+                        {res}
+                    </React.Fragment>
+                );
+            };
 
-                {res}
-            </React.Fragment>
-        );
-    });
+            registerIntercept(YouBarNotificationsButton, PatchedYouBarNotificationsButton);
+        },
+        { persistent: true },
+    );
 
-    return () => {
-        unpatchType();
-        elementCleanups.forEach((fn) => fn());
-    };
+    return () => cleanups.forEach((fn) => fn());
 }
