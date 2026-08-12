@@ -12,6 +12,26 @@ const ChannelStore = findByStoreName("ChannelStore");
 const GuildStore = findByStoreName("GuildStore");
 const MessageStore = findByStoreName("MessageStore");
 const GuildMemberStore = findByStoreName("GuildMemberStore");
+const RelationshipStore = findByStoreName("RelationshipStore");
+
+// 0 Playing, 1 Streaming, 2 Listening, 3 Watching, 4 Custom, 5 Competing - Discord's public
+// Gateway ActivityType enum, stable across clients/builds.
+const ACTIVITY_VERBS: Record<number, string> = {
+    0: "Playing",
+    1: "Streaming",
+    2: "Listening to",
+    3: "Watching",
+    5: "Competing in",
+};
+
+// Last-seen activity signature per user, so PRESENCE_UPDATE's frequent re-fires for the same
+// ongoing activity (elapsed time ticking, etc.) don't spam a fresh notification every time.
+const lastActivitySignature = new Map<string, string>();
+
+// RelationshipTypes.PENDING_INCOMING - confirmed against the decompiled Discord bundle
+// (handleRelationshipAdd), stable across builds since it's foundational to the whole friends
+// system: 0 NONE, 1 FRIEND, 2 BLOCKED, 3 PENDING_INCOMING, 4 PENDING_OUTGOING, 5 IMPLICIT.
+const RELATIONSHIP_PENDING_INCOMING = 3;
 
 let memoryNotifications: NotificationItem[] = [];
 let saveTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -163,16 +183,146 @@ function handleReactionAdd(payload: any) {
     }
 }
 
+function handleRelationshipAdd(payload: any) {
+    try {
+        const relationship = payload?.relationship;
+        if (!relationship || relationship.type !== RELATIONSHIP_PENDING_INCOMING) return;
+
+        const user = relationship.user;
+        if (!user) return;
+
+        pushNotification({
+            id: `friend-request-${relationship.id}`,
+            category: "friend_request",
+            title: `${user.globalName || user.username || "Someone"} sent you a friend request`,
+            content: "",
+            guildName: "",
+            channelName: "",
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            author: user,
+        });
+    } catch (err) {
+        console.error("[YouBar+] Inbox friend request error:", err);
+    }
+}
+
+// Discord's own client already computes this as a distinct event when a relationship transitions
+// to FRIEND from PENDING_OUTGOING - confirmed against the decompiled bundle, dispatched right
+// alongside RELATIONSHIP_ADD's own handling rather than something this plugin has to derive itself.
+function handleFriendRequestAccepted(payload: any) {
+    try {
+        const user = payload?.user;
+        if (!user) return;
+
+        pushNotification({
+            id: `friend-accepted-${user.id}-${Date.now()}`,
+            category: "friend_request",
+            title: `${user.globalName || user.username || "Someone"} accepted your friend request`,
+            content: "",
+            guildName: "",
+            channelName: "",
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            author: user,
+        });
+    } catch (err) {
+        console.error("[YouBar+] Inbox friend accept error:", err);
+    }
+}
+
+function handleThreadMembersUpdate(payload: any) {
+    try {
+        const currentUser = UserStore?.getCurrentUser?.();
+        if (!currentUser) return;
+
+        const addedMembers = payload?.addedMembers;
+        if (!Array.isArray(addedMembers)) return;
+        if (!addedMembers.some((m: any) => m?.userId === currentUser.id)) return;
+
+        const threadId = payload.id;
+        const thread = ChannelStore?.getChannel?.(threadId);
+        if (!thread) return;
+
+        const guildId = payload.guildId ?? thread.guild_id;
+        const guild = guildId ? GuildStore?.getGuild?.(guildId) : undefined;
+
+        pushNotification({
+            id: `thread-added-${threadId}`,
+            category: "thread",
+            title: `You were added to a thread`,
+            content: thread.name ? `#${thread.name}` : "",
+            guildName: guild?.name || "",
+            channelName: thread.name ? `#${thread.name}` : "",
+            guildId,
+            channelId: threadId,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        });
+    } catch (err) {
+        console.error("[YouBar+] Inbox thread-added error:", err);
+    }
+}
+
+// Friends only, no bots - a status update from a random server member or a bot's "Playing" state
+// isn't the kind of thing worth an inbox entry for.
+function handlePresenceUpdate(payload: any) {
+    try {
+        const userId = payload?.user?.id ?? payload?.userId;
+        if (!userId) return;
+
+        const currentUser = UserStore?.getCurrentUser?.();
+        if (!currentUser || userId === currentUser.id) return;
+
+        const friendIds: string[] = RelationshipStore?.getFriendIDs?.() ?? [];
+        if (!friendIds.includes(userId)) return;
+
+        const user = UserStore?.getUser?.(userId);
+        if (user?.bot) return;
+
+        const activities = payload?.activities;
+        const activity = Array.isArray(activities) ? activities.find((a: any) => a?.type !== 4) : undefined;
+
+        const signature = activity ? `${activity.type}:${activity.name}` : "";
+        if (lastActivitySignature.get(userId) === signature) return;
+        lastActivitySignature.set(userId, signature);
+
+        if (!activity) return; // cleared their activity - nothing to notify about
+
+        const verb = ACTIVITY_VERBS[activity.type] ?? "Playing";
+        const displayName = user?.globalName || user?.username || payload?.user?.globalName || payload?.user?.username || "A friend";
+
+        pushNotification({
+            id: `presence-${userId}-${Date.now()}`,
+            category: "other",
+            title: `${displayName} started ${verb} ${activity.name}`,
+            content: "",
+            guildName: "",
+            channelName: "",
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            author: user ?? payload?.user,
+        });
+    } catch (err) {
+        console.error("[YouBar+] Inbox presence error:", err);
+    }
+}
+
 export function startTrackingNotifications(): () => void {
     memoryNotifications = Array.isArray(storage.notifications) ? [...storage.notifications] : [];
 
     const unsubMessage = fluxSubscribe("MESSAGE_CREATE", handleIncomingMessage);
     const unsubReaction = fluxSubscribe("MESSAGE_REACTION_ADD", handleReactionAdd);
+    const unsubRelationship = fluxSubscribe("RELATIONSHIP_ADD", handleRelationshipAdd);
+    const unsubFriendAccepted = fluxSubscribe("FRIEND_REQUEST_ACCEPTED", handleFriendRequestAccepted);
+    const unsubThreadMembers = fluxSubscribe("THREAD_MEMBERS_UPDATE", handleThreadMembersUpdate);
+    const unsubPresence = fluxSubscribe("PRESENCE_UPDATE", handlePresenceUpdate);
 
     return () => {
         if (saveTimeout) clearTimeout(saveTimeout);
         storage.notifications = memoryNotifications.slice(0, 100);
         unsubMessage();
         unsubReaction();
+        unsubRelationship();
+        unsubFriendAccepted();
+        unsubThreadMembers();
+        unsubPresence();
+        lastActivitySignature.clear();
     };
 }
