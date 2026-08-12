@@ -11,6 +11,12 @@ const TAG = "[MessageLogger]";
 const FAKE_DELETE_FLAG = "__msgLoggerDeleted";
 const CLEANUP_FLAG = "__msgLoggerCleanup";
 
+// A busy, high-traffic channel (flooding, spam, price-ticker bots editing the same message
+// repeatedly) can grow these maps without bound over a long session - capped so memory and the
+// per-row content-rebuild in rowStyling.ts stay bounded regardless of channel activity.
+const MAX_EDIT_HISTORY_PER_MESSAGE = 10;
+const MAX_TRACKED_MESSAGES = 500;
+
 const ChannelMessages = findByProps("_channelMessages");
 const UserStore = findByStoreName("UserStore");
 
@@ -20,6 +26,14 @@ export const fakedMessages = new Map<string, string>();
 
 // Past content versions per message, oldest first, current content not included.
 export const editHistory = new Map<string, string[]>();
+
+function evictOldest<K, V>(map: Map<K, V>, max: number): void {
+    while (map.size > max) {
+        const oldestKey = map.keys().next().value;
+        if (oldestKey === undefined) break;
+        map.delete(oldestKey);
+    }
+}
 
 function currentUserId(): string | undefined {
     return UserStore?.getCurrentUser?.()?.id;
@@ -97,6 +111,7 @@ function captureAndMaybeKeep(original: any, channelId: string, id: string): any 
     if (!keepInline) return undefined;
 
     fakedMessages.set(id, channelId);
+    evictOldest(fakedMessages, MAX_TRACKED_MESSAGES);
     return fakeUpdateFor(original);
 }
 
@@ -164,7 +179,9 @@ function handleUpdate(event: any): void {
 
     const history = editHistory.get(updated.id) ?? [];
     history.push(original.content ?? "");
+    if (history.length > MAX_EDIT_HISTORY_PER_MESSAGE) history.shift();
     editHistory.set(updated.id, history);
+    evictOldest(editHistory, MAX_TRACKED_MESSAGES);
 
     addLogEntry(snapshotMessage(original, "edited", newContent, false), limitsFromStorage());
 }
