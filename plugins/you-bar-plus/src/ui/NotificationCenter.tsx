@@ -2,14 +2,14 @@ import { React, ReactNative, NavigationNative } from "@vendetta/metro/common";
 import { findByProps, findByDisplayName } from "@vendetta/metro";
 import { storage } from "@vendetta/plugin";
 import { TableRow, TableRowGroup } from "@shared/ui/table";
-import { getNotifications } from "../lib/notifications";
+import { getNotifications, subscribeToNotifications } from "../lib/notifications";
 import type { MentionSubCategory, NotificationCategory, NotificationItem } from "../lib/types";
 
 // Ported from fshinz/Revenge-Plugins' BetterInbox (credit: shin), merged in here as an optional
 // YouBar+ feature - see lib/notifications.ts for why.
 
 const { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet } = ReactNative;
-const { useState, useMemo, useCallback, memo } = React;
+const { useState, useMemo, useCallback, useEffect, useReducer, memo } = React;
 
 const Router = findByProps("transitionToGuild", "transitionTo");
 const NativeTabs = findByDisplayName("Tabs");
@@ -65,6 +65,9 @@ export default function NotificationCenter(): JSX.Element {
             initialIndex: 0,
         })
         : null;
+
+    const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
+    useEffect(() => subscribeToNotifications(() => forceUpdate()), []);
 
     const notifications = getNotifications();
 

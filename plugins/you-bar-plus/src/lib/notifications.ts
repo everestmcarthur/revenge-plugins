@@ -34,19 +34,21 @@ const lastActivitySignature = new Map<string, string>();
 const RELATIONSHIP_PENDING_INCOMING = 3;
 
 let memoryNotifications: NotificationItem[] = [];
-let saveTimeout: ReturnType<typeof setTimeout> | undefined;
 
-function syncStorageDebounced() {
-    if (saveTimeout) clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(() => {
-        storage.notifications = memoryNotifications.slice(0, 100);
-    }, 3000);
+// The inbox UI has no Flux store to subscribe to, just this module-level array - listeners let it
+// re-render when a new notification lands instead of only refreshing on its own next render.
+const listeners = new Set<() => void>();
+
+export function subscribeToNotifications(listener: () => void): () => void {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
 }
 
 function pushNotification(item: NotificationItem) {
     if (memoryNotifications.some((n) => n.id === item.id)) return;
-    memoryNotifications = [item, ...memoryNotifications];
-    syncStorageDebounced();
+    memoryNotifications = [item, ...memoryNotifications].slice(0, 100);
+    storage.notifications = memoryNotifications;
+    listeners.forEach((l) => l());
 }
 
 export function getNotifications(): NotificationItem[] {
@@ -324,8 +326,6 @@ function startTrackingNotifications(): () => void {
     const unsubPresence = fluxSubscribe("PRESENCE_UPDATES", handlePresenceUpdates);
 
     return () => {
-        if (saveTimeout) clearTimeout(saveTimeout);
-        storage.notifications = memoryNotifications.slice(0, 100);
         unsubMessage();
         unsubReaction();
         unsubRelationship();
