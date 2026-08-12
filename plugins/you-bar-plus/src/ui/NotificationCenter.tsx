@@ -16,6 +16,12 @@ const NativeTabs = findByDisplayName("Tabs");
 const useTabsState = findByProps("useTabsState")?.useTabsState;
 const NativeSegmentedControl = findByDisplayName("SegmentedControl");
 
+function categoryLabel(cat: NotificationCategory): string {
+    if (cat === "friend_request") return "Friend Requests";
+    if (cat === "thread") return "Threads";
+    return cat.charAt(0).toUpperCase() + cat.slice(1);
+}
+
 function getAvatarUrl(author: any): string {
     if (!author) return "https://cdn.discordapp.com/embed/avatars/0.png";
     const { id, avatar, discriminator } = author;
@@ -53,7 +59,7 @@ export default function NotificationCenter(): JSX.Element {
     const [activeTabIdx, setActiveTabIdx] = useState(0);
     const [mentionFilterIdx, setMentionFilterIdx] = useState(0);
 
-    const categories: NotificationCategory[] = ["mentions", "replies", "reactions", "other"];
+    const categories: NotificationCategory[] = ["mentions", "replies", "reactions", "friend_request", "thread", "other"];
     const subFilters: Array<"all" | MentionSubCategory> = ["all", "people", "role", "bot"];
 
     const currentCategory = categories[activeTabIdx] ?? "mentions";
@@ -61,7 +67,7 @@ export default function NotificationCenter(): JSX.Element {
 
     const tabsState = useTabsState
         ? useTabsState({
-            items: categories.map((cat) => ({ id: cat, label: cat.charAt(0).toUpperCase() + cat.slice(1) })),
+            items: categories.map((cat) => ({ id: cat, label: categoryLabel(cat) })),
             initialIndex: 0,
         })
         : null;
@@ -118,7 +124,7 @@ export default function NotificationCenter(): JSX.Element {
                             onPress={() => setActiveTabIdx(idx)}
                         >
                             <Text style={[styles.tabText, activeTabIdx === idx && styles.activeTabText]}>
-                                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                {categoryLabel(tab)}
                             </Text>
                         </TouchableOpacity>
                     ))}
@@ -160,7 +166,7 @@ export default function NotificationCenter(): JSX.Element {
                 {displayedNotifications.length === 0 ? (
                     <Text style={styles.emptyText}>No notifications found for this category.</Text>
                 ) : (
-                    <TableRowGroup title={`RECENT ${currentCategory.toUpperCase()}`}>
+                    <TableRowGroup title={`RECENT ${categoryLabel(currentCategory).toUpperCase()}`}>
                         {displayedNotifications.map((item) => (
                             <NotificationRow
                                 key={item.id || `${item.channelId}-${item.messageId}`}

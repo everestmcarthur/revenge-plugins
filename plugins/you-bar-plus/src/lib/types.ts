@@ -1,4 +1,4 @@
-export type NotificationCategory = "mentions" | "replies" | "reactions" | "other";
+export type NotificationCategory = "mentions" | "replies" | "reactions" | "friend_request" | "thread" | "other";
 export type MentionSubCategory = "people" | "bot" | "role";
 
 export interface NotificationAuthor {
