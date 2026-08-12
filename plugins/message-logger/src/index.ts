@@ -3,7 +3,6 @@ import { storage } from "@vendetta/plugin";
 import Settings from "./ui/Settings";
 import { patchFluxIntercept, revertFakedMessages } from "./patches/fluxIntercept";
 import { patchRowStyling } from "./patches/rowStyling";
-import { patchMessageRecord } from "./patches/messageRecord";
 
 const TAG = "[MessageLogger]";
 const cleanups: (() => void)[] = [];
@@ -35,9 +34,8 @@ export default {
         let patched = 0;
         if (patchFluxIntercept(cleanups)) patched++;
         if (patchRowStyling(cleanups)) patched++;
-        if (patchMessageRecord(cleanups)) patched++;
 
-        console.log(TAG, `onLoad done - ${patched}/3 patches applied`);
+        console.log(TAG, `onLoad done - ${patched}/2 patches applied`);
     },
     onUnload() {
         console.log(TAG, "onUnload");

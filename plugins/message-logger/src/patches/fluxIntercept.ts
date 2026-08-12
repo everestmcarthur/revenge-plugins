@@ -8,7 +8,6 @@ import { addLogEntry } from "../lib/store";
 import type { FilterOptions } from "../lib/types";
 
 const TAG = "[MessageLogger]";
-const FAKE_DELETE_FLAG = "__msgLoggerDeleted";
 const CLEANUP_FLAG = "__msgLoggerCleanup";
 
 // A busy, high-traffic channel (flooding, spam, price-ticker bots editing the same message
@@ -93,8 +92,18 @@ function hasLoggableContent(message: any): boolean {
     );
 }
 
-function fakeUpdateFor(original: any): any {
-    return { type: "MESSAGE_UPDATE", message: { ...original, [FAKE_DELETE_FLAG]: true } };
+// Any action type other than MESSAGE_DELETE stops the real removal - live-verified that
+// MESSAGE_EDIT_FAILED_AUTOMOD (the same technique meqativ/dumsane's NoDelete uses) is a genuine
+// no-op for a message not already in a pending-edit state: dispatching it left the cached
+// MessageRecord byte-for-byte identical. No need to reconstruct/spread the message into a fake
+// MESSAGE_UPDATE - that also avoids waking every other MESSAGE_UPDATE listener in the app (unread
+// counts, embed refresh, etc.) for something that isn't really an edit.
+function suppressionEventFor(original: any): any {
+    return {
+        type: "MESSAGE_EDIT_FAILED_AUTOMOD",
+        messageData: { type: 0, message: { channelId: original.channel_id, messageId: original.id, content: original.content } },
+        errorResponseBody: { code: 200000, message: "Deleted message kept inline by MessageLogger" },
+    };
 }
 
 function captureAndMaybeKeep(original: any, channelId: string, id: string): any | undefined {
@@ -112,7 +121,7 @@ function captureAndMaybeKeep(original: any, channelId: string, id: string): any 
 
     fakedMessages.set(id, channelId);
     evictOldest(fakedMessages, MAX_TRACKED_MESSAGES);
-    return fakeUpdateFor(original);
+    return suppressionEventFor(original);
 }
 
 function handleSingleDelete(event: any): any {
@@ -148,7 +157,7 @@ function handleBulkDelete(event: any): any {
             const original = ChannelMessages?.get?.(channelId)?.get?.(id);
             if (!original) continue;
             try {
-                FluxDispatcher.dispatch(fakeUpdateFor(original));
+                FluxDispatcher.dispatch(suppressionEventFor(original));
             } catch (e: any) {
                 console.error(TAG, "Deferred bulk-keep dispatch failed for", id, e?.message ?? e);
             }
@@ -166,7 +175,6 @@ function handleBulkDelete(event: any): any {
 function handleUpdate(event: any): void {
     const updated = event?.message;
     if (!updated?.id) return;
-    if (updated[FAKE_DELETE_FLAG]) return; // our own fake-delete-as-update, not a real edit
 
     const channelId = updated.channel_id ?? updated.channelId;
     const original = ChannelMessages?.get?.(channelId)?.get?.(updated.id);
