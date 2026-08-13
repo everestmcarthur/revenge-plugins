@@ -1,4 +1,4 @@
-import { findByProps, findByName } from "@vendetta/metro";
+import { findByProps, findByName, findByTypeName } from "@vendetta/metro";
 import { React } from "@vendetta/metro/common";
 import { storage } from "@vendetta/plugin";
 import { getAssetIDByName } from "@vendetta/ui/assets";
@@ -9,12 +9,6 @@ import NotificationCenter from "../ui/NotificationCenter";
 // this function itself simple.
 export let updateYouBar = () => {};
 
-// findByTypeName + instead("type", ...) used to patch this, but that mutates whatever object
-// Metro's search hands back - which isn't reliably the same reference Discord's own render call
-// site reads from in this bundle (confirmed live: the property write didn't stick, and a fresh
-// findByTypeName call moments later returned undefined). registerTypeDetector instead captures
-// the exact type value at the actual createElement/jsx call site, so there's no reference
-// mismatch to go stale.
 export default function patchYouBarButtons(): () => void {
     const userSettingsAction = findByProps("openUserSettings");
     const transitionModule = findByProps("transitionToGuild");
@@ -27,6 +21,9 @@ export default function patchYouBarButtons(): () => void {
 
     const SettingsIcon = getAssetIDByName("SettingsIcon");
     const ChatIcon = getAssetIDByName("ChatIcon");
+    const BellIcon = getAssetIDByName("BellIcon") || getAssetIDByName("NotificationBellIcon");
+
+    const TargetNotificationsButton = findByTypeName("YouBarNotificationsButton");
 
     const openInbox = () => {
         if (!Navigator || !Navigation?.push) {
@@ -51,17 +48,29 @@ export default function patchYouBarButtons(): () => void {
     const cleanups: (() => void)[] = [];
     patchCreateElement(cleanups);
 
-    // The native bell is one of four sibling buttons YouBarNotificationsButton renders - the
-    // other three are unrelated icon buttons with raw numeric asset ids. accessibilityLabel is
-    // the only reliable way to pick the real bell out (confirmed live via the fiber tree).
+    // Matches the notification button reliably even if Discord localizes or changes accessibilityLabel
     registerPropsTransform(
-        (props) => !!storage.showInboxButton && props?.accessibilityLabel === "Notifications",
-        (props) => ({ ...props, onPress: openInbox }),
+        (props) => {
+            if (!storage.showInboxButton) return false;
+            const label = props?.accessibilityLabel?.toLowerCase();
+            return label === "notifications" || label === "inbox" || props?.icon === BellIcon;
+        },
+        (props) => ({
+            ...props,
+            onPress: openInbox,
+        }),
     );
 
     registerTypeDetector(
         "you-bar-plus-notifications-button",
-        (type) => typeof type === "function" && type.name === "YouBarNotificationsButton",
+        (type) => {
+            // Check direct Metro resolution first to bypass production Hermes type.name mangling
+            if (TargetNotificationsButton && type === TargetNotificationsButton) return true;
+            return typeof type === "function" && (
+                type.name === "YouBarNotificationsButton" ||
+                type.displayName === "YouBarNotificationsButton"
+            );
+        },
         (YouBarNotificationsButton: any) => {
             const PatchedYouBarNotificationsButton = (props: any) => {
                 const [, forceUpdate] = React.useReducer((x: number) => ~x, 0);
@@ -98,7 +107,7 @@ export default function patchYouBarButtons(): () => void {
                             />
                         )}
 
-                        {res}
+                        {storage.showInboxButton !== false && res}
                     </React.Fragment>
                 );
             };
