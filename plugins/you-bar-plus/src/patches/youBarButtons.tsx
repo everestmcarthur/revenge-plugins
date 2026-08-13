@@ -48,12 +48,17 @@ export default function patchYouBarButtons(): () => void {
     const cleanups: (() => void)[] = [];
     patchCreateElement(cleanups);
 
-    // Matches the notification button reliably even if Discord localizes or changes accessibilityLabel
+    // Matches the notification button reliably even if Discord localizes or changes accessibilityLabel,
+    // safely guarding BellIcon so undefined doesn't match iconless props.
     registerPropsTransform(
         (props) => {
             if (!storage.showInboxButton) return false;
             const label = props?.accessibilityLabel?.toLowerCase();
-            return label === "notifications" || label === "inbox" || props?.icon === BellIcon;
+            return (
+                label === "notifications" ||
+                label === "inbox" ||
+                (BellIcon != null && props?.icon === BellIcon)
+            );
         },
         (props) => ({
             ...props,
