@@ -1,0 +1,8 @@
+{
+    "name": "Split Messages",
+    "description": "Automatically splits messages over Discord's character limit into multiple sequential messages instead of blocking the send.",
+    "authors": [
+        { "name": "Rosie" }
+    ],
+    "main": "src/index.ts"
+}
