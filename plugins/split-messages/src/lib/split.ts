@@ -42,6 +42,12 @@ function splitText(text: string, maxLength: number, splitOnWords: boolean): stri
     return packByLine(text.split(" "), maxLength, " ");
 }
 
+function hardSlice(text: string, maxLength: number): string[] {
+    const slices: string[] = [];
+    for (let i = 0; i < text.length; i += maxLength) slices.push(text.slice(i, i + maxLength));
+    return slices;
+}
+
 function splitCodeBlock(block: string, maxLength: number): string[] {
     if (block.length <= maxLength) return [block];
 
@@ -50,10 +56,12 @@ function splitCodeBlock(block: string, maxLength: number): string[] {
     const innerStart = fenceMatch ? fenceMatch[0].length : 3;
     const inner = block.slice(innerStart, block.length - 3);
     const fenceOverhead = lang.length + 8;
+    const innerMax = maxLength - fenceOverhead;
 
-    return packByLine(inner.split("\n"), maxLength - fenceOverhead, "\n").map(
-        (c) => "```" + lang + "\n" + c + "\n```"
-    );
+    const lineChunks = packByLine(inner.split("\n"), innerMax, "\n");
+    const safeChunks = lineChunks.flatMap((c) => (c.length > innerMax ? hardSlice(c, innerMax) : [c]));
+
+    return safeChunks.map((c) => "```" + lang + "\n" + c + "\n```");
 }
 
 export function intoChunks(content: string, maxLength: number, splitOnWords: boolean): string[] | false {
