@@ -13,6 +13,7 @@ import IconPicker from "../IconPicker";
 function TagSettingsSection({ id, defaultText, defaultColor }: { id: string; defaultText: string; defaultColor: string }) {
     const settings = tagSettings(id);
     useProxy(settings);
+    const [, forceUpdate] = React.useReducer((x: number) => x + 1, 0);
 
     const enabled = settings.enabled !== false;
     const activeColor = settings.useCustomColor && settings.color ? settings.color : defaultColor;
@@ -24,14 +25,14 @@ function TagSettingsSection({ id, defaultText, defaultColor }: { id: string; def
             <TableSwitchRow
                 label="Show this tag"
                 value={enabled}
-                onValueChange={(v: boolean) => { settings.enabled = v; }}
+                onValueChange={(v: boolean) => { settings.enabled = v; forceUpdate(); }}
             />
             <TextInput
                 label="Tag text"
                 placeholder={defaultText}
                 value={settings.text ?? ""}
                 editable={enabled}
-                onChange={(v: string) => { settings.text = v; }}
+                onChange={(v: string) => { settings.text = v; forceUpdate(); }}
             />
             <IconPicker
                 title="Icon"
@@ -39,6 +40,7 @@ function TagSettingsSection({ id, defaultText, defaultColor }: { id: string; def
                 onChange={(v: string) => {
                     settings.icon = v === "none" ? undefined : v;
                     if (v !== "none") settings.customSvg = undefined;
+                    forceUpdate();
                 }}
                 color={activeColor}
             />
@@ -52,6 +54,7 @@ function TagSettingsSection({ id, defaultText, defaultColor }: { id: string; def
                 onChange={(v: string) => {
                     settings.customSvg = v || undefined;
                     if (v) settings.icon = undefined;
+                    forceUpdate();
                 }}
             />
             {!!settings.customSvg && !isValidCustomSvg(settings.customSvg) && (
@@ -63,7 +66,7 @@ function TagSettingsSection({ id, defaultText, defaultColor }: { id: string; def
                     placeholder="Icons can't render in chat, only member list & profile"
                     value={settings.customSvgFallback ?? ""}
                     editable={enabled}
-                    onChange={(v: string) => { settings.customSvgFallback = v; }}
+                    onChange={(v: string) => { settings.customSvgFallback = v; forceUpdate(); }}
                 />
             )}
             <TableSwitchRow
@@ -71,21 +74,21 @@ function TagSettingsSection({ id, defaultText, defaultColor }: { id: string; def
                 subLabel="Hide the text label, show just the icon"
                 value={!!settings.iconOnly}
                 disabled={!enabled || !(settings.icon || settings.customSvg)}
-                onValueChange={(v: boolean) => { settings.iconOnly = v; }}
+                onValueChange={(v: boolean) => { settings.iconOnly = v; forceUpdate(); }}
             />
             <TableSwitchRow
                 label="Custom color"
                 subLabel={`Default: ${defaultColor}`}
                 value={!!settings.useCustomColor}
                 disabled={!enabled}
-                onValueChange={(v: boolean) => { settings.useCustomColor = v; }}
+                onValueChange={(v: boolean) => { settings.useCustomColor = v; forceUpdate(); }}
             />
             {settings.useCustomColor && (
                 <ColorInput
                     title="Color"
                     value={settings.color}
                     placeholder={defaultColor}
-                    onChange={(v: string) => { settings.color = v; }}
+                    onChange={(v: string) => { settings.color = v; forceUpdate(); }}
                 />
             )}
             <TableSwitchRow
@@ -93,13 +96,13 @@ function TagSettingsSection({ id, defaultText, defaultColor }: { id: string; def
                 subLabel="Member list & profile only, chat tags stay solid"
                 value={!!settings.useGradient}
                 disabled={!enabled}
-                onValueChange={(v: boolean) => { settings.useGradient = v; }}
+                onValueChange={(v: boolean) => { settings.useGradient = v; forceUpdate(); }}
             />
             {settings.useGradient && (
                 <ColorInput
                     title="Gradient color"
                     value={settings.gradientColor}
-                    onChange={(v: string) => { settings.gradientColor = v; }}
+                    onChange={(v: string) => { settings.gradientColor = v; forceUpdate(); }}
                 />
             )}
         </TableRowGroup>
