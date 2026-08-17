@@ -30,7 +30,7 @@ export default function GradientTag({ text, textColor, backgroundColor, gradient
     const Gradient = gradientColor ? getGradientComponent() : null;
     const tagContent = (
         <>
-            {icon?.path && <Icon icon={icon} size={12} color={iconColor ?? textColor} style={{ marginRight: text ? 4 : 0 }} />}
+            {(icon?.path || icon?.svg) && <Icon icon={icon} size={12} color={iconColor ?? textColor} style={{ marginRight: text ? 4 : 0 }} />}
             <Text style={textStyle}>{text}</Text>
         </>
     );

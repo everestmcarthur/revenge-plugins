@@ -14,6 +14,8 @@ export default () => {
 
     return after("DisplayName", DisplayNameModule, ([{ user }]: any[], ret: any) => {
         try {
+            if (findInReactTree(ret, (c) => c?.props?.__revengeCustomTag)) return;
+
             const tagComponent = findInReactTree(ret, (c) => c?.type?.Types);
             if (tagComponent && tagComponent.props?.type !== 0) return;
 
@@ -28,7 +30,8 @@ export default () => {
                     backgroundColor: tag.backgroundColor,
                     icon: tag.icon,
                     iconColor: tag.iconColor,
-                    verified: false
+                    verified: false,
+                    __revengeCustomTag: true
                 };
                 return;
             }
@@ -46,6 +49,7 @@ export default () => {
                     icon={tag.icon}
                     iconColor={tag.iconColor}
                     verified={false}
+                    __revengeCustomTag={true}
                 />
             );
         } catch {

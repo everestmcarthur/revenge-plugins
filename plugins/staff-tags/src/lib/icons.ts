@@ -1,9 +1,27 @@
+import { findByProps } from "@vendetta/metro";
+
 export interface IconDef {
     id: string;
     name: string;
-    path: string;
     fallback: string;
+    path?: string;
     viewBox?: string;
+    svg?: string;
+}
+
+const svgModule = findByProps("Svg") as Record<string, any> | undefined;
+
+export const MAX_CUSTOM_SVG_LENGTH = 20000;
+
+export function isValidCustomSvg(markup: string | undefined): boolean {
+    const trimmed = markup?.trim();
+    if (!trimmed || trimmed.length > MAX_CUSTOM_SVG_LENGTH || !/^<svg/i.test(trimmed)) return false;
+    try {
+        svgModule?.parse?.(trimmed);
+        return true;
+    } catch {
+        return false;
+    }
 }
 
 export const ICONS: IconDef[] = [

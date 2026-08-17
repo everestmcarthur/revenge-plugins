@@ -12,7 +12,7 @@ export default () => {
     if (!getTagProperties) return () => {};
 
     return after("default", getTagProperties, ([{ message }], ret) => {
-        if (ret?.tagType) return;
+        if (ret?.tagType || ret?.__revengeCustomTag) return;
 
         const tag = resolveTag(message?.author?.id);
         if (!tag) return;
@@ -29,7 +29,8 @@ export default () => {
             tagTextColor: tag.textColor ? ReactNative.processColor(chroma(tag.textColor).hex()) : undefined,
             tagBackgroundColor: ReactNative.processColor(chroma(tag.backgroundColor).hex()),
             tagVerified: false,
-            tagType: undefined
+            tagType: undefined,
+            __revengeCustomTag: true
         };
     });
 };

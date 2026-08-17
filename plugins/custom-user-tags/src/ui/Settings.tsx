@@ -2,24 +2,20 @@ import { React, ReactNative } from "@vendetta/metro/common";
 import { useProxy } from "@vendetta/storage";
 import { storage } from "@vendetta/plugin";
 import { TableRowGroup, TextInput } from "@shared/ui/table";
-import { showToast } from "@vendetta/ui/toasts";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
 import ListSection from "@shared/ui/ListSection";
 import PrimaryButton from "@shared/ui/PrimaryButton";
 import NoteBox from "@shared/ui/NoteBox";
-import { allTags, setUserTag, removeUserTag } from "../lib/tags";
+import { allTags } from "../lib/tags";
 import { getIcon } from "../lib/icons";
-import ColorInput from "./ColorInput";
-import IconPicker from "./IconPicker";
+import openTagEditor from "./TagEditorAlert";
 
 const { View } = ReactNative;
 
+// Opens the same rich editor used for long-press tagging (full SVG/icon-only support) instead of
+// keeping a second, simpler add-tag form here that would drift out of sync with it.
 function AddTagForm() {
     const [userId, setUserId] = React.useState("");
-    const [text, setText] = React.useState("");
-    const [color, setColor] = React.useState("#5865F2");
-    const [icon, setIcon] = React.useState("none");
-    const canSave = !!userId.trim() && (!!text.trim() || icon !== "none");
 
     return (
         <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
@@ -29,20 +25,11 @@ function AddTagForm() {
                 value={userId}
                 onChange={setUserId}
             />
-            <TextInput label="Tag text (optional if icon is set)" placeholder="e.g. FRIEND" value={text} onChange={setText} />
-            <IconPicker title="Icon" value={icon} onChange={setIcon} color={color} />
-            <ColorInput title="Color" value={color} onChange={setColor} />
             <PrimaryButton
-                label="Save tag"
-                disabled={!canSave}
+                label="Edit tag"
+                disabled={!userId.trim()}
                 style={{ marginTop: 8 }}
-                onPress={() => {
-                    setUserTag(userId.trim(), { text: text.trim(), color, icon: icon === "none" ? undefined : icon });
-                    showToast(`Tagged user ${userId.trim()}`, undefined);
-                    setUserId("");
-                    setText("");
-                    setIcon("none");
-                }}
+                onPress={() => openTagEditor(userId.trim(), userId.trim())}
             />
         </View>
     );
@@ -68,16 +55,13 @@ export default function Settings() {
                 title="Tagged users"
                 emptyText="No one's tagged yet."
                 items={userIds.map((id) => {
-                    const icon = getIcon(tags[id].icon)?.fallback;
-                    const label = icon ? `${icon} ${tags[id].text}`.trim() : tags[id].text;
+                    const icon = getIcon(tags[id].icon)?.fallback || tags[id].customSvgFallback;
+                    const label = (icon ? `${icon} ${tags[id].text}` : tags[id].text).trim() || id;
                     return {
                         key: id,
                         label,
-                        subLabel: `${id}  •  Tap to remove`,
-                        onPress: () => {
-                            removeUserTag(id);
-                            showToast("Removed tag", undefined);
-                        }
+                        subLabel: `${id}  •  Tap to edit`,
+                        onPress: () => openTagEditor(id, tags[id].text || id)
                     };
                 })}
             />

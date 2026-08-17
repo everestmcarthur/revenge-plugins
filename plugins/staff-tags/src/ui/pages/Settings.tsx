@@ -1,10 +1,11 @@
-import { React } from "@vendetta/metro/common";
+import { NavigationNative, React } from "@vendetta/metro/common";
 import { storage } from "@vendetta/plugin";
 import { useProxy } from "@vendetta/storage";
-import { TableRowGroup, TableSwitchRow, TextInput } from "@shared/ui/table";
+import { TableRow, TableRowArrow, TableRowGroup, TableSwitchRow, TextInput } from "@shared/ui/table";
 import SettingsScaffold from "@shared/ui/SettingsScaffold";
+import NoteBox from "@shared/ui/NoteBox";
 import { TAG_DEFINITIONS, tagSettings } from "../../lib/getTag";
-import { getIcon } from "../../lib/icons";
+import { getIcon, isValidCustomSvg, MAX_CUSTOM_SVG_LENGTH } from "../../lib/icons";
 import ColorInput from "../ColorInput";
 import IconPicker from "../IconPicker";
 
@@ -35,8 +36,42 @@ function TagSettingsSection({ id, defaultText, defaultColor }: { id: string; def
             <IconPicker
                 title="Icon"
                 value={settings.icon ?? "none"}
-                onChange={(v: string) => { settings.icon = v === "none" ? undefined : v; }}
+                onChange={(v: string) => {
+                    settings.icon = v === "none" ? undefined : v;
+                    if (v !== "none") settings.customSvg = undefined;
+                }}
                 color={activeColor}
+            />
+            <TextInput
+                label="Custom SVG"
+                placeholder="<svg>...</svg>"
+                value={settings.customSvg ?? ""}
+                multiline
+                maxLength={MAX_CUSTOM_SVG_LENGTH}
+                editable={enabled}
+                onChange={(v: string) => {
+                    settings.customSvg = v || undefined;
+                    if (v) settings.icon = undefined;
+                }}
+            />
+            {!!settings.customSvg && !isValidCustomSvg(settings.customSvg) && (
+                <NoteBox>Invalid SVG markup - this tag will show without an icon until it's fixed.</NoteBox>
+            )}
+            {!!settings.customSvg && (
+                <TextInput
+                    label="Fallback text for chat"
+                    placeholder="Icons can't render in chat, only member list & profile"
+                    value={settings.customSvgFallback ?? ""}
+                    editable={enabled}
+                    onChange={(v: string) => { settings.customSvgFallback = v; }}
+                />
+            )}
+            <TableSwitchRow
+                label="Icon only"
+                subLabel="Hide the text label, show just the icon"
+                value={!!settings.iconOnly}
+                disabled={!enabled || !(settings.icon || settings.customSvg)}
+                onValueChange={(v: boolean) => { settings.iconOnly = v; }}
             />
             <TableSwitchRow
                 label="Custom color"
@@ -73,6 +108,7 @@ function TagSettingsSection({ id, defaultText, defaultColor }: { id: string; def
 
 export default function Settings() {
     useProxy(storage);
+    const navigation = NavigationNative.useNavigation();
 
     return (
         <SettingsScaffold>
@@ -84,9 +120,30 @@ export default function Settings() {
                     onValueChange={(v: boolean) => { storage.useRoleColor = v; }}
                 />
             </TableRowGroup>
-            {TAG_DEFINITIONS.map((def) => (
-                <TagSettingsSection key={def.id} id={def.id} defaultText={def.defaultText} defaultColor={def.defaultColor} />
-            ))}
+            <TableRowGroup title="Tags">
+                {TAG_DEFINITIONS.map((def) => {
+                    const settings = tagSettings(def.id);
+                    const iconFallback = getIcon(settings.icon)?.fallback;
+                    const label = iconFallback ? `${iconFallback} ${def.defaultText}` : def.defaultText;
+
+                    return (
+                        <TableRow
+                            key={def.id}
+                            label={label}
+                            subLabel={settings.enabled === false ? "Disabled" : "Enabled"}
+                            trailing={<TableRowArrow />}
+                            onPress={() => navigation.navigate("VendettaCustomPage", {
+                                title: def.defaultText,
+                                render: () => (
+                                    <SettingsScaffold>
+                                        <TagSettingsSection id={def.id} defaultText={def.defaultText} defaultColor={def.defaultColor} />
+                                    </SettingsScaffold>
+                                )
+                            })}
+                        />
+                    );
+                })}
+            </TableRowGroup>
         </SettingsScaffold>
     );
 }

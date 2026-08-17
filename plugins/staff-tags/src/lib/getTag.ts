@@ -3,7 +3,7 @@ import { chroma, constants } from "@vendetta/metro/common";
 import { storage } from "@vendetta/plugin";
 import { rawColors } from "@vendetta/ui";
 import { isValidHex } from "@shared/lib/color";
-import { getIcon, IconDef } from "./icons";
+import { getIcon, isValidCustomSvg, IconDef } from "./icons";
 
 const { Permissions } = constants;
 const permissionsModule = findByProps("computePermissions", "canEveryoneRole");
@@ -31,6 +31,9 @@ export interface TagOverride {
     enabled?: boolean;
     text?: string;
     icon?: string;
+    customSvg?: string;
+    customSvgFallback?: string;
+    iconOnly?: boolean;
     useCustomColor?: boolean;
     color?: string;
     useGradient?: boolean;
@@ -53,6 +56,13 @@ export function tagSettings(id: string): TagOverride {
     storage.tags ??= {};
     storage.tags[id] ??= {};
     return storage.tags[id];
+}
+
+function resolveIcon(settings: TagOverride): IconDef | undefined {
+    if (settings.customSvg && isValidCustomSvg(settings.customSvg)) {
+        return { id: "custom", name: "Custom", fallback: settings.customSvgFallback?.trim() || "", svg: settings.customSvg.trim() };
+    }
+    return getIcon(settings.icon);
 }
 
 function resolveBackgroundColor(def: TagDefinition, settings: TagOverride, guild: any, user: any): string {
@@ -100,7 +110,7 @@ export default function getTag(guild: any, channel: any, user: any): ResolvedTag
 
         const backgroundColor = resolveBackgroundColor(def, settings, guild, user);
         const textColor = chroma(backgroundColor).get("lab.l") < 70 ? rawColors.WHITE_500 : rawColors.BLACK_500;
-        const icon = getIcon(settings.icon);
+        const icon = resolveIcon(settings);
 
         let gradientColor: string | undefined;
         if (settings.useGradient) {
@@ -111,7 +121,7 @@ export default function getTag(guild: any, channel: any, user: any): ResolvedTag
 
         return {
             id: def.id,
-            text: settings.text?.trim() || def.defaultText,
+            text: settings.iconOnly && icon ? "" : settings.text?.trim() || def.defaultText,
             textColor,
             backgroundColor,
             gradientColor,

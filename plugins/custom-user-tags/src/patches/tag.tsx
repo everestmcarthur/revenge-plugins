@@ -20,7 +20,7 @@ export default () => {
         if (textColor) label.props.style?.push?.({ color: textColor });
         if (backgroundColor) ret?.props?.style?.push?.({ backgroundColor });
 
-        if (icon?.path) {
+        if (icon?.path || icon?.svg) {
             const style = label.props.style ?? {};
             ret.props.children = (
                 <View style={{ flexDirection: "row", alignItems: "center" }}>

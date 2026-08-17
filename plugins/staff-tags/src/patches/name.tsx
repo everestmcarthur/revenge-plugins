@@ -26,6 +26,8 @@ export default () => {
     if (DisplayNameModule?.DisplayName) {
         patches.push(after("DisplayName", DisplayNameModule, ([{ guildId, channelId, user }], ret) => {
             try {
+                if (findInReactTree(ret, (c) => c?.props?.__revengeCustomTag)) return;
+
                 const tagComponent = findInReactTree(ret, (c) => c?.type?.Types);
 
                 // A real built-in tag (bot/system/etc.) is already present - don't touch it.
@@ -44,7 +46,8 @@ export default () => {
                         backgroundColor: tag.backgroundColor,
                         icon: tag.icon,
                         iconColor: tag.iconColor,
-                        verified: tag.verified
+                        verified: tag.verified,
+                        __revengeCustomTag: true
                     };
                     return;
                 }
@@ -62,6 +65,7 @@ export default () => {
                             gradientColor={tag.gradientColor}
                             icon={tag.icon}
                             iconColor={tag.iconColor}
+                            __revengeCustomTag={true}
                         />
                     );
                 } else if (TagModule) {
@@ -75,6 +79,7 @@ export default () => {
                             icon={tag.icon}
                             iconColor={tag.iconColor}
                             verified={tag.verified}
+                            __revengeCustomTag={true}
                         />
                     );
                 }

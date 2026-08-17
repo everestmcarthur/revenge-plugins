@@ -21,6 +21,8 @@ const rowPatch = ([{ guildId, user }]: any[], res: any) => {
         );
         if (!nameContainer) return;
 
+        if (findInReactTree(nameContainer, (c) => c?.props?.__revengeCustomTag)) return;
+
         const existingTag = findInReactTree(nameContainer, (c) => c?.type?.Types);
         if (existingTag && existingTag.props?.type !== 0) return;
 
@@ -36,7 +38,8 @@ const rowPatch = ([{ guildId, user }]: any[], res: any) => {
                 backgroundColor: tag.backgroundColor,
                 icon: tag.icon,
                 iconColor: tag.iconColor,
-                verified: tag.verified
+                verified: tag.verified,
+                __revengeCustomTag: true
             });
             return;
         }
@@ -54,6 +57,7 @@ const rowPatch = ([{ guildId, user }]: any[], res: any) => {
                     gradientColor={tag.gradientColor}
                     icon={tag.icon}
                     iconColor={tag.iconColor}
+                    __revengeCustomTag={true}
                 />
             );
         } else if (TagModule) {
@@ -66,6 +70,7 @@ const rowPatch = ([{ guildId, user }]: any[], res: any) => {
                     icon={tag.icon}
                     iconColor={tag.iconColor}
                     verified={tag.verified}
+                    __revengeCustomTag={true}
                 />
             );
         }

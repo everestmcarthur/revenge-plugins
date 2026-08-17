@@ -13,7 +13,7 @@ export default () => {
     if (!getTagProperties) return () => {};
 
     return after("default", getTagProperties, ([{ message }], ret) => {
-        if (ret?.tagType) return;
+        if (ret?.tagType || ret?.__revengeCustomTag) return;
 
         const channel = ChannelStore?.getChannel(message?.channel_id);
         const guild = GuildStore?.getGuild(channel?.guild_id);
@@ -32,7 +32,8 @@ export default () => {
             tagTextColor: tag.textColor ? ReactNative.processColor(chroma(tag.textColor).hex()) : undefined,
             tagBackgroundColor: ReactNative.processColor(chroma(tag.backgroundColor).hex()),
             tagVerified: tag.verified,
-            tagType: undefined
+            tagType: undefined,
+            __revengeCustomTag: true
         };
     });
 };
