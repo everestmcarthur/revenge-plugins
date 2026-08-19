@@ -1,0 +1,14 @@
+{
+    "name": "More Alts!",
+    "description": "Manage and switch between multiple Discord accounts, plus unlocks Discord's own native multi-account switcher.",
+    "authors": [
+        { "name": "Win8.1VMUser", "id": "793935599702507542" },
+        { "name": "John" },
+        { "name": "cocobo1" },
+        { "name": "Rosie" }
+    ],
+    "main": "src/index.ts",
+    "vendetta": {
+        "icon": "ic_full_server_gating_24px"
+    }
+}
