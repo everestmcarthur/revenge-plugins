@@ -48,6 +48,12 @@ export default function Settings() {
             </TableRowGroup>
             <TableRowGroup title="Layout">
                 <TableSwitchRow
+                    label="Hide date if today"
+                    subLabel="Show time only for today's messages and just 'Today' for today's divider. Calendar & Custom formats only."
+                    value={!!storage.hideDateIfToday}
+                    onValueChange={(v: boolean) => { storage.hideDateIfToday = v; }}
+                />
+                <TableSwitchRow
                     label="Always show name & avatar"
                     subLabel="Shows the username, avatar, and timestamp on every message instead of grouping consecutive messages"
                     value={!!storage.separateMessages}

@@ -42,7 +42,12 @@ export default function patchRowManager(): () => void {
                         const parsed = parseTimestamp(row.message.timestamp);
                         row.message.__customTimestamp = wrapTimestamp(parsed);
                     } else if (row.rowType === "day") {
-                        row.text = renderTimestamp(moment(row.text, "LL"));
+                        const parsed = moment(row.text, "LL");
+                        if (storage.hideDateIfToday && parsed.isValid() && parsed.isSame(moment(), "day")) {
+                            row.text = "Today";
+                        } else {
+                            row.text = renderTimestamp(parsed);
+                        }
                     }
                 } catch {
                     // Leave this row's timestamp untouched.
