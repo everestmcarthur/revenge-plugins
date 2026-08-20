@@ -7,11 +7,34 @@ import NoteBox from "@shared/ui/NoteBox";
 import PrimaryButton from "@shared/ui/PrimaryButton";
 import { TableRow, TableRowGroup, TableSwitchRow, TextInput } from "@shared/ui/table";
 import { getLog, clearLog } from "../lib/store";
+import {
+    cloudSyncStorage,
+    deleteRemoteLog,
+    disconnect,
+    isConnected,
+    openOauth2Modal,
+    syncNow,
+} from "../lib/cloudSync";
 import openLogViewer from "./LogViewerPage";
+
+function formatLastSynced(at: number | undefined): string {
+    if (!at) return "Never synced";
+
+    const mins = Math.round((Date.now() - at) / 60000);
+    if (mins < 1) return "Synced just now";
+    if (mins < 60) return `Synced ${mins}m ago`;
+
+    const hours = Math.round(mins / 60);
+    if (hours < 24) return `Synced ${hours}h ago`;
+
+    return `Synced ${Math.round(hours / 24)}d ago`;
+}
 
 export default function Settings() {
     useProxy(storage);
     const o = storage.options;
+    const cloud = cloudSyncStorage();
+    useProxy(cloud);
 
     return (
         <SettingsScaffold>
@@ -30,7 +53,7 @@ export default function Settings() {
                 />
                 <TableSwitchRow
                     label="Keep deleted messages in the chat"
-                    subLabel="Off: only saved to the log below, removed from chat immediately like normal"
+                    subLabel="Off: only saved to the log below, removed from chat immediately like normal. Large bulk deletes (e.g. a bot purge) are always just logged, never kept inline"
                     value={!!o.keepDeletedInline}
                     onValueChange={(v: boolean) => { o.keepDeletedInline = v; }}
                 />
@@ -108,6 +131,62 @@ export default function Settings() {
                     subLabel="0 for unlimited"
                     value={o.maxAgeDays}
                     onChange={(v: string) => { o.maxAgeDays = v; }}
+                />
+            </TableRowGroup>
+
+            <TableRowGroup title="Cloud sync">
+                <NoteBox>
+                    Off by default. When on, your log (subject to the same limits above) is sent to a
+                    server so it survives reinstalls and syncs between devices - nothing else in this
+                    plugin leaves your device.
+                </NoteBox>
+                <TableSwitchRow
+                    label="Enable cloud sync"
+                    value={!!cloud.enabled}
+                    onValueChange={(v: boolean) => { cloud.enabled = v; }}
+                />
+                {cloud.enabled && !isConnected() && (
+                    <TableRow label="Connect Discord account" onPress={() => openOauth2Modal()} />
+                )}
+                {cloud.enabled && isConnected() && (
+                    <>
+                        <TableRow
+                            label={formatLastSynced(cloud.lastSyncedAt)}
+                            subLabel="Tap to sync now"
+                            onPress={async () => {
+                                showToast("Syncing…", undefined);
+                                showToast(await syncNow() ? "Synced" : "Sync failed", undefined);
+                            }}
+                        />
+                        <TableRow
+                            label="Disconnect"
+                            subLabel="Stops syncing - what's already on the server is kept"
+                            onPress={() => {
+                                disconnect();
+                                showToast("Disconnected", undefined);
+                            }}
+                        />
+                        <TableRow
+                            label="Delete cloud data"
+                            subLabel="Permanently removes your synced log from the server"
+                            onPress={async () => {
+                                showToast(await deleteRemoteLog() ? "Cloud data deleted" : "Failed to delete cloud data", undefined);
+                            }}
+                        />
+                    </>
+                )}
+                <TextInput
+                    label="Custom server URL"
+                    subLabel="Point at your own self-hosted instance instead - leave blank for the default"
+                    placeholder="https://your-worker.workers.dev"
+                    value={cloud.customHost ?? ""}
+                    onChange={(v: string) => { cloud.customHost = v; }}
+                />
+                <TextInput
+                    label="Custom OAuth2 client ID"
+                    subLabel="Only needed alongside a custom server above"
+                    value={cloud.customClientId ?? ""}
+                    onChange={(v: string) => { cloud.customClientId = v; }}
                 />
             </TableRowGroup>
 

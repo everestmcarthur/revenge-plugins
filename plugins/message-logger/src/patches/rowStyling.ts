@@ -40,9 +40,17 @@ function editedTagNode(processedColor: any) {
 // message.content in the row JSON is an array of {content, type} rich-text nodes, not a plain
 // string. Old versions get their own muted "(edited)" tag stacked above the current content, which
 // keeps Discord's native tag since that already renders correctly on its own.
+//
+// This row gets reprocessed by updateRows more than once while it's on screen (confirmed live -
+// some layer between here and the native renderer reuses/re-diffs against what we last sent, not
+// a fresh copy of the source message). Array.isArray(message.content) can't tell "Discord's own
+// rich content" apart from "our own history nodes from last time", so a marker is required -
+// without it, every reprocess re-detects the previous output as the current content and prepends
+// another copy of the history block on top of it.
 function applyEditHistory(message: any, editedColor: any) {
     const history = editHistory.get(message.id);
-    if (!history?.length) return;
+    if (!history?.length || message.__loggerEditApplied) return;
+    message.__loggerEditApplied = true;
 
     const currentContent: any[] = Array.isArray(message.content) ? message.content : [textNode(String(message.content ?? ""))];
     const nodes: any[] = [];
