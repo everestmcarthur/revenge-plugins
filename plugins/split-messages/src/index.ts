@@ -54,12 +54,19 @@ export default {
             }
         };
 
-        unpatchSend = instead("sendMessage", MessageActions, ([channelId, message, promise, options]: any[], orig: (a: any[]) => any) => {
+        const withArg = (args: any[], index: number, value: any) => {
+            const clone = args.slice();
+            clone[index] = value;
+            return clone;
+        };
+
+        unpatchSend = instead("sendMessage", MessageActions, (args: any[], orig: (a: any[]) => any) => {
+            const [channelId, message, , options] = args;
             const content: string = message?.content ?? "";
             const limit = maxLength();
             const hasAttachments = !!options?.attachmentsToUpload?.length;
 
-            if (content.length <= limit && !hasAttachments) return orig([channelId, message, promise, options]);
+            if (content.length <= limit && !hasAttachments) return orig(args);
 
             const chunks = content ? intoChunks(content, limit, storage.splitOnWords) : [];
             if (chunks === false || chunks.length > MAX_CHUNKS) {
@@ -71,27 +78,28 @@ export default {
                 const status = await checkPluginStatus(UserStore.getCurrentUser()?.id, id);
                 if (status.blocked) {
                     showToast("Split Messages is unavailable right now", getAssetIDByName("Small"));
-                    return orig([channelId, message, promise, options]);
+                    return orig(args);
                 }
 
                 if (hasAttachments) {
                     await sendChunks(channelId, chunks, message);
                     if (chunks.length) await sleep(delayFor(channelId));
-                    await orig([channelId, { ...message, content: "" }, promise, options]);
+                    await orig(withArg(args, 1, { ...message, content: "" }));
                     return;
                 }
 
                 const first = { ...message, content: chunks.shift() };
-                await orig([channelId, first, promise, options]);
+                await orig(withArg(args, 1, first));
                 await sendChunks(channelId, chunks, message);
             })();
         });
 
-        unpatchEdit = instead("editMessage", MessageActions, ([channelId, messageId, message]: any[], orig: (a: any[]) => any) => {
+        unpatchEdit = instead("editMessage", MessageActions, (args: any[], orig: (a: any[]) => any) => {
+            const [channelId, , message] = args;
             const content: string = message?.content ?? "";
             const limit = maxLength();
 
-            if (content.length <= limit) return orig([channelId, messageId, message]);
+            if (content.length <= limit) return orig(args);
 
             const chunks = intoChunks(content, limit, storage.splitOnWords);
             if (!chunks || chunks.length > MAX_CHUNKS) {
@@ -103,10 +111,10 @@ export default {
                 const status = await checkPluginStatus(UserStore.getCurrentUser()?.id, id);
                 if (status.blocked) {
                     showToast("Split Messages is unavailable right now", getAssetIDByName("Small"));
-                    return orig([channelId, messageId, message]);
+                    return orig(args);
                 }
 
-                const result = await orig([channelId, messageId, { ...message, content: chunks.shift() }]);
+                const result = await orig(withArg(args, 2, { ...message, content: chunks.shift() }));
                 await sendChunks(channelId, chunks, message);
                 return result;
             })();
