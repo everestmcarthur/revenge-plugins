@@ -1,10 +1,8 @@
 import { findByProps, findByStoreName } from "@vendetta/metro";
 import { instead } from "@vendetta/patcher";
-import { id, storage } from "@vendetta/plugin";
+import { storage } from "@vendetta/plugin";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 import { showToast } from "@vendetta/ui/toasts";
-import { checkPluginStatus } from "@shared/lib/backend";
-import { checkForUpdate } from "@shared/lib/reload";
 import { intoChunks } from "./lib/split";
 import Settings from "./ui/Settings";
 
@@ -21,8 +19,6 @@ let unpatchEdit: (() => boolean) | undefined;
 export default {
     onLoad() {
         storage.splitOnWords ??= false;
-
-        checkForUpdate(id).catch(() => {});
 
         const MaxLengthModule = findByProps("getMaxMessageLength");
         const MessageActions = findByProps("sendMessage", "editMessage");
@@ -75,12 +71,6 @@ export default {
             }
 
             return (async () => {
-                const status = await checkPluginStatus(UserStore.getCurrentUser()?.id, id);
-                if (status.blocked) {
-                    showToast("Split Messages is unavailable right now", getAssetIDByName("Small"));
-                    return orig(args);
-                }
-
                 if (hasAttachments) {
                     await sendChunks(channelId, chunks, message);
                     if (chunks.length) await sleep(delayFor(channelId));
@@ -108,12 +98,6 @@ export default {
             }
 
             return (async () => {
-                const status = await checkPluginStatus(UserStore.getCurrentUser()?.id, id);
-                if (status.blocked) {
-                    showToast("Split Messages is unavailable right now", getAssetIDByName("Small"));
-                    return orig(args);
-                }
-
                 const result = await orig(withArg(args, 2, { ...message, content: chunks.shift() }));
                 await sendChunks(channelId, chunks, message);
                 return result;

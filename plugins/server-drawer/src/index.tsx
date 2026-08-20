@@ -6,12 +6,11 @@ import { patchExpanded, patchEmpty } from "./patches/contentPatch";
 import { patchHideGuildsBar } from "./patches/hideGuildsBar";
 import { patchTransparentBackground } from "./patches/transparentBackground";
 import { patchCreateElement } from "./patches/createElementIntercept";
-import { id, storage } from "@vendetta/plugin";
-import { guardPlugin } from "@shared/lib/guard";
+import { storage } from "@vendetta/plugin";
 import Settings from "./ui/Settings";
 
 const TAG = "[ServerDrawer]";
-let unpatchAll: () => void = () => {};
+const cleanups: (() => void)[] = [];
 
 export default {
     onLoad() {
@@ -20,36 +19,30 @@ export default {
 
         console.log(TAG, "onLoad");
 
-        unpatchAll = guardPlugin(id, () => {
-            const cleanups: (() => void)[] = [];
-            let patched = 0;
+        let patched = 0;
 
-            patchCreateElement(cleanups);
-            patched++;
+        patchCreateElement(cleanups);
+        patched++;
 
-            if (patchQuestDockRender(cleanups)) patched++;
-            if (patchQuestDockBase(cleanups)) patched++;
-            if (patchMobileQuestDock(cleanups)) patched++;
-            if (patchGetQuestAsset(cleanups)) patched++;
-            if (patchExpanded(cleanups)) patched++;
-            if (patchEmpty("QuestDockContentCollapsed", cleanups)) patched++;
-            if (patchEmpty("QuestDockEnrolledHeader", cleanups)) patched++;
-            if (patchEmpty("QuestDockUnenrolledHeader", cleanups)) patched++;
-            if (patchEmpty("QuestDockEnrolledBody", cleanups)) patched++;
-            if (patchEmpty("QuestDockUnenrolledBody", cleanups)) patched++;
-            if (patchHideGuildsBar(cleanups)) patched++;
-            if (patchTransparentBackground(cleanups)) patched++;
+        if (patchQuestDockRender(cleanups)) patched++;
+        if (patchQuestDockBase(cleanups)) patched++;
+        if (patchMobileQuestDock(cleanups)) patched++;
+        if (patchGetQuestAsset(cleanups)) patched++;
+        if (patchExpanded(cleanups)) patched++;
+        if (patchEmpty("QuestDockContentCollapsed", cleanups)) patched++;
+        if (patchEmpty("QuestDockEnrolledHeader", cleanups)) patched++;
+        if (patchEmpty("QuestDockUnenrolledHeader", cleanups)) patched++;
+        if (patchEmpty("QuestDockEnrolledBody", cleanups)) patched++;
+        if (patchEmpty("QuestDockUnenrolledBody", cleanups)) patched++;
+        if (patchHideGuildsBar(cleanups)) patched++;
+        if (patchTransparentBackground(cleanups)) patched++;
 
-            console.log(TAG, `onLoad done — ${patched} patches applied, ${cleanups.length} cleanups`);
-            return () => {
-                for (const fn of cleanups) fn();
-                cleanups.length = 0;
-            };
-        });
+        console.log(TAG, `onLoad done — ${patched} patches applied, ${cleanups.length} cleanups`);
     },
     onUnload() {
         console.log(TAG, "onUnload");
-        unpatchAll();
+        for (const fn of cleanups) fn();
+        cleanups.length = 0;
     },
     settings: Settings,
 };

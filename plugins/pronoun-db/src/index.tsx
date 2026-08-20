@@ -1,9 +1,7 @@
 import { logger } from "@vendetta";
-import { id } from "@vendetta/plugin";
 import { after } from "@vendetta/patcher";
 import { findInReactTree } from "@vendetta/utils";
 import { rawFindByTypeName } from "@shared/lib/rawFind";
-import { guardPlugin } from "@shared/lib/guard";
 import PronounSection from "./ui/PronounSection";
 import Settings from "./ui/Settings";
 
@@ -68,25 +66,20 @@ function attempt() {
     }
 }
 
-let teardown: () => void = () => {};
-
 export default {
     onLoad: () => {
-        teardown = guardPlugin(id, () => {
-            attempt();
-            if (!patched) {
-                let ticks = 0;
-                retryHandle = setInterval(() => {
-                    attempt();
-                    if (++ticks >= 30) stopRetrying(); // ~9s at 300ms, then give up
-                }, 300);
-            }
-            return () => {
-                stopRetrying();
-                unpatch();
-            };
-        });
+        attempt();
+        if (!patched) {
+            let ticks = 0;
+            retryHandle = setInterval(() => {
+                attempt();
+                if (++ticks >= 30) stopRetrying(); // ~9s at 300ms, then give up
+            }, 300);
+        }
     },
-    onUnload: () => teardown(),
+    onUnload: () => {
+        stopRetrying();
+        unpatch();
+    },
     settings: Settings
 };

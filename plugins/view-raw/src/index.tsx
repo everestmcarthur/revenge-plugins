@@ -1,13 +1,11 @@
 // Forked from bwlok/revenge-plugins (plugins/ViewRaw), GPLv3. Original authors: sapphire, Vendicated, Bwlok.
 // https://github.com/bwlok/revenge-plugins/tree/master/plugins/ViewRaw
 import { before, after } from "@vendetta/patcher";
-import { id } from "@vendetta/plugin";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 import { findInReactTree } from "@vendetta/utils";
 import { findByName, findByProps } from "@vendetta/metro";
 import { React } from "@vendetta/metro/common";
 import { Forms } from "@vendetta/ui/components";
-import { guardPlugin } from "@shared/lib/guard";
 import RawPage from "./RawPage";
 import { recordDetection } from "./lib/diagnostics";
 import Settings from "./ui/Settings";
@@ -66,10 +64,9 @@ function actionSheetRowButton(navigator: () => JSX.Element) {
   );
 }
 
-function applyViewRawPatches(): () => void {
-  const patches: (() => void)[] = [];
+const patches: (() => void)[] = [];
 
-  const unpatchOpenLazy = before("openLazy", LazyActionSheet, ([component, key, msg]) => {
+const unpatchOpenLazy = before("openLazy", LazyActionSheet, ([component, key, msg]) => {
   if (key !== "MessageLongPressActionSheet" || !msg?.message) return;
 
   component.then((instance: any) => {
@@ -159,15 +156,7 @@ function applyViewRawPatches(): () => void {
 
 patches.push(unpatchOpenLazy);
 
-  return () => patches.forEach((unpatch) => unpatch());
-}
-
-let unpatchAll: () => void = () => {};
-
 export default {
-  onLoad: () => {
-    unpatchAll = guardPlugin(id, applyViewRawPatches);
-  },
-  onUnload: () => unpatchAll(),
+  onUnload: () => patches.forEach((unpatch) => unpatch()),
   settings: Settings,
 };

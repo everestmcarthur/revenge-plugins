@@ -1,5 +1,4 @@
 import { logger } from "@vendetta";
-import { id } from "@vendetta/plugin";
 import { findByName, findByStoreName } from "@vendetta/metro";
 import { after } from "@vendetta/patcher";
 import { findInReactTree } from "@vendetta/utils";
@@ -7,7 +6,6 @@ import { clipboard } from "@vendetta/metro/common";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 import { showToast } from "@vendetta/ui/toasts";
 import { applyPatches } from "@shared/lib/patcher";
-import { guardPlugin } from "@shared/lib/guard";
 import { registerTypeDetector, registerIntercept, patchCreateElement } from "@shared/lib/createElementIntercept";
 
 // A gradient role's real colors live at role.colorStrings ({primaryColor, secondaryColor,
@@ -121,10 +119,10 @@ let unpatchAll: () => void = () => {};
 
 export default {
     onLoad: () => {
-        unpatchAll = guardPlugin(id, () => applyPatches("CopyRoleColor", logger, {
+        unpatchAll = applyPatches("CopyRoleColor", logger, {
             "role pill long-press": patchRolePill,
             "profile role item long-press": patchProfileRoleItem
-        }));
+        });
     },
     onUnload: () => unpatchAll()
 };

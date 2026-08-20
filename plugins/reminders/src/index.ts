@@ -1,22 +1,17 @@
-import { id } from "@vendetta/plugin";
-import { guardPlugin } from "@shared/lib/guard";
 import loadCommands from "./commands";
 import { startScheduler, stopScheduler } from "./lib/reminders";
 import Settings from "./ui/Settings";
 
-let unpatchAll: () => void = () => {};
+let unregisterFns: (() => void)[] = [];
 
 export default {
     onLoad: () => {
-        unpatchAll = guardPlugin(id, () => {
-            const unregisterFns = loadCommands();
-            startScheduler();
-            return () => {
-                unregisterFns.forEach((fn) => fn());
-                stopScheduler();
-            };
-        });
+        unregisterFns = loadCommands();
+        startScheduler();
     },
-    onUnload: () => unpatchAll(),
+    onUnload: () => {
+        unregisterFns.forEach((fn) => fn());
+        stopScheduler();
+    },
     settings: Settings
 };

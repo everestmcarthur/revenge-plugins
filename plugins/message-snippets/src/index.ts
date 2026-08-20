@@ -1,17 +1,12 @@
-import { id } from "@vendetta/plugin";
-import { guardPlugin } from "@shared/lib/guard";
 import loadCommands from "./commands";
 import Settings from "./ui/Settings";
 
-let unpatchAll: () => void = () => {};
+let unregisterFns: (() => void)[] = [];
 
 export default {
     onLoad: () => {
-        unpatchAll = guardPlugin(id, () => {
-            const unregisterFns = loadCommands();
-            return () => unregisterFns.forEach((fn) => fn());
-        });
+        unregisterFns = loadCommands();
     },
-    onUnload: () => unpatchAll(),
+    onUnload: () => unregisterFns.forEach((fn) => fn()),
     settings: Settings
 };

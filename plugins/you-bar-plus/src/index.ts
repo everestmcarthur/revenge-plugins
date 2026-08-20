@@ -1,6 +1,5 @@
 import { logger } from "@vendetta";
-import { id, storage } from "@vendetta/plugin";
-import { guardPlugin } from "@shared/lib/guard";
+import { storage } from "@vendetta/plugin";
 import patchYouBarButtons from "./patches/youBarButtons";
 import { setInboxTracking } from "./lib/notifications";
 import Settings from "./ui/Settings";
@@ -32,8 +31,6 @@ function attempt() {
     }
 }
 
-let teardown: () => void = () => {};
-
 export default {
     onLoad: () => {
         storage.showDMButton ??= false;
@@ -43,23 +40,18 @@ export default {
 
         setInboxTracking(!!storage.showInboxButton);
 
-        teardown = guardPlugin(id, () => {
-            attempt();
-            if (!patched) {
-                let ticks = 0;
-                retryHandle = setInterval(() => {
-                    attempt();
-                    if (++ticks >= 30) stopRetrying(); // ~9s at 300ms, then give up
-                }, 300);
-            }
-            return () => {
-                stopRetrying();
-                unpatchButtons();
-            };
-        });
+        attempt();
+        if (!patched) {
+            let ticks = 0;
+            retryHandle = setInterval(() => {
+                attempt();
+                if (++ticks >= 30) stopRetrying(); // ~9s at 300ms, then give up
+            }, 300);
+        }
     },
     onUnload: () => {
-        teardown();
+        stopRetrying();
+        unpatchButtons();
         setInboxTracking(false);
     },
     settings: Settings

@@ -1,13 +1,12 @@
 import { logger } from "@vendetta";
-import { id, storage } from "@vendetta/plugin";
-import { guardPlugin } from "@shared/lib/guard";
+import { storage } from "@vendetta/plugin";
 import Settings from "./ui/Settings";
 import { patchFluxIntercept, rehydrateFromLog, revertFakedMessages } from "./patches/fluxIntercept";
 import { patchRowStyling } from "./patches/rowStyling";
 import { initCloudSync } from "./lib/cloudSync";
 
 const TAG = "[MessageLogger]";
-let unpatchAll: () => void = () => {};
+const cleanups: (() => void)[] = [];
 
 function initStorage() {
     storage.options ??= {};
@@ -33,20 +32,13 @@ export default {
         initStorage();
         console.log(TAG, "onLoad");
 
-        unpatchAll = guardPlugin(id, () => {
-            const cleanups: (() => void)[] = [];
-            let patched = 0;
-            if (patchFluxIntercept(cleanups)) patched++;
-            if (patchRowStyling(cleanups)) patched++;
-            cleanups.push(initCloudSync());
-            rehydrateFromLog();
+        let patched = 0;
+        if (patchFluxIntercept(cleanups)) patched++;
+        if (patchRowStyling(cleanups)) patched++;
+        cleanups.push(initCloudSync());
+        rehydrateFromLog();
 
-            console.log(TAG, `onLoad done - ${patched}/2 patches applied`);
-            return () => {
-                for (const fn of cleanups) fn();
-                cleanups.length = 0;
-            };
-        });
+        console.log(TAG, `onLoad done - ${patched}/2 patches applied`);
     },
     onUnload() {
         console.log(TAG, "onUnload");
@@ -55,7 +47,8 @@ export default {
         } catch (e: any) {
             logger.error("[MessageLogger] Failed to revert faked messages:", e?.message ?? e);
         }
-        unpatchAll();
+        for (const fn of cleanups) fn();
+        cleanups.length = 0;
     },
     settings: Settings,
 };
