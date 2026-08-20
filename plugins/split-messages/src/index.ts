@@ -56,13 +56,13 @@ export default {
             return clone;
         };
 
-        unpatchSend = instead("sendMessage", MessageActions, (args: any[], orig: (a: any[]) => any) => {
+        unpatchSend = instead("sendMessage", MessageActions, (args: any[], orig: (...a: any[]) => any) => {
             const [channelId, message, , options] = args;
             const content: string = message?.content ?? "";
             const limit = maxLength();
             const hasAttachments = !!options?.attachmentsToUpload?.length;
 
-            if (content.length <= limit && !hasAttachments) return orig(args);
+            if (content.length <= limit && !hasAttachments) return orig(...args);
 
             const chunks = content ? intoChunks(content, limit, storage.splitOnWords) : [];
             if (chunks === false || chunks.length > MAX_CHUNKS) {
@@ -74,22 +74,22 @@ export default {
                 if (hasAttachments) {
                     await sendChunks(channelId, chunks, message);
                     if (chunks.length) await sleep(delayFor(channelId));
-                    await orig(withArg(args, 1, { ...message, content: "" }));
+                    await orig(...withArg(args, 1, { ...message, content: "" }));
                     return;
                 }
 
                 const first = { ...message, content: chunks.shift() };
-                await orig(withArg(args, 1, first));
+                await orig(...withArg(args, 1, first));
                 await sendChunks(channelId, chunks, message);
             })();
         });
 
-        unpatchEdit = instead("editMessage", MessageActions, (args: any[], orig: (a: any[]) => any) => {
+        unpatchEdit = instead("editMessage", MessageActions, (args: any[], orig: (...a: any[]) => any) => {
             const [channelId, , message] = args;
             const content: string = message?.content ?? "";
             const limit = maxLength();
 
-            if (content.length <= limit) return orig(args);
+            if (content.length <= limit) return orig(...args);
 
             const chunks = intoChunks(content, limit, storage.splitOnWords);
             if (!chunks || chunks.length > MAX_CHUNKS) {
@@ -98,7 +98,7 @@ export default {
             }
 
             return (async () => {
-                const result = await orig(withArg(args, 2, { ...message, content: chunks.shift() }));
+                const result = await orig(...withArg(args, 2, { ...message, content: chunks.shift() }));
                 await sendChunks(channelId, chunks, message);
                 return result;
             })();
