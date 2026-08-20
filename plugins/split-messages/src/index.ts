@@ -1,10 +1,14 @@
 import { findByProps, findByStoreName } from "@vendetta/metro";
-import { before, instead } from "@vendetta/patcher";
-import { storage } from "@vendetta/plugin";
+import { instead } from "@vendetta/patcher";
+import { id, storage } from "@vendetta/plugin";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 import { showToast } from "@vendetta/ui/toasts";
+import { checkPluginStatus } from "@shared/lib/backend";
+import { checkForUpdate } from "@shared/lib/reload";
 import { intoChunks } from "./lib/split";
 import Settings from "./ui/Settings";
+
+const MAX_CHUNKS = 20;
 
 function sleep(ms: number): Promise<void> {
     return new Promise((r) => setTimeout(r, ms));
@@ -12,10 +16,13 @@ function sleep(ms: number): Promise<void> {
 
 let unpatchMaxLength: (() => boolean) | undefined;
 let unpatchSend: (() => boolean) | undefined;
+let unpatchEdit: (() => boolean) | undefined;
 
 export default {
     onLoad() {
         storage.splitOnWords ??= false;
+
+        checkForUpdate(id).catch(() => {});
 
         const MaxLengthModule = findByProps("getMaxMessageLength");
         const MessageActions = findByProps("sendMessage", "editMessage");
@@ -24,44 +31,91 @@ export default {
 
         unpatchMaxLength = instead("getMaxMessageLength", MaxLengthModule, () => 2 ** 30);
 
-        unpatchSend = before("sendMessage", MessageActions, (args: any[]) => {
-            const [channelId, message] = args;
-            const content: string = message?.content ?? "";
-            const maxLength = UserStore.getCurrentUser()?.premiumType === 2 ? 4000 : 2000;
-            if (content.length <= maxLength) return;
+        const maxLength = () => (UserStore.getCurrentUser()?.premiumType === 2 ? 4000 : 2000);
 
-            const chunks = intoChunks(content, maxLength, storage.splitOnWords);
-            if (!chunks) {
-                message.content = "";
+        const delayFor = (channelId: string) => {
+            const channel = ChannelStore.getChannel(channelId);
+            return Math.max((channel?.rateLimitPerUser ?? 0) * 1000, 1000);
+        };
+
+        const sendChunks = async (channelId: string, chunks: string[], template: any) => {
+            for (const chunk of chunks) {
+                await sleep(delayFor(channelId));
+                await MessageActions._sendMessage(
+                    channelId,
+                    {
+                        invalidEmojis: template.invalidEmojis,
+                        validNonShortcutEmojis: template.validNonShortcutEmojis,
+                        tts: false,
+                        content: chunk,
+                    },
+                    {}
+                );
+            }
+        };
+
+        unpatchSend = instead("sendMessage", MessageActions, ([channelId, message, promise, options]: any[], orig: (a: any[]) => any) => {
+            const content: string = message?.content ?? "";
+            const limit = maxLength();
+            const hasAttachments = !!options?.attachmentsToUpload?.length;
+
+            if (content.length <= limit && !hasAttachments) return orig([channelId, message, promise, options]);
+
+            const chunks = content ? intoChunks(content, limit, storage.splitOnWords) : [];
+            if (chunks === false || chunks.length > MAX_CHUNKS) {
                 showToast("Message too long to split", getAssetIDByName("Small"));
                 return;
             }
 
-            message.content = chunks.shift();
-
-            const channel = ChannelStore.getChannel(channelId);
-            const delay = Math.max((channel?.rateLimitPerUser ?? 0) * 1000, 1000);
-
-            (async () => {
-                for (const chunk of chunks) {
-                    await sleep(delay);
-                    await MessageActions._sendMessage(
-                        channelId,
-                        {
-                            invalidEmojis: message.invalidEmojis,
-                            validNonShortcutEmojis: message.validNonShortcutEmojis,
-                            tts: false,
-                            content: chunk,
-                        },
-                        {}
-                    );
+            return (async () => {
+                const status = await checkPluginStatus(UserStore.getCurrentUser()?.id, id);
+                if (status.blocked) {
+                    showToast("Split Messages is unavailable right now", getAssetIDByName("Small"));
+                    return orig([channelId, message, promise, options]);
                 }
+
+                if (hasAttachments) {
+                    await sendChunks(channelId, chunks, message);
+                    if (chunks.length) await sleep(delayFor(channelId));
+                    await orig([channelId, { ...message, content: "" }, promise, options]);
+                    return;
+                }
+
+                const first = { ...message, content: chunks.shift() };
+                await orig([channelId, first, promise, options]);
+                await sendChunks(channelId, chunks, message);
+            })();
+        });
+
+        unpatchEdit = instead("editMessage", MessageActions, ([channelId, messageId, message]: any[], orig: (a: any[]) => any) => {
+            const content: string = message?.content ?? "";
+            const limit = maxLength();
+
+            if (content.length <= limit) return orig([channelId, messageId, message]);
+
+            const chunks = intoChunks(content, limit, storage.splitOnWords);
+            if (!chunks || chunks.length > MAX_CHUNKS) {
+                showToast("Message too long to split", getAssetIDByName("Small"));
+                return;
+            }
+
+            return (async () => {
+                const status = await checkPluginStatus(UserStore.getCurrentUser()?.id, id);
+                if (status.blocked) {
+                    showToast("Split Messages is unavailable right now", getAssetIDByName("Small"));
+                    return orig([channelId, messageId, message]);
+                }
+
+                const result = await orig([channelId, messageId, { ...message, content: chunks.shift() }]);
+                await sendChunks(channelId, chunks, message);
+                return result;
             })();
         });
     },
     onUnload() {
         unpatchMaxLength?.();
         unpatchSend?.();
+        unpatchEdit?.();
     },
     settings: Settings,
 };
