@@ -1,8 +1,0 @@
-{
-    "name": "Raiden's Themes",
-    "description": "A one-tap theme switcher that gathers and applies themes from backroomsa3-a11y/Mythemesssss.",
-    "authors": [
-        { "name": "Raiden" }
-    ],
-    "main": "src/index.ts"
-}
