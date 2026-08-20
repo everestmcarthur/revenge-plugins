@@ -1,0 +1,11 @@
+{
+    "name": "Zipline",
+    "description": "Uploads attachments and shortens links through a self-hosted Zipline instance instead of sending them natively.",
+    "authors": [
+        { "name": "Rosie" }
+    ],
+    "main": "src/index.ts",
+    "vendetta": {
+        "icon": "ic_upload"
+    }
+}
