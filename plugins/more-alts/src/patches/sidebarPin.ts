@@ -100,9 +100,7 @@ function patchPanelUI(getRows: () => SectionRow[], patches: (() => void)[]) {
                 }
             }, true)
         );
-    } catch {
-        // This surface may not exist on this build - patchTabsUI below covers the mobile list.
-    }
+    } catch {}
 }
 
 function patchTabsUI(getRows: () => SectionRow[], patches: (() => void)[]) {
