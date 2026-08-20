@@ -1,6 +1,7 @@
 import { logger } from "@vendetta";
-import { storage } from "@vendetta/plugin";
+import { id, storage } from "@vendetta/plugin";
 import { applyPatches } from "@shared/lib/patcher";
+import { guardPlugin } from "@shared/lib/guard";
 import patchRows from "./patches/rows";
 import patchMemberList from "./patches/memberList";
 import patchTypingWrapper from "./patches/typingWrapper";
@@ -17,12 +18,12 @@ export default {
         storage.hideTyping ??= false;
         storage.chatInterpolation ??= 0;
 
-        unpatchAll = applyPatches("RoleColorEverywhere", logger, {
+        unpatchAll = guardPlugin(id, () => applyPatches("RoleColorEverywhere", logger, {
             "mentions & chat text": patchRows,
             "member list role headers": patchMemberList,
             "typing indicator": patchTypingWrapper,
             "voice channel names": patchVoiceUserConnected
-        });
+        }));
     },
     onUnload: () => unpatchAll(),
     settings: Settings

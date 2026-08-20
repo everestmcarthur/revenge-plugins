@@ -1,6 +1,7 @@
 import { logger } from "@vendetta";
-import { storage } from "@vendetta/plugin";
+import { id, storage } from "@vendetta/plugin";
 import { applyPatches } from "@shared/lib/patcher";
+import { guardPlugin } from "@shared/lib/guard";
 import patchRing from "./patches/ringPatch";
 import Settings from "./ui/Settings";
 
@@ -21,9 +22,9 @@ export default {
         };
         storage.ringThickness ??= 2;
 
-        unpatchAll = applyPatches("Radial Status", logger, {
+        unpatchAll = guardPlugin(id, () => applyPatches("Radial Status", logger, {
             ring: patchRing
-        });
+        }));
     },
     onUnload: () => unpatchAll(),
     settings: Settings

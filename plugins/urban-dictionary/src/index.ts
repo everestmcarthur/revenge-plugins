@@ -1,10 +1,15 @@
+import { id } from "@vendetta/plugin";
+import { guardPlugin } from "@shared/lib/guard";
 import loadCommands from "./commands";
 
-let unregisterFns: (() => void)[] = [];
+let unpatchAll: () => void = () => {};
 
 export default {
     onLoad: () => {
-        unregisterFns = loadCommands();
+        unpatchAll = guardPlugin(id, () => {
+            const unregisterFns = loadCommands();
+            return () => unregisterFns.forEach((fn) => fn());
+        });
     },
-    onUnload: () => unregisterFns.forEach((fn) => fn())
+    onUnload: () => unpatchAll()
 };

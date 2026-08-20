@@ -1,6 +1,7 @@
 import { logger } from "@vendetta";
-import { storage } from "@vendetta/plugin";
+import { id, storage } from "@vendetta/plugin";
 import { applyPatches } from "@shared/lib/patcher";
+import { guardPlugin } from "@shared/lib/guard";
 import { FluxDispatcher } from "@fpte/lib/flux";
 import { UserProfileStore, UserStore } from "@fpte/lib/stores";
 import {
@@ -36,7 +37,7 @@ export default {
         // self-contained fallback picker instead.
         storage.forceFallbackEffectPicker ??= true;
 
-        unpatchAll = applyPatches("FakeProfileThemesAndEffects", logger, {
+        unpatchAll = guardPlugin(id, () => applyPatches("FakeProfileThemesAndEffects", logger, {
             "purchase check": patchGetPurchase,
             "user profile data": patchGetUserProfile,
             "profile effect sections": () => {
@@ -46,7 +47,7 @@ export default {
             "profile theme": patchUseProfileTheme,
             "profile edit form": patchUserProfileEditForm,
             "nitro upsell card": patchNitroUpsellCard
-        });
+        }));
         updateProfileThemeAndEffect();
     },
     onUnload() {

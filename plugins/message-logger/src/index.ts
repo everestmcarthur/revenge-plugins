@@ -1,17 +1,19 @@
 import { logger } from "@vendetta";
-import { storage } from "@vendetta/plugin";
+import { id, storage } from "@vendetta/plugin";
+import { guardPlugin } from "@shared/lib/guard";
 import Settings from "./ui/Settings";
-import { patchFluxIntercept, revertFakedMessages } from "./patches/fluxIntercept";
+import { patchFluxIntercept, rehydrateFromLog, revertFakedMessages } from "./patches/fluxIntercept";
 import { patchRowStyling } from "./patches/rowStyling";
+import { initCloudSync } from "./lib/cloudSync";
 
 const TAG = "[MessageLogger]";
-const cleanups: (() => void)[] = [];
+let unpatchAll: () => void = () => {};
 
 function initStorage() {
     storage.options ??= {};
     const o = storage.options;
     o.logDeleted ??= true;
-    o.keepDeletedInline ??= true;
+    o.keepDeletedInline ??= false;
     o.logEdited ??= true;
     o.ignoreBots ??= false;
     o.ignoreOwnMessages ??= false;
@@ -31,11 +33,20 @@ export default {
         initStorage();
         console.log(TAG, "onLoad");
 
-        let patched = 0;
-        if (patchFluxIntercept(cleanups)) patched++;
-        if (patchRowStyling(cleanups)) patched++;
+        unpatchAll = guardPlugin(id, () => {
+            const cleanups: (() => void)[] = [];
+            let patched = 0;
+            if (patchFluxIntercept(cleanups)) patched++;
+            if (patchRowStyling(cleanups)) patched++;
+            cleanups.push(initCloudSync());
+            rehydrateFromLog();
 
-        console.log(TAG, `onLoad done - ${patched}/2 patches applied`);
+            console.log(TAG, `onLoad done - ${patched}/2 patches applied`);
+            return () => {
+                for (const fn of cleanups) fn();
+                cleanups.length = 0;
+            };
+        });
     },
     onUnload() {
         console.log(TAG, "onUnload");
@@ -44,8 +55,7 @@ export default {
         } catch (e: any) {
             logger.error("[MessageLogger] Failed to revert faked messages:", e?.message ?? e);
         }
-        for (const fn of cleanups) fn();
-        cleanups.length = 0;
+        unpatchAll();
     },
     settings: Settings,
 };
