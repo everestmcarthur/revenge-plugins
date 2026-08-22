@@ -154,17 +154,7 @@ function patchTabsUI(getRows: () => SectionRow[], patches: (() => void)[]) {
 
                 cacheRows(rows);
 
-                const anchorIndex = sections.findIndex((x: any) =>
-                    ["Bunny", "Revenge", "Kettu", "Vencore", "ShiggyCord"].some(
-                        (mod) => x.label === mod && x.title === mod
-                    )
-                );
-
-                sections.splice(
-                    anchorIndex >= 0 ? anchorIndex + 1 : 0,
-                    0,
-                    { label: SECTION_LABEL, title: SECTION_TITLE, settings: rows.map((r) => r.key) }
-                );
+                sections.push({ label: SECTION_LABEL, title: SECTION_TITLE, settings: rows.map((r) => r.key) });
             })
         );
     } catch {
