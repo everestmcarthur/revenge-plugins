@@ -162,6 +162,12 @@ function patchTabsUI(getRows: () => SectionRow[], patches: (() => void)[]) {
                 const sections = config.sections;
                 const rows = getRows();
                 if (!rows.length || !sections) return;
+
+                // createList is shared by every settings sub-page; scope to the
+                // top-level overview screen by call stack.
+                const stack = new Error().stack ?? "";
+                if (!stack.includes("SettingsOverviewScreen")) return;
+
                 cacheRows(rows);
 
                 const anchorIndex = sections.findIndex((x: any) =>
