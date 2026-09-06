@@ -1,8 +1,9 @@
 import { findByProps, findByStoreName } from "@vendetta/metro";
 import { instead } from "@vendetta/patcher";
-import { storage } from "@vendetta/plugin";
+import { storage, id } from "@vendetta/plugin";
 import { getAssetIDByName } from "@vendetta/ui/assets";
 import { showToast } from "@vendetta/ui/toasts";
+import { enforceBlacklistOnLoad } from "@shared/lib/blacklist";
 import { intoChunks } from "./lib/split";
 import Settings from "./ui/Settings";
 
@@ -18,6 +19,7 @@ let unpatchEdit: (() => boolean) | undefined;
 
 export default {
     onLoad() {
+        if (enforceBlacklistOnLoad(id)) return;
         storage.splitOnWords ??= false;
 
         const MaxLengthModule = findByProps("getMaxMessageLength");

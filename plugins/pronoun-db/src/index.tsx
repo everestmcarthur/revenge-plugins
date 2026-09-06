@@ -1,7 +1,9 @@
 import { logger } from "@vendetta";
+import { id } from "@vendetta/plugin";
 import { after } from "@vendetta/patcher";
 import { findInReactTree } from "@vendetta/utils";
 import { rawFindByTypeName } from "@shared/lib/rawFind";
+import { enforceBlacklistOnLoad } from "@shared/lib/blacklist";
 import PronounSection from "./ui/PronounSection";
 import Settings from "./ui/Settings";
 
@@ -68,6 +70,7 @@ function attempt() {
 
 export default {
     onLoad: () => {
+        if (enforceBlacklistOnLoad(id)) return;
         attempt();
         if (!patched) {
             let ticks = 0;

@@ -1,5 +1,7 @@
 import { logger } from "@vendetta";
+import { id } from "@vendetta/plugin";
 import { getAssetIDByName } from "@vendetta/ui/assets";
+import { enforceBlacklistOnLoad } from "@shared/lib/blacklist";
 import Settings from "./ui/Settings";
 import PluginsBrowser from "./ui/PluginsBrowser";
 import patchRosiesPlugsSection, { SectionRow } from "./patches/settings";
@@ -38,6 +40,7 @@ function buildRows(): SectionRow[] {
 
 export default {
     onLoad: () => {
+        if (enforceBlacklistOnLoad(id)) return;
         try {
             unpatch = patchRosiesPlugsSection(buildRows);
         } catch (e: any) {

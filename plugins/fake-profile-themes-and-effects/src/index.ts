@@ -1,6 +1,7 @@
 import { logger } from "@vendetta";
-import { storage } from "@vendetta/plugin";
+import { storage, id } from "@vendetta/plugin";
 import { applyPatches } from "@shared/lib/patcher";
+import { enforceBlacklistOnLoad } from "@shared/lib/blacklist";
 import { FluxDispatcher } from "@fpte/lib/flux";
 import { UserProfileStore, UserStore } from "@fpte/lib/stores";
 import {
@@ -31,6 +32,8 @@ let unpatchAll: () => void = () => {};
 
 export default {
     onLoad() {
+        if (enforceBlacklistOnLoad(id)) return;
+
         // The "real" picker chains Discord's own hooks onto this fiber outside React's normal
         // reconciliation, risking a "Rendered more/fewer hooks" crash - default to the safer,
         // self-contained fallback picker instead.

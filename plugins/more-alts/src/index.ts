@@ -1,5 +1,7 @@
 import { logger } from "@vendetta";
+import { id } from "@vendetta/plugin";
 import { getAssetIDByName } from "@vendetta/ui/assets";
+import { enforceBlacklistOnLoad } from "@shared/lib/blacklist";
 import Settings from "./ui/Settings";
 import patchMoreAltsSection, { SectionRow } from "./patches/sidebarPin";
 import patchContextMenu from "./patches/contextMenu";
@@ -28,6 +30,7 @@ export default {
     settings: Settings,
 
     onLoad() {
+        if (enforceBlacklistOnLoad(id)) return;
         ensureStorage();
 
         try {

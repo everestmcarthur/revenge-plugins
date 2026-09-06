@@ -1,4 +1,4 @@
-import { readFile, writeFile, readdir } from "fs/promises";
+import { readFile, writeFile, readdir, copyFile } from "fs/promises";
 import { extname, resolve as resolvePath } from "path";
 import { createHash } from "crypto";
 
@@ -108,6 +108,8 @@ for (const plug of await readdir("./plugins")) {
         manifest.hash = createHash("sha256").update(toHash).digest("hex");
         manifest.main = "index.js";
         await writeFile(`./dist/${plug}/install/manifest.json`, JSON.stringify(manifest));
+        await writeFile(`./dist/${plug}/manifest.json`, JSON.stringify(manifest));
+        await copyFile(outPath, `./dist/${plug}/index.js`);
 
         console.log(`Successfully built ${manifest.name}!`);
     } catch (e) {
@@ -115,3 +117,7 @@ for (const plug of await readdir("./plugins")) {
         process.exit(1);
     }
 }
+
+try {
+    await copyFile("./blacklist.json", "./dist/blacklist.json");
+} catch (_) {}

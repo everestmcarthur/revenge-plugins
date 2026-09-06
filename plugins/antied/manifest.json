@@ -1,0 +1,12 @@
+{
+    "name": "Cute Moodle (Antied)",
+    "description": "Keeps deleted messages and edit history visible in chat with customizable highlights, indicators, and actionsheet management.",
+    "authors": [
+        { "name": "Angelw0lf" },
+        { "name": "Rosie" }
+    ],
+    "main": "src/index.ts",
+    "vendetta": {
+        "icon": "ic_edit_24px"
+    }
+}

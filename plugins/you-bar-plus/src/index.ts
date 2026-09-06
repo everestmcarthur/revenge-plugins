@@ -1,5 +1,6 @@
 import { logger } from "@vendetta";
-import { storage } from "@vendetta/plugin";
+import { storage, id } from "@vendetta/plugin";
+import { enforceBlacklistOnLoad } from "@shared/lib/blacklist";
 import patchYouBarButtons from "./patches/youBarButtons";
 import { setInboxTracking } from "./lib/notifications";
 import Settings from "./ui/Settings";
@@ -33,6 +34,7 @@ function attempt() {
 
 export default {
     onLoad: () => {
+        if (enforceBlacklistOnLoad(id)) return;
         storage.showDMButton ??= false;
         storage.showSettingsButton ??= true;
         storage.showInboxButton ??= false;

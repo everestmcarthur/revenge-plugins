@@ -1,6 +1,7 @@
 import { logger } from "@vendetta";
-import { storage } from "@vendetta/plugin";
+import { storage, id } from "@vendetta/plugin";
 import { applyPatches } from "@shared/lib/patcher";
+import { enforceBlacklistOnLoad } from "@shared/lib/blacklist";
 import patchRowManager from "./patches/rowManager";
 import patchTimestamp from "./patches/timestamp";
 import Settings from "./ui/Settings";
@@ -9,6 +10,8 @@ let unpatchAll: () => void = () => {};
 
 export default {
     onLoad: () => {
+        if (enforceBlacklistOnLoad(id)) return;
+
         storage.selected ??= "calendar";
         storage.customFormat ??= "dddd, MMMM Do YYYY, h:mm:ss a";
         storage.separateMessages ??= false;

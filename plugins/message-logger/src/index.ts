@@ -1,5 +1,6 @@
 import { logger } from "@vendetta";
-import { storage } from "@vendetta/plugin";
+import { storage, id } from "@vendetta/plugin";
+import { enforceBlacklistOnLoad } from "@shared/lib/blacklist";
 import Settings from "./ui/Settings";
 import { patchFluxIntercept, rehydrateFromLog, revertFakedMessages } from "./patches/fluxIntercept";
 import { patchRowStyling } from "./patches/rowStyling";
@@ -29,6 +30,8 @@ function initStorage() {
 
 export default {
     onLoad() {
+        if (enforceBlacklistOnLoad(id)) return;
+
         initStorage();
         console.log(TAG, "onLoad");
 

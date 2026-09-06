@@ -1,6 +1,7 @@
 import { logger } from "@vendetta";
-import { storage } from "@vendetta/plugin";
+import { storage, id } from "@vendetta/plugin";
 import { applyPatches } from "@shared/lib/patcher";
+import { enforceBlacklistOnLoad } from "@shared/lib/blacklist";
 import patchChat from "./patches/chat";
 import patchName from "./patches/name";
 import patchDetails from "./patches/details";
@@ -12,6 +13,8 @@ let unpatchAll: () => void = () => {};
 
 export default {
     onLoad: () => {
+        if (enforceBlacklistOnLoad(id)) return;
+
         storage.tags ??= {};
 
         unpatchAll = applyPatches("Custom User Tags", logger, {

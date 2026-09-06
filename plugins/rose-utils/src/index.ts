@@ -1,10 +1,13 @@
 import { logger } from "@vendetta";
+import { id } from "@vendetta/plugin";
+import { enforceBlacklistOnLoad } from "@shared/lib/blacklist";
 import modules from "./modules";
 import { vstorage } from "./lib/Module";
 import Settings from "./ui/Settings";
 
 export default {
     onLoad() {
+        if (enforceBlacklistOnLoad(id)) return;
         vstorage.modules ??= {};
 
         for (const module of modules) {

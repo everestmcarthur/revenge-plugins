@@ -1,6 +1,7 @@
 import { logger } from "@vendetta";
-import { storage } from "@vendetta/plugin";
+import { storage, id } from "@vendetta/plugin";
 import { applyPatches } from "@shared/lib/patcher";
+import { enforceBlacklistOnLoad } from "@shared/lib/blacklist";
 import patchRing from "./patches/ringPatch";
 import Settings from "./ui/Settings";
 
@@ -8,6 +9,8 @@ let unpatchAll: () => void = () => {};
 
 export default {
     onLoad: () => {
+        if (enforceBlacklistOnLoad(id)) return;
+
         // Force re-enabling once, superseding the old force-disable flag from before the growth
         // model in ringPatch.ts was fixed to additive px instead of a percentage multiplier.
         if (storage.forceReenabledV3 !== true) {

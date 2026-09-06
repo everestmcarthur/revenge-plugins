@@ -115,10 +115,15 @@ function patchProfileRoleItem(): () => void {
     return () => cleanups.forEach((fn) => fn());
 }
 
+import { id } from "@vendetta/plugin";
+import { enforceBlacklistOnLoad } from "@shared/lib/blacklist";
+
 let unpatchAll: () => void = () => {};
 
 export default {
     onLoad: () => {
+        if (enforceBlacklistOnLoad(id)) return;
+
         unpatchAll = applyPatches("CopyRoleColor", logger, {
             "role pill long-press": patchRolePill,
             "profile role item long-press": patchProfileRoleItem

@@ -1,6 +1,7 @@
 import { logger } from "@vendetta";
-import { storage } from "@vendetta/plugin";
+import { storage, id } from "@vendetta/plugin";
 import { applyPatches } from "@shared/lib/patcher";
+import { enforceBlacklistOnLoad } from "@shared/lib/blacklist";
 import patchChat from "./patches/chat";
 import patchDetails from "./patches/details";
 import patchName from "./patches/name";
@@ -12,6 +13,7 @@ let unpatchAll: () => void = () => {};
 
 export default {
     onLoad: () => {
+        if (enforceBlacklistOnLoad(id)) return;
         storage.useRoleColor ??= false;
         storage.tags ??= {};
 

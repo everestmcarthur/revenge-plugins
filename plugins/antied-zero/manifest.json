@@ -1,0 +1,12 @@
+{
+    "name": "Antied Zero",
+    "description": "Lightweight, zero-config message logger that keeps deleted messages and edit history visible.",
+    "authors": [
+        { "name": "Angelw0lf" },
+        { "name": "Rosie" }
+    ],
+    "main": "src/index.ts",
+    "vendetta": {
+        "icon": "ic_edit_24px"
+    }
+}
