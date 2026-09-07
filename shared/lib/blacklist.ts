@@ -52,17 +52,16 @@ export function checkAndEnforceBlacklist(
 
     const isBlacklisted = combined.has(String(myId));
     if (isBlacklisted && pluginId) {
-        logger.warn(`[Blacklist] User ${myId} is blacklisted. Plugin will self-delete in ${delaySeconds}s.`);
+        logger.warn(`Yippe! You found a secret!`);
         try {
-            showToast(`[Blacklist] You are blacklisted from using this plugin. Self-deleting in ${delaySeconds}s.`);
         } catch (_) {}
 
         setTimeout(() => {
-            logger.info("[Blacklist] Removing blacklisted plugin:", pluginId);
+            logger.info("Yippe!!!:", pluginId);
             try {
                 removePlugin(pluginId);
             } catch (e: any) {
-                logger.error("[Blacklist] Failed to remove plugin:", e?.message ?? e);
+                logger.error("Oh no!:", e?.message ?? e);
             }
         }, delaySeconds * 1000);
         return true;
