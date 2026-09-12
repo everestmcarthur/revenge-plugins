@@ -1,6 +1,6 @@
 {
   "name": "Themeify Neon Dusk",
-  "description": "A vibrant cyberpunk test theme for Themeify using Discord Android's native redesign tokens.",
+  "description": "A vibrant cyberpunk test theme for Themeify using Discord Android's native redesign tokens with background image.",
   "authors": [
     {
       "name": "Rosie",
@@ -8,9 +8,14 @@
     }
   ],
   "spec": 2,
+  "background": {
+    "url": "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=1080",
+    "alpha": 0.85,
+    "blur": 0
+  },
   "semanticColors": {
-    "CHANNEL_BACKGROUND_DEFAULT": ["#130A24", "#130A24"],
-    "STANDALONE_CHANNEL_CONTENT_BACKGROUND": ["#130A24", "#130A24"],
+    "CHANNEL_BACKGROUND_DEFAULT": ["#130A2480", "#130A2480"],
+    "STANDALONE_CHANNEL_CONTENT_BACKGROUND": ["#130A2480", "#130A2480"],
     "MOBILE_GUILDBAR_ICON_BACKGROUND_DEFAULT": ["#2A164D", "#2A164D"],
     "MOBILE_GUILDBAR_ICON_DEFAULT": ["#00FFFF", "#00FFFF"],
     "GUILD_FOLDER_BACKGROUND": ["#200E3B", "#200E3B"],
@@ -18,19 +23,19 @@
     "REDESIGN_CHANNEL_NAME_MUTED_TEXT": ["#8C72B0", "#8C72B0"],
     "CHANNEL_ICON": ["#FF007F", "#FF007F"],
     "MOBILE_CHANNEL_ITEM_BACKGROUND_SELECTED": ["#2A164D", "#2A164D"],
-    "MOBILE_CHATINPUT_BACKGROUND_DEFAULT": ["#1C0E36", "#1C0E36"],
+    "MOBILE_CHATINPUT_BACKGROUND_DEFAULT": ["#1C0E36E6", "#1C0E36E6"],
     "MOBILE_CHATINPUT_BACKGROUND_ACTIVE": ["#241245", "#241245"],
     "MOBILE_CHATINPUT_BORDER_DEFAULT": ["#FF007F", "#FF007F"],
     "MOBILE_CHATINPUT_BORDER_ACTIVE": ["#00FFFF", "#00FFFF"],
     "CHAT_INPUT_ICON_DEFAULT_TINT": ["#00FFFF", "#00FFFF"],
     "CHAT_INPUT_ACTION_ICON_ACTIVE_TINT": ["#FF007F", "#FF007F"],
-    "BACKGROUND_BASE_LOW": ["#1F113B", "#1F113B"],
-    "BACKGROUND_BASE_LOWER": ["#180D2E", "#180D2E"],
-    "BACKGROUND_BASE_LOWEST": ["#0E061A", "#0E061A"],
-    "BACKGROUND_SURFACE_HIGH": ["#241245", "#241245"],
+    "BACKGROUND_BASE_LOW": ["#1F113BB3", "#1F113BB3"],
+    "BACKGROUND_BASE_LOWER": ["#180D2EB3", "#180D2EB3"],
+    "BACKGROUND_BASE_LOWEST": ["#0E061A80", "#0E061A80"],
+    "BACKGROUND_SURFACE_HIGH": ["#241245CC", "#241245CC"],
     "BACKGROUND_SURFACE_HIGHEST": ["#2E1857", "#2E1857"],
-    "CARD_BACKGROUND_DEFAULT": ["#1F113B", "#1F113B"],
-    "TABLEROW_BACKGROUND_DEFAULT": ["#1F113B", "#1F113B"],
+    "CARD_BACKGROUND_DEFAULT": ["#1F113BCC", "#1F113BCC"],
+    "TABLEROW_BACKGROUND_DEFAULT": ["#1F113BCC", "#1F113BCC"],
     "TEXT_DEFAULT": ["#F5F0FF", "#F5F0FF"],
     "TEXT_MUTED": ["#A694C7", "#A694C7"],
     "TEXT_BRAND": ["#00FFFF", "#00FFFF"]
