@@ -10,8 +10,8 @@
   "spec": 2,
   "background": {
     "url": "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=1080",
-    "alpha": 0.85,
-    "blur": 0
+    "alpha": 0.25,
+    "blur": 0.7
   },
   "semanticColors": {
     "CHANNEL_BACKGROUND_DEFAULT": ["#130A2480", "#130A2480"],
